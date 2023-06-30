@@ -1,0 +1,102 @@
+body
+{
+	background-color: #202020;
+	text-align: center;
+}
+
+table
+{
+	margin-top: 12px;
+
+	display: inline-block;
+	border: none;
+	border-collapse: collapse;
+}
+
+th, tr, td
+{
+	border: 1px solid black;
+	border-collapse: collapse;
+	padding: 4px 12px;
+}
+
+.table-caption
+{
+	caption-side: bottom;
+	font-size: small;
+/*
+border: 1px solid black;
+border-top: none;
+*/
+}
+
+#page
+{
+	display: inline-block;
+	max-width: 140ch;
+
+	background-color: white;
+	text-align: center;
+}
+
+#page-header
+{
+	padding: 8px 12px;
+	margin-bottom: 24px;
+
+	border-bottom: 1px solid black;
+}
+
+.menu-item
+{
+	margin: 0 12px;
+
+	text-decoration: none;
+}
+
+.page-content
+{
+	display: inline-block;
+
+	padding: 0 12px;
+
+	background-color: white;
+	text-align: center;
+}
+
+.page-heading-1
+{
+	font-size: xx-large;
+	font-weight: bold;
+	margin: 16px 0 12px;
+}
+
+.page-heading-2
+{
+	font-size: x-large;
+	font-weight: bold;
+	margin: 10px 0 8px;
+}
+
+.page-heading-3
+{
+	font-size: large;
+	font-weight: bold;
+	margin: 8px 0 6px;
+}
+
+.text-block
+{
+	display: inline-block;
+	width: 78ch;
+	text-align: left;
+	margin: 4px 0 8px;
+}
+
+#page-footer
+{
+	margin-top: 24px;
+	border-top: 1px solid black;
+	padding: 8px 12px;
+}
+
