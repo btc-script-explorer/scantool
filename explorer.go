@@ -25,7 +25,7 @@ aa747bfaf23eea360267cfbaa09a1afe0a1bbdeb1d327c7d01dd446d56f7230c // coinbase tx
 a674b9bb6d07990bcb3f4b05b0a57ba7b8eb866eda475ce568c08d6d922564ea // p2sh
 
 042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414 // p2sh-p2wsh inputs
-d9aacc6dd9fe7d77f371b6d18e4f29b260af45ab6e4895bf631995696613f4fd // p2sh-p2wpkh inputs
+d9aacc6dd9fe7d77f371b6d18e4f29b260af45ab6e4895bf631995696613f4fd // 8 p2sh-p2wpkh inputs
 65bd0cdd52a3603ae4d210c9c052151d83ec8ecdf29146e4b45428986f0c8ebe // Taproot Key Path inputs
 5c1e2a5afb5bf0bca79474778d17909fdb71f7288371b59d557af40119b4f468 // 3 Taproot Script Path inputs
 
