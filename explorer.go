@@ -27,11 +27,10 @@ a674b9bb6d07990bcb3f4b05b0a57ba7b8eb866eda475ce568c08d6d922564ea // p2sh
 042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414 // p2sh-p2wsh inputs
 d9aacc6dd9fe7d77f371b6d18e4f29b260af45ab6e4895bf631995696613f4fd // p2sh-p2wpkh inputs
 65bd0cdd52a3603ae4d210c9c052151d83ec8ecdf29146e4b45428986f0c8ebe // Taproot Key Path inputs
- // Taproot Script Path input
+5c1e2a5afb5bf0bca79474778d17909fdb71f7288371b59d557af40119b4f468 // 3 Taproot Script Path inputs
 
 58443c231ee617227aad18e1974a88c537a7bd7fe2779623df18bde8b57ad671 // one input uses segwit fields, the other does not
 eb4624e9febbada4162bd7d873377b02bbce087196315e0f4ae0bab484dd1918 // unparceable output
-5c1e2a5afb5bf0bca79474778d17909fdb71f7288371b59d557af40119b4f468 // 3 Taproot Script Path inputs
 c3e384db67470346df163a2fa50024d674ef1b3e75aa97ec6534d806c82fee7e // zero-length redeem scripts, 0-of-0 multisig
 73be398c4bdc43709db7398106609eea2a7841aaf3a4fa2000dc18184faa2a7e // November 2022 bug
 */
