@@ -22,7 +22,7 @@ aa747bfaf23eea360267cfbaa09a1afe0a1bbdeb1d327c7d01dd446d56f7230c // coinbase tx
 2f10a1e81954e00284afdd292dbe3bb60a05f1788af8437829a59c77bcfb28f6 // 23 p2wpkh inputs, 2 outputs
 3ccdd8921c941f29ba5981c04646d434b437e29b8c59e9ab4b5f4ad7db3cb2d9 // 1 input, 23 outputs
 
-a674b9bb6d07990bcb3f4b05b0a57ba7b8eb866eda475ce568c08d6d922564ea // p2sh
+a674b9bb6d07990bcb3f4b05b0a57ba7b8eb866eda475ce568c08d6d922564ea // 1 p2sh input, 2 p2sh outputs
 
 042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414 // 6 p2sh-p2wsh inputs, 2 p2sh outputs
 d9aacc6dd9fe7d77f371b6d18e4f29b260af45ab6e4895bf631995696613f4fd // 8 p2sh-p2wpkh inputs, 1 p2wpkh output
