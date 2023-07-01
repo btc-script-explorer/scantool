@@ -17,6 +17,8 @@ import (
 )
 
 /*
+Line A.
+
 aa747bfaf23eea360267cfbaa09a1afe0a1bbdeb1d327c7d01dd446d56f7230c // coinbase tx
 
 2f10a1e81954e00284afdd292dbe3bb60a05f1788af8437829a59c77bcfb28f6 // 23 p2wpkh inputs, 2 outputs
