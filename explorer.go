@@ -11,7 +11,7 @@ import (
 	"log"
 
 	"btctx/app"
-	"btctx/layouts"
+	"btctx/themes"
 	"btctx/btc"
 	"btctx/test"
 )
@@ -40,13 +40,8 @@ func serveFile (response http.ResponseWriter, request *http.Request) {
 }
 
 func homeController (response http.ResponseWriter, request *http.Request) {
-	desktopLayout := layouts.GetLayout (true)
-	html, err := os.ReadFile ("./html/explorer.html")
-	if err != nil {
-		fmt.Println (err.Error ())
-		return
-	}
-	fmt.Fprint (response, desktopLayout.GetMainLayout (string (html), ""))
+	html := themes.GetTheme ().GetHomePageHtml ()
+	fmt.Fprint (response, html)
 }
 
 func ajaxController (response http.ResponseWriter, request *http.Request) {

@@ -1,16 +1,11 @@
-package layouts
+package themes
 
 import (
 )
 
 type PageLayout interface {
 	GetMainLayout (pageContent string, javascript string) string
-//	GetExplorerPage () string
-//	GetTxBasicsPage () string
 	SetHTMLContent (html string, javascript string) string
-
-	GetHeaderBar () string
-	GetFooterBar () string
 }
 
 func GetLayout (isDesktop bool) PageLayout {
@@ -46,25 +41,5 @@ func (d Desktop) GetMainLayout (pageContent string, javascript string) string {
 
 func (d Desktop) SetHTMLContent (html string, javascript string) string {
 	return d.GetMainLayout (html, javascript)
-}
-
-func (d Desktop) GetHeaderBar () string {
-	return `
-		<div id="page-header">
-			<a class="menu-item" href="/">Home</a>
-<!--
-			<a class="menu-item" href="/tx-basics/">Transaction Basics</a>
-			<a class="menu-item" href="/">Transactions of Interest</a>
-			<a class="menu-item" href="/charts/">Charts</a>
-			<a class="menu-item" href="/faw/">FAQ</a>
--->
-		</div>`
-}
-
-func (d Desktop) GetFooterBar () string {
-	return `
-		<div id="page-footer">
-			Copyright &#xA9;2023. All rights reserved.
-		</div>`
 }
 

@@ -126,13 +126,23 @@ func (t *TestSettings) GetSourceFile () string {
 
 type AppSettings struct {
 	configFile string
+	themeName string
+	layoutName string
 }
-func NewAppSettings (configFile string) AppSettings {
-	return AppSettings { configFile: configFile }
+func NewAppSettings (configFile string, themeName string, layoutName string) AppSettings {
+	return AppSettings { configFile: configFile, themeName: themeName, layoutName: layoutName }
 }
 
 func (a *AppSettings) GetConfigFileLocation () string {
 	return a.configFile
+}
+
+func (a *AppSettings) GetTheme () string {
+	return a.themeName
+}
+
+func (a *AppSettings) GetLayout () string {
+	return a.layoutName
 }
 
 ////////////////////////////////////////////////////////
@@ -184,39 +194,43 @@ func checkFile (fileName string, requiredPermissions byte) bool {
 func (s *settingsManager) PrintListeningMessage () {
 
 	// create the data lines of the message
-//	nodeLine := "*  Node: " + s.Node.nodeType + " (" + s.Node.GetFullUrl () + ")  "
-	nodeLine := "*  Node: " + s.Node.GetFullUrl () + " (" + s.Node.nodeType + ")  "
-	webLine := "*   Web: " + s.Website.GetFullUrl () + "  "
+	lines := make ([] string, 4)
+	lines [0] = "*    Node: " + s.Node.GetFullUrl () + " (" + s.Node.nodeType + ")  "
+	lines [1] = "*     Web: " + s.Website.GetFullUrl () + "  "
+	lines [2] = "*   Theme: " + s.App.GetTheme () + "  "
+	lines [3] = "*  Layout: " + s.App.GetLayout () + "  "
 
 	// calculate the width of the message and add padding as necessary
-	bannerWidth := len (nodeLine) + 1
-	if len (webLine) >= bannerWidth {
-		bannerWidth = len (webLine) + 1
-
-		padLen := bannerWidth - len (nodeLine)
-		for a := 1; a < padLen; a++ {
-			nodeLine += " "
-		}
-	} else {
-		padLen := bannerWidth - len (webLine)
-		for a := 1; a < padLen; a++ {
-			webLine += " "
+	bannerWidth := len (lines [0]) + 1
+	for l := 1; l < len (lines); l++ {
+		if len (lines [l]) + 1 > bannerWidth {
+			bannerWidth = len (lines [l]) + 1
 		}
 	}
 
-	nodeLine += "*"
-	webLine += "*"
-
-	// create the lines of the message
 	topAndBottom := ""
 	for a := 0; a < bannerWidth; a++ {
 		topAndBottom += "*"
 	}
 
+	// pad the ones that need to be padded
+	for l := 0; l < len (lines); l++ {
+		if len (lines [l]) + 1 < bannerWidth {
+			padLen := bannerWidth - len (lines [l])
+			for a := 1; a < padLen; a++ {
+				lines [l] += " "
+			}
+		}
+
+		lines [l] += "*"
+	}
+
+	// print the message
 	fmt.Println ()
 	fmt.Println (topAndBottom)
-	fmt.Println (nodeLine)
-	fmt.Println (webLine)
+	for l := 0; l < len (lines); l++ {
+		fmt.Println (lines [l])
+	}
 	fmt.Println (topAndBottom)
 	fmt.Println ()
 }
@@ -225,6 +239,10 @@ func (s *settingsManager) parseParamList (paramList map [string] string, fromCom
 
 	// create the map of string type parameters
 	stringParams := map [string] *string {
+		// app
+		"app-theme": &settings.App.themeName,
+		"app-layout": &settings.App.layoutName,
+
 		// node
 		"node-type": &settings.Node.nodeType,
 		"node-url": &settings.Node.url,
@@ -292,7 +310,7 @@ func parseSettings () {
 	}
 
 	// default settings
-	app := NewAppSettings ("")
+	app := NewAppSettings ("", "Default", "Desktop")
 	node := NewNodeSettings ("BitcoinCore", "127.0.0.1", uint16 (8332), "", "")
 	website := NewWebsiteSettings ("127.0.0.1", uint16 (8080))
 	test := NewTestSettings (TEST_NONE, "", "./test-transactions.txt")
