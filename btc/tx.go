@@ -73,13 +73,16 @@ func (tx *Tx) GetHtml (theme themes.Theme) string {
 	// outputs
 	totalOut := uint64 (0)
 	outputCount := len (tx.outputs)
-	outputsHtml := ""
+	outputsMinimizedHtml := ""
+	outputsMaximizedHtml := ""
 	for o := 0; o < outputCount; o++ {
 		totalOut += tx.outputs [o].GetSatoshis ()
-		outputsHtml += tx.outputs [o].GetMinimizedHtml (o, theme)
+		outputsMinimizedHtml += tx.outputs [o].GetHtml (o, theme, true)
+		outputsMaximizedHtml += tx.outputs [o].GetHtml (o, theme, false)
 	}
 	html = strings.Replace (html, "[[TX-VALUE-OUT]]", strconv.FormatUint (totalOut, 10), 1)
-	html = strings.Replace (html, "[[TX-OUTPUTS]]", outputsHtml, 1)
+	html = strings.Replace (html, "[[TX-OUTPUTS-MINIMIZED]]", outputsMinimizedHtml, 1)
+	html = strings.Replace (html, "[[TX-OUTPUTS-MAXIMIZED]]", outputsMaximizedHtml, 1)
 
 	outputCountLabel := strconv.Itoa (outputCount) + " Output"
 	if outputCount > 1 { outputCountLabel += "s" }

@@ -30,14 +30,28 @@ func (o *Output) GetAddress () string {
 	return o.address
 }
 
-func (o *Output) GetMinimizedHtml (outputIndex int, theme themes.Theme) string {
+func (o *Output) GetHtml (outputIndex int, theme themes.Theme, minimized bool) string {
 
-	html := theme.GetMinimizedOutputHtmlTemplate ()
+	html := theme.GetOutputHtmlTemplate (minimized)
 
 	html = strings.Replace (html, "[[INDEX]]", strconv.Itoa (outputIndex), 1)
 	html = strings.Replace (html, "[[TYPE]]", o.outputType, 1)
-	html = strings.Replace (html, "[[VALUE]]", strconv.FormatUint (o.value, 10), 1)
-	html = strings.Replace (html, "[[ADDRESS]]", o.address, 1)
+	html = strings.Replace (html, "[[VALUE]]", GetValueHtml (o.value), 1)
+
+	address := o.address
+	if len (address) == 0 { address = "No Address Format" }
+	html = strings.Replace (html, "[[ADDRESS]]", address, 1)
+
+	scriptFields := ""
+	if !o.outputScript.IsEmpty () {
+		fields := o.outputScript.GetFields ()
+		for _, field := range fields {
+			scriptFields += "<div>" + field + "</div>"
+		}
+	} else {
+		scriptFields = "Empty"
+	}
+	html = strings.Replace (html, "[[OUTPUT-SCRIPT]]", scriptFields, 1)
 
 	return html
 }

@@ -1,7 +1,7 @@
 package btc
 
 import (
-//	"fmt"
+	"strconv"
 )
 
 type ValueReader struct {
@@ -46,7 +46,8 @@ func (vr *ValueReader) ReverseBytes (rawBytes [] byte) [] byte {
 	return reversed
 }
 
-func (vr *ValueReader) IsValidPublicKey (field [] byte) bool {
+
+func IsValidPublicKey (field [] byte) bool {
 	fieldLen := len (field)
 	if fieldLen != 33 && fieldLen != 65 {
 		return false
@@ -63,7 +64,7 @@ func (vr *ValueReader) IsValidPublicKey (field [] byte) bool {
 	return true
 }
 
-func (vr *ValueReader) IsValidECSignature (field [] byte) bool {
+func IsValidECSignature (field [] byte) bool {
 	fieldLen := len (field)
 
 	if fieldLen < 55 || fieldLen > 78 {
@@ -79,7 +80,7 @@ func (vr *ValueReader) IsValidECSignature (field [] byte) bool {
 	return validSighashByte
 }
 
-func (vr *ValueReader) IsValidSchnorrSignature (field [] byte) bool {
+func IsValidSchnorrSignature (field [] byte) bool {
 	fieldLen := len (field)
 
 	if fieldLen == 64 { return true }
@@ -88,5 +89,15 @@ func (vr *ValueReader) IsValidSchnorrSignature (field [] byte) bool {
 	lastByte := field [fieldLen - 1]
 	validSighashByte := lastByte == 0x01 || lastByte == 0x02 || lastByte == 0x03 || lastByte == 0x81 || lastByte == 0x82 || lastByte == 0x83
 	return validSighashByte
+}
+
+func GetValueHtml (satoshis uint64) string {
+	satoshisStr := strconv.FormatUint (satoshis, 10)
+	digitCount := len (satoshisStr)
+	if digitCount > 8 {
+		btcDigits := digitCount - 8
+		satoshisStr = "<span style=\"font-weight:bold;\">" + satoshisStr [0 : btcDigits] + "</span>" + satoshisStr [btcDigits :]
+	}
+	return satoshisStr
 }
 

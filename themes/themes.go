@@ -43,8 +43,9 @@ func (t *Theme) GetMinimizedInputHtmlTemplate () string {
 	return t.getHtml ("html/btc-objects/input-minimized.html")
 }
 
-func (t *Theme) GetMinimizedOutputHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/output-minimized.html")
+func (t *Theme) GetOutputHtmlTemplate (minimized bool) string {
+	if minimized { return t.getHtml ("html/btc-objects/output-minimized.html") }
+	return t.getHtml ("html/btc-objects/output-maximized.html")
 }
 
 func (t *Theme) GetExplorerPageHtml (queryId string, queryResult string, customJavascript string) string {

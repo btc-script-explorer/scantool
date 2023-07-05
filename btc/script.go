@@ -147,8 +147,7 @@ func (s *Script) IsP2pkOutput () bool {
 		return false
 	}
 
-	valueReader := ValueReader {}
-	if !valueReader.IsValidPublicKey (s.rawBytes [1 : 1 + s.rawBytes [0]]) {
+	if !IsValidPublicKey (s.rawBytes [1 : 1 + s.rawBytes [0]]) {
 		return false
 	}
 

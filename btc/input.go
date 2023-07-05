@@ -62,7 +62,7 @@ func (i *Input) GetMinimizedHtml (inputIndex int, satoshis uint64, theme themes.
 	html = strings.Replace (html, "[[SPEND-TYPE]]", i.spendType, 1)
 
 	inputValue := ""
-	if i.IsCoinbase () && satoshis > 0 { inputValue = strconv.FormatUint (satoshis, 10) }
+	if i.IsCoinbase () && satoshis > 0 { inputValue = GetValueHtml (satoshis) }
 	html = strings.Replace (html, "[[INPUT-VALUE]]", inputValue, 1)
 
 	return html

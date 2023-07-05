@@ -43,15 +43,13 @@ func (s *Segwit) IsEmpty () bool {
 func (s *Segwit) IsValidP2wpkh () bool {
 	if len (s.fields) != 2 { return false }
 
-	valueReader := ValueReader {}
-
 	publicKeyBytes, err := hex.DecodeString (s.fields [0])
 	if err != nil { fmt.Println (err.Error ()); return false }
 
 	signatureBytes, err := hex.DecodeString (s.fields [1])
 	if err != nil { fmt.Println (err.Error ()); return false }
 
-	return valueReader.IsValidPublicKey (publicKeyBytes) && valueReader.IsValidECSignature (signatureBytes)
+	return IsValidPublicKey (publicKeyBytes) && IsValidECSignature (signatureBytes)
 }
 
 /*
@@ -65,11 +63,10 @@ func (s *Segwit) IsValidTaprootKeyPath () bool {
 
 	if len (s.fields) != exactFieldCount { return false }
 
-	valueReader := ValueReader {}
 	signatureBytes, err := hex.DecodeString (s.fields [0])
 	if err != nil { fmt.Println (err.Error ()); return false }
 
-	return valueReader.IsValidSchnorrSignature (signatureBytes)
+	return IsValidSchnorrSignature (signatureBytes)
 }
 
 // second return value is index of tap script or -1
