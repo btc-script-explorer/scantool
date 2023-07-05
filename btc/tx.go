@@ -133,3 +133,83 @@ func (tx *Tx) GetPendingInputs () [] PendingInput {
 	return pendingInputs
 }
 
+/*
+// This function can be used to read a raw transaction as a byte array.
+// This method has been abandoned because it does not include bitcoin addresses.
+// However, it is still included here, commented out, in case it becomes more
+// convenient to read transactions this way if/when other bitcoin node types are supported.
+func NewTx (hash string, raw_bytes [] byte) Tx {
+
+	value_reader := ValueReader {}
+
+	pos := 0
+
+	version := value_reader.ReadNumeric (raw_bytes [pos : pos + 4])
+	pos += 4
+
+
+	// check for segwit support
+	input_count, byte_count := value_reader.ReadVarInt (raw_bytes [pos:])
+	pos += byte_count
+
+	bip_141 := input_count == 0
+	if bip_141 {
+//		bip_141_flag := value_reader.ReadNumeric (raw_bytes [pos : pos + 1])
+		pos += 1
+
+		input_count, byte_count = value_reader.ReadVarInt (raw_bytes [pos:]);
+		pos += byte_count
+	}
+
+	// inputs
+	inputs := make ([] Input, input_count)
+	for i := 0; i < int (input_count); i++ {
+		input, byte_count := NewInput (raw_bytes [pos:])
+		inputs [i] = input
+		pos += byte_count
+	}
+
+	coinbase := inputs [0].coinbase
+
+	// outputs
+	output_count, byte_count := value_reader.ReadVarInt (raw_bytes [pos:])
+	pos += byte_count
+	
+	outputs := make ([] Output, output_count)
+	for o := 0; o < int (output_count); o++ {
+		output, byte_count := NewOutput (raw_bytes [pos:])
+		outputs [o] = output
+		pos += byte_count
+	}
+
+	// segwit
+	if bip_141 {
+		for i := 0; i < int (input_count); i++ {
+			segwit, byte_count := NewSegwit (raw_bytes [pos:])
+			pos += byte_count
+
+			if !segwit.IsEmpty () {
+				inputs [i].SetSegwit (segwit)
+			}
+		}
+	}
+
+	// serialized scripts
+	for i := 0; i < int (input_count); i++ {
+		inputs [i].ParseSerializedScripts ()
+	}
+
+	lock_time := value_reader.ReadNumeric (raw_bytes [pos : pos + 4])
+	pos += 4
+
+	hash_bytes, _ := hex.DecodeString (hash)
+
+	return Tx { hash: [32] byte (hash_bytes),
+		version: uint32 (version),
+		coinbase: coinbase,
+		bip141: bip_141,
+		inputs: inputs,
+		outputs: outputs,
+		lock_time: uint32 (lock_time) }
+}
+*/
