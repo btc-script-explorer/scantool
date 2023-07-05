@@ -1,10 +1,10 @@
 package btc
 
 import (
-	"fmt"
-	"os"
 	"strconv"
 	"strings"
+
+	"btctx/themes"
 )
 
 type Output struct {
@@ -30,15 +30,9 @@ func (o *Output) GetAddress () string {
 	return o.address
 }
 
-func (o *Output) getMinimizedHTMLTemplate () string {
-	fileBytes, err := os.ReadFile ("./html/output-minimized.html")
-	if err != nil { fmt.Println (err.Error ()); return "" }
-	return string (fileBytes)
-}
+func (o *Output) GetMinimizedHtml (outputIndex int, theme themes.Theme) string {
 
-func (o *Output) GetMinimizedHTML (outputIndex int) string {
-
-	html := o.getMinimizedHTMLTemplate ()
+	html := theme.GetMinimizedOutputHtmlTemplate ()
 
 	html = strings.Replace (html, "[[INDEX]]", strconv.Itoa (outputIndex), 1)
 	html = strings.Replace (html, "[[TYPE]]", o.outputType, 1)

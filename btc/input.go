@@ -1,10 +1,10 @@
 package btc
 
 import (
-	"fmt"
-	"os"
 	"strconv"
 	"strings"
+
+	"btctx/themes"
 )
 
 type Input struct {
@@ -54,20 +54,12 @@ func (i *Input) GetSequence () uint32 {
 	return i.sequence
 }
 
-func (i *Input) getPendingHTMLTemplate () string {
-	fileBytes, err := os.ReadFile ("./html/input-minimized.html")
-	if err != nil {
-		fmt.Println (err.Error ())
-	}
-	return string (fileBytes)
-}
+func (i *Input) GetMinimizedHtml (inputIndex int, satoshis uint64, theme themes.Theme) string {
 
-func (i *Input) GetHTML (inputIndex int, satoshis uint64) string {
+	html := theme.GetMinimizedInputHtmlTemplate ()
 
-	html := i.getPendingHTMLTemplate ()
-
-	html = strings.Replace (html, "[[INDEX]]", strconv.Itoa (inputIndex), -1)
-	html = strings.Replace (html, "[[TX-TYPE]]", i.spendType, 1)
+	html = strings.Replace (html, "[[INPUT-INDEX]]", strconv.Itoa (inputIndex), -1)
+	html = strings.Replace (html, "[[SPEND-TYPE]]", i.spendType, 1)
 
 	inputValue := ""
 	if i.IsCoinbase () && satoshis > 0 { inputValue = strconv.FormatUint (satoshis, 10) }

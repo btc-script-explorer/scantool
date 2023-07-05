@@ -9,6 +9,7 @@ import (
 type Script struct {
 	rawBytes [] byte
 	fields [] string
+	fieldTypes string
 	parseError bool
 }
 
@@ -92,7 +93,7 @@ func NewScript (rawBytes [] byte) Script {
 		}
 	}
 
-	return Script { rawBytes: rawBytes, fields: fields, parseError: parseError }
+	return Script { rawBytes: rawBytes, fields: fields, fieldTypes: fieldTypes, parseError: parseError }
 }
 
 func (s *Script) GetFields () [] string {
@@ -110,20 +111,29 @@ func (s *Script) GetHex () string {
 func (s *Script) GetSerializedScript () [] byte {
 
 	serializedScriptIndex := len (s.GetFields ()) - 1
-	if serializedScriptIndex < 0 {
-		return nil
+
+	// if there are no script fields, there is no serialized script
+	if serializedScriptIndex >= 0 {
+
+		// in the unlikely event of OP_0 being used as the length of a zero-length serialized script, we return an empty array
+		serializedScriptHex := s.GetFields () [serializedScriptIndex]
+		if serializedScriptHex == "OP_0" {
+			return make ([] byte, 0)
+		}
+
+		// if the last field is not a stack item, then it is not a serialized script
+		if s.fieldTypes [serializedScriptIndex] == 's' {
+			serializedScript, err := hex.DecodeString (serializedScriptHex)
+			if err != nil { 
+//fmt.Println (serializedScriptHex)
+				fmt.Println (err.Error ());
+				return nil
+			}
+			return serializedScript
+		}
 	}
 
-	// in the unlikely event of OP_0 being used as the length of a zero-length serialized script, we must test for it
-	serializedScriptHex := s.GetFields () [serializedScriptIndex]
-	if serializedScriptHex == "OP_0" {
-		serializedScriptHex = ""
-	}
-	
-	serializedScript, err := hex.DecodeString (serializedScriptHex)
-	if err != nil { fmt.Println (err.Error ()); return make ([] byte, 0) }
-
-	return serializedScript
+	return nil
 }
 
 func (s *Script) IsEmpty () bool {
@@ -189,11 +199,11 @@ func (s *Script) IsNullDataOutput () bool {
 }
 
 func (s *Script) IsWitnessUnknownOutput () bool {
-	firstByteIsValidWitnessVersion := s.rawBytes [0] == 0x00 || (s.rawBytes [0] >= 0x51 && s.rawBytes [0] <= 0x60)
-	if !firstByteIsValidWitnessVersion { return false }
-
 	exactlyTwoFields := len (s.GetFields ()) == 2
 	if !exactlyTwoFields { return false }
+
+	firstByteIsValidWitnessVersion := s.rawBytes [0] == 0x00 || (s.rawBytes [0] >= 0x51 && s.rawBytes [0] <= 0x60)
+	if !firstByteIsValidWitnessVersion { return false }
 
 	validVersion0 := s.IsP2wpkhOutput () || s.IsP2wshOutput ()
 	if validVersion0 { return false }

@@ -6,8 +6,6 @@ body
 
 table
 {
-	margin-top: 12px;
-
 	display: inline-block;
 	border: none;
 	border-collapse: collapse;
@@ -15,19 +13,24 @@ table
 
 th, tr, td
 {
-	border: 1px solid black;
-	border-collapse: collapse;
-	padding: 4px 12px;
+	border: none;
 }
 
-.table-caption
+td
 {
-	caption-side: bottom;
-	font-size: small;
-/*
-border: 1px solid black;
-border-top: none;
-*/
+	font-family: monospace;
+}
+
+.tx-part-minimized
+{
+	padding: 2px 2ch;
+}
+
+.section-heading
+{
+	font-size: x-large;
+	font-weight: bold;
+/*	margin-bottom: 18px;*/
 }
 
 #page
@@ -42,8 +45,6 @@ border-top: none;
 #page-header
 {
 	padding: 8px 12px;
-	margin-bottom: 24px;
-
 	border-bottom: 1px solid black;
 }
 
@@ -52,6 +53,16 @@ border-top: none;
 	margin: 0 12px;
 
 	text-decoration: none;
+}
+
+.query-box
+{
+	font-family: monospace;
+	text-align: center;
+	margin: 24px 0;
+	padding: 10px 0;
+	font-size: 16px;
+	font-weight: bold;
 }
 
 .page-content
