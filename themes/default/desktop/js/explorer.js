@@ -1,68 +1,44 @@
-function check_tx_hash_format (hash)
+function check_query_id_format (query_id)
 {
-	if (hash.length != 64)
+	if (query_id.length != 64)
 		return false;
 
-	hash = hash.toLowerCase ();
+	query_id = query_id.toLowerCase ();
 	var allowed_chars = '0123456789abcdef';
-	for (var i = 0; i < hash.length; i++)
+	for (var i = 0; i < query_id.length; i++)
 	{
-		if (allowed_chars.indexOf (hash.charAt (i)) == -1)
+		if (allowed_chars.indexOf (query_id.charAt (i)) == -1)
 			return false;
 	}
 
 	return true;
 }
 
-function get_transaction (hash)
+function get_transaction (query_id)
 {
-	if (!check_tx_hash_format (hash))
+	if (!check_query_id_format (query_id))
 	{
-		console.log (hash + ' is not a valid transaction id.');
-		pending_inputs = [];
-		tx_id = '';
+		console.log (query_id + ' is not a valid block id, transaction id or bitcoin address.');
 		return;
 	}
 
-	$ ('#tx').html ('');
-
-	$.ajax (
-	{
-		type: 'post',
-		url: 'ajax',
-		data: { method: 'gettx', hash: hash },
-		dataType: 'json',
-//		error: function (jqXHR, textStatus, errorThrown) {},
-		success: function (data, textStatus, jqXHR)
-		{
-//console.log ('gettx response:'); console.log (data);
-
-			tx_id = hash;
-			$ ('#tx').html (data.Tx_html);
-			pending_inputs = data.Pending_inputs;
-			if (pending_inputs.length > 0)
-				handle_pending_inputs ();
-		}
-//		complete: function (jqXHR, textStatus) {}
-	});
+	var url = window.location.protocol + '//' + window.location.host + '/tx/' + query_id;
+	window.location.href = url;
 }
 
-var pending_inputs = [];
-var tx_id = '';
 function handle_pending_inputs ()
 {
 	if (pending_inputs.length == 0)
 		return;
 
 	var ajax_data = pending_inputs [0];
-	ajax_data.tx_id = tx_id;
 	ajax_data.method = 'getpreviousoutput';
 //console.log ('getpreviousoutput request:'); console.log (ajax_data);
 
 	$.ajax (
 	{
 		type: 'post',
-		url: 'ajax',
+		url: window.location.protocol + '//' + window.location.host + '/ajax',
 		data: ajax_data,
 		dataType: 'json',
 //		error: function (jqXHR, textStatus, errorThrown) {},
@@ -70,9 +46,9 @@ function handle_pending_inputs ()
 		{
 //console.log ('getpreviousoutput response:'); console.log (data);
 
-			$ ('#input-address-' + data.Input_index).html (data.Address);
+			$ ('#input-minimized-address-' + data.Input_index).html (data.Address);
 
-			$ ('#input-value-' + data.Input_index).html (data.Value);
+			$ ('#input-minimized-value-' + data.Input_index).html (data.Value);
 			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Value;
 			$ ('#tx-value-in').html (value_in);
 
@@ -80,13 +56,13 @@ function handle_pending_inputs ()
 			if (value_in >= value_out)
 				$ ('#tx-fee').html (value_in - value_out);
 
-			var input_tx_type = $ ('#input-tx-type-' + data.Input_index).html ();
+			var input_tx_type = $ ('#input-minimized-tx-type-' + data.Input_index).html ();
 			if (input_tx_type.length == 0)
 			{
 				if (data.Output_type == 'Taproot')
-					$ ('#input-tx-type-' + data.Input_index).html ('Taproot Key Path');
+					$ ('#input-minimized-tx-type-' + data.Input_index).html ('Taproot Key Path');
 				else
-					$ ('#input-tx-type-' + data.Input_index).html (data.Output_type);
+					$ ('#input-minimized-tx-type-' + data.Input_index).html (data.Output_type);
 			}
 			else
 			{
@@ -95,11 +71,12 @@ function handle_pending_inputs ()
 				if (!p2sh_wrapped && !taproot_script_path)
 				{
 					console.log (data.Output_type + ' incorrectly identified as ' + input_tx_type);
-					$ ('#input-tx-type-' + data.Input_index).html (data.Output_type);
+					$ ('#input-minimized-tx-type-' + data.Input_index).html (data.Output_type);
 				}
 			}
 
 			// get the next one
+			// an interval could be used as a timer in case some of the responses are never received
 			pending_inputs.splice (0, 1);
 			if (pending_inputs.length > 0)
 				handle_pending_inputs ();
@@ -108,9 +85,31 @@ function handle_pending_inputs ()
 	});
 }
 
+function handle_resize ()
+{
+	var body_margin_top_css = $ ('body').css ('margin-top');
+	var body_margin_top = Number (body_margin_top_css.substring (0, body_margin_top_css.length - 2));
+	var body_margin_bottom_css = $ ('body').css ('margin-bottom');
+	var body_margin_bottom = Number (body_margin_top_css.substring (0, body_margin_bottom_css.length - 2));
+
+	var body_vertical_margin = body_margin_top + body_margin_bottom;
+
+	var win_height = $ (window).outerHeight ();
+	var page_height = $ ('#page').outerHeight ();
+	if (page_height < win_height)
+		$ ('#page').css ('height', (win_height - body_vertical_margin) + 'px');
+}
+
 $ (document).ready (
 function ()
 {
-	$ ('#h').on ('keypress', function (e) { if (e.which == 0x0d) get_transaction ($ ('#h').val ()); })
+//	handle_resize ();
+//	$ (window).resize (handle_resize);
+
+	if (typeof pending_inputs !== 'undefined' && Array.isArray (pending_inputs))
+		handle_pending_inputs ();
+
+	// set up the Enter key handler
+	$ ('#query-box').on ('keypress', function (e) { if (e.which == 0x0d) get_transaction ($ ('#query-box').val ()); })
 });
 

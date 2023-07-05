@@ -128,7 +128,6 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}) Input {
 	// therefore, we can't rely on the parsability of the last field of the input script alone
 	// inputs with a previous p2sh output type have redeem scripts
 	redeemScript := NewScript (script.GetSerializedScript ())
-//fmt.Println (redeemScript)
 	if !redeemScript.HasParseError () {
 		if redeemScript.IsP2shP2wshInput () {
 			txType = "P2SH-P2WSH"

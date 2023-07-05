@@ -1,11 +1,11 @@
 package btc
 
 import (
-	"fmt"
-	"os"
 	"encoding/hex"
 	"strings"
 	"strconv"
+
+	"btctx/themes"
 )
 
 type Tx struct {
@@ -18,15 +18,6 @@ type Tx struct {
 	inputs [] Input
 	outputs [] Output
 	lockTime uint32
-}
-
-func getTxHTMLTemplate () string {
-	fileBytes, err := os.ReadFile ("./html/tx.html")
-	if err != nil {
-		fmt.Println (err.Error ())
-		return ""
-	}
-	return string (fileBytes)
 }
 
 func (tx *Tx) IsCoinbase () bool {
@@ -65,10 +56,9 @@ func (tx *Tx) GetLockTime () uint32 {
 	return tx.lockTime
 }
 
-func (tx *Tx) GetHTML () string {
-	html := getTxHTMLTemplate ()
+func (tx *Tx) GetHtml (theme themes.Theme) string {
 
-	html = strings.Replace (html, "[[TX-HASH]]", hex.EncodeToString (tx.id [:]), 1)
+	html := theme.GetTxHtmlTemplate ()
 
 	coinbase := "No"
 	if tx.coinbase { coinbase = "Yes" }
@@ -81,22 +71,19 @@ func (tx *Tx) GetHTML () string {
 	html = strings.Replace (html, "[[TX-LOCK-TIME]]", strconv.FormatInt (int64 (tx.lockTime), 10), 1)
 
 	// outputs
-	outputCount := len (tx.outputs)
 	totalOut := uint64 (0)
+	outputCount := len (tx.outputs)
+	outputsHtml := ""
 	for o := 0; o < outputCount; o++ {
 		totalOut += tx.outputs [o].GetSatoshis ()
+		outputsHtml += tx.outputs [o].GetMinimizedHtml (o, theme)
 	}
 	html = strings.Replace (html, "[[TX-VALUE-OUT]]", strconv.FormatUint (totalOut, 10), 1)
+	html = strings.Replace (html, "[[TX-OUTPUTS]]", outputsHtml, 1)
 
 	outputCountLabel := strconv.Itoa (outputCount) + " Output"
 	if outputCount > 1 { outputCountLabel += "s" }
 	html = strings.Replace (html, "[[TX-OUTPUT-COUNT]]", outputCountLabel, 1)
-
-	outputsHtml := ""
-	for o := 0; o < len (tx.outputs); o++ {
-		outputsHtml += tx.outputs [o].GetMinimizedHTML (o)
-	}
-	html = strings.Replace (html, "[[TX-OUTPUTS]]", outputsHtml, 1)
 
 	// inputs
 	// these are set to zero because the previous outputs will be read asyncronously
@@ -115,9 +102,9 @@ func (tx *Tx) GetHTML () string {
 	inputsHtml := ""
 	for i := 0; i < len (tx.inputs); i++ {
 		if tx.coinbase && i == 0 {
-			inputsHtml += tx.inputs [i].GetHTML (i, totalOut)
+			inputsHtml += tx.inputs [i].GetMinimizedHtml (i, totalOut, theme)
 		} else {
-			inputsHtml += tx.inputs [i].GetHTML (i, 0)
+			inputsHtml += tx.inputs [i].GetMinimizedHtml (i, 0, theme)
 		}
 	}
 	html = strings.Replace (html, "[[TX-INPUTS]]", inputsHtml, 1)

@@ -78,44 +78,52 @@ func (w *WebsiteSettings) GetPort () uint16 {
 
 ////////////////////////////////////////////////////////
 
-const TEST_NONE   = byte (0x00)
-const TEST_SAVE   = byte (0x01)
-const TEST_VERIFY = byte (0x02)
 type TestSettings struct {
-	testType byte
-	directory string
+	testMode string
+	verifiedDir string
+	unverifiedDir string
 	sourceFile string
 }
-func NewTestSettings (testType byte, directory string, sourceFile string) TestSettings {
-	return TestSettings { testType: testType, directory: directory, sourceFile: sourceFile }
+func NewTestSettings (testMode string, verifiedDir string, unverifiedDir string, sourceFile string) TestSettings {
+	mode := strings.ToLower (testMode)
+	if mode != "" && mode != "save" && mode != "verify" {
+		fmt.Println (mode + " is not a valid test mode.")
+		os.Exit (1)
+	}
+	return TestSettings { testMode: mode, verifiedDir: verifiedDir, unverifiedDir: unverifiedDir, sourceFile: sourceFile }
 }
 
 func (t *TestSettings) ExitOnError () {
 
 	// make sure the user has the correct permissions
-	if t.testType == TEST_SAVE {
+	if t.testMode == "save" {
 		if !checkFile (t.sourceFile, PERM_READ) {
 			fmt.Println ("Can not access " + t.sourceFile + ".")
 			os.Exit (1)
 		}
-		if !checkFile (t.directory, PERM_WRITE) {
-			fmt.Println ("Can not access " + t.directory + ".")
+		if !checkFile (t.unverifiedDir, PERM_WRITE) {
+			fmt.Println ("Can not access " + t.unverifiedDir + ".")
 			os.Exit (1)
 		}
-	} else if t.testType == TEST_VERIFY {
-		if !checkFile (t.directory, PERM_READ) {
-			fmt.Println ("Can not access " + t.directory + ".")
+	} else if t.testMode == "verify" {
+		if !checkFile (t.verifiedDir, PERM_READ) {
+			fmt.Println ("Can not access " + t.verifiedDir + ".")
 			os.Exit (1)
 		}
 	}
 }
 
-func (t *TestSettings) GetTestMode () byte {
-	return t.testType
+func (t *TestSettings) GetTestMode () string {
+	return t.testMode
 }
 
 func (t *TestSettings) GetDirectory () string {
-	return t.directory
+	if t.testMode == "" {
+		return ""
+	} else if t.testMode == "save" {
+		return t.unverifiedDir
+	}
+	return t.verifiedDir
 }
 
 func (t *TestSettings) GetSourceFile () string {
@@ -126,23 +134,13 @@ func (t *TestSettings) GetSourceFile () string {
 
 type AppSettings struct {
 	configFile string
-	themeName string
-	layoutName string
 }
 func NewAppSettings (configFile string, themeName string, layoutName string) AppSettings {
-	return AppSettings { configFile: configFile, themeName: themeName, layoutName: layoutName }
+	return AppSettings { configFile: configFile }
 }
 
 func (a *AppSettings) GetConfigFileLocation () string {
 	return a.configFile
-}
-
-func (a *AppSettings) GetTheme () string {
-	return a.themeName
-}
-
-func (a *AppSettings) GetLayout () string {
-	return a.layoutName
 }
 
 ////////////////////////////////////////////////////////
@@ -194,11 +192,9 @@ func checkFile (fileName string, requiredPermissions byte) bool {
 func (s *settingsManager) PrintListeningMessage () {
 
 	// create the data lines of the message
-	lines := make ([] string, 4)
+	lines := make ([] string, 2)
 	lines [0] = "*    Node: " + s.Node.GetFullUrl () + " (" + s.Node.nodeType + ")  "
 	lines [1] = "*     Web: " + s.Website.GetFullUrl () + "  "
-	lines [2] = "*   Theme: " + s.App.GetTheme () + "  "
-	lines [3] = "*  Layout: " + s.App.GetLayout () + "  "
 
 	// calculate the width of the message and add padding as necessary
 	bannerWidth := len (lines [0]) + 1
@@ -239,41 +235,40 @@ func (s *settingsManager) parseParamList (paramList map [string] string, fromCom
 
 	// create the map of string type parameters
 	stringParams := map [string] *string {
-		// app
-		"app-theme": &settings.App.themeName,
-		"app-layout": &settings.App.layoutName,
-
 		// node
 		"node-type": &settings.Node.nodeType,
 		"node-url": &settings.Node.url,
 		"node-user": &settings.Node.username,
 		"node-pw": &settings.Node.password,
 
+		// test
+		"test-save-dir": &settings.Test.unverifiedDir,
+		"test-tx-file": &settings.Test.sourceFile,
+		"test-verify-dir": &settings.Test.verifiedDir,
+
 		// website
 		"web-url": &settings.Website.url }
 
-	// add parameters that are only allowed on the command line
+	// create the map of parameters that are only allowed on the command line
 	stringParamsCommandLineOnly := map [string] *string {
 		// app
 		"app-config-file": &settings.App.configFile,
 
 		// test
-		"test-save-dir": &settings.Test.directory,
-		"test-tx-file": &settings.Test.sourceFile,
-		"test-verify-dir": &settings.Test.directory }
+		"test-mode": &settings.Test.testMode }
 
 	if fromCommandLine {
 		// add the command line only string type settings
 		for paramName, strPointer := range stringParamsCommandLineOnly {
 			stringParams [paramName] = strPointer
 		}
+	}
 
-		// handle parameters that are determined by other settings
-		if paramList ["test-save-dir"] != "" {
-			settings.Test.testType = TEST_SAVE
-		} else if paramList ["test-verify-dir"] != "" {
-			settings.Test.testType = TEST_VERIFY
-		}
+	// handle parameters that can be determined by other settings
+	if paramList ["test-save-dir"] != "" {
+		settings.Test.testMode = "save"
+	} else if paramList ["test-verify-dir"] != "" {
+		settings.Test.testMode = "verify"
 	}
 
 	// create the map of uint16 type parameters
@@ -313,7 +308,7 @@ func parseSettings () {
 	app := NewAppSettings ("", "Default", "Desktop")
 	node := NewNodeSettings ("BitcoinCore", "127.0.0.1", uint16 (8332), "", "")
 	website := NewWebsiteSettings ("127.0.0.1", uint16 (8080))
-	test := NewTestSettings (TEST_NONE, "", "./test-transactions.txt")
+	test := NewTestSettings ("", "./tests/verified-transactions/", "./tests/unverified-transactions/", "./tests/transactions.txt")
 
 	settings = &settingsManager { Node: node, Website: website, App: app, Test: test }
 
