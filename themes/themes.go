@@ -39,12 +39,26 @@ func (t *Theme) GetTxHtmlTemplate () string {
 	return t.getHtml ("html/btc-objects/tx.html")
 }
 
-func (t *Theme) GetMinimizedInputHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/input-minimized.html")
+func (t *Theme) GetInputHtmlTemplate (minimized bool) string {
+	if minimized { return t.getHtml ("html/btc-objects/input-minimized.html") }
+	return t.getHtml ("html/btc-objects/input-maximized.html")
 }
 
-func (t *Theme) GetMinimizedOutputHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/output-minimized.html")
+func (t *Theme) GetMinimizedInputsTableHtmlTemplate () string {
+	return t.getHtml ("html/btc-objects/inputs-minimized-table.html")
+}
+
+func (t *Theme) GetOutputHtmlTemplate (minimized bool) string {
+	if minimized { return t.getHtml ("html/btc-objects/output-minimized.html") }
+	return t.getHtml ("html/btc-objects/output-maximized.html")
+}
+
+func (t *Theme) GetMinimizedOutputsTableHtmlTemplate () string {
+	return t.getHtml ("html/btc-objects/outputs-minimized-table.html")
+}
+
+func (t *Theme) GetScriptHtmlTemplate () string {
+	return t.getHtml ("html/btc-objects/script.html")
 }
 
 func (t *Theme) GetExplorerPageHtml (queryId string, queryResult string, customJavascript string) string {
@@ -52,7 +66,7 @@ func (t *Theme) GetExplorerPageHtml (queryId string, queryResult string, customJ
 	pageHtml = strings.Replace (pageHtml, "[[QUERY-ID]]", queryId, 1)
 	pageHtml = strings.Replace (pageHtml, "[[QUERY-RESULT]]", queryResult, 1)
 
-	layoutHtml := t.getHtml ("layout.html")
+	layoutHtml := t.getHtml ("html/layout.html")
 	layoutHtml = strings.Replace (layoutHtml, "[[CUSTOM-JAVASCRIPT]]", customJavascript, -1)
 	layoutHtml = strings.Replace (layoutHtml, "[[LAYOUT-PATH]]", t.GetPath (), -1)
 	layoutHtml = strings.Replace (layoutHtml, "[[LAYOUT-PAGE-CONTENT]]", pageHtml, 1)

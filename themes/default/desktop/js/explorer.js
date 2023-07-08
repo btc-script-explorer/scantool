@@ -29,11 +29,14 @@ function get_transaction (query_id)
 function handle_pending_inputs ()
 {
 	if (pending_inputs.length == 0)
+	{
+		show_bitcoin_in_bold ();
 		return;
+	}
 
 	var ajax_data = pending_inputs [0];
 	ajax_data.method = 'getpreviousoutput';
-//console.log ('getpreviousoutput request:'); console.log (ajax_data);
+console.log ('getpreviousoutput request:'); console.log (ajax_data);
 
 	$.ajax (
 	{
@@ -44,25 +47,34 @@ function handle_pending_inputs ()
 //		error: function (jqXHR, textStatus, errorThrown) {},
 		success: function (data, textStatus, jqXHR)
 		{
-//console.log ('getpreviousoutput response:'); console.log (data);
+console.log ('getpreviousoutput response:'); console.log (data);
 
+			// set the data for the received previous output
 			$ ('#input-minimized-address-' + data.Input_index).html (data.Address);
 
-			$ ('#input-minimized-value-' + data.Input_index).html (data.Value);
+			$ ('#input-minimized-value-' + data.Input_index).html (data.Value_html);
 			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Value;
 			$ ('#tx-value-in').html (value_in);
 
+			// update the fee
 			var value_out = parseInt ($ ('#tx-value-out').html ());
 			if (value_in >= value_out)
 				$ ('#tx-fee').html (value_in - value_out);
 
+			// update the spend type
 			var input_tx_type = $ ('#input-minimized-tx-type-' + data.Input_index).html ();
 			if (input_tx_type.length == 0)
 			{
 				if (data.Output_type == 'Taproot')
+				{
 					$ ('#input-minimized-tx-type-' + data.Input_index).html ('Taproot Key Path');
+					$ ('#input-spend-type-' + data.Input_index).html ('Taproot Key Path');
+				}
 				else
+				{
 					$ ('#input-minimized-tx-type-' + data.Input_index).html (data.Output_type);
+					$ ('#input-spend-type-' + data.Input_index).html (data.Output_type);
+				}
 			}
 			else
 			{
@@ -72,6 +84,7 @@ function handle_pending_inputs ()
 				{
 					console.log (data.Output_type + ' incorrectly identified as ' + input_tx_type);
 					$ ('#input-minimized-tx-type-' + data.Input_index).html (data.Output_type);
+					$ ('#input-spend-type-' + data.Input_index).html (data.Output_type);
 				}
 			}
 
@@ -80,9 +93,68 @@ function handle_pending_inputs ()
 			pending_inputs.splice (0, 1);
 			if (pending_inputs.length > 0)
 				handle_pending_inputs ();
+			else
+				show_bitcoin_in_bold ();
 		}
 //		complete: function (jqXHR, textStatus) {}
 	});
+}
+
+function show_bitcoin_in_bold ()
+{
+	// make the tx in, tx out and tx fee amounts show bitcoin in bold
+	var field_ids = [ 'tx-value-in', 'tx-value-out', 'tx-fee' ];
+	for (var i = 0; i < field_ids.length; i++)
+	{
+		var val_str = $ ('#' + field_ids [i]).html ();
+		if (val_str.length > 8)
+		{
+			var btc_digits = val_str.length - 8;
+			var value_html = '<span style="font-weight:bold;">' + val_str.substr (0, btc_digits) + '</span>' + val_str.substr (btc_digits);
+			$ ('#' + field_ids [i]).html (value_html);
+		}
+	}
+}
+
+async function copy_to_clipboard (data)
+{
+	await navigator.clipboard.writeText (data);
+}
+
+function toggle_inputs (event)
+{
+	var min = $ ('#inputs-minimized');
+	var max = $ ('#inputs-maximized');
+	if (min.css ('display') == 'block')
+	{
+		min.css ('display', 'none');
+		max.css ('display', 'block');
+		$ ('#inputs-toggle').html ('Hide');
+	}
+	else
+	{
+		min.css ('display', 'block');
+		max.css ('display', 'none');
+		$ ('#inputs-toggle').html ('Show');
+	}
+}
+
+function toggle_outputs (event)
+{
+	var min = $ ('#outputs-minimized');
+	var max = $ ('#outputs-maximized');
+	if (min.css ('display') == 'block')
+	{
+		min.css ('display', 'none');
+		max.css ('display', 'block');
+		$ ('#output-toggle').html ('Hide');
+	}
+	else
+	{
+		min.css ('display', 'block');
+		max.css ('display', 'none');
+		$ ('#output-toggle').html ('Show');
+	}
 }
 
 function handle_resize ()

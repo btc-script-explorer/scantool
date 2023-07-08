@@ -60,7 +60,7 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}) Tx {
 	inputs := make ([] Input, inputCount)
 	for i := 0; i < int (inputCount); i++ {
 		inputJson := vin [i].(map [string] interface {})
-		inputs [i] = bc.parseInput (inputJson)
+		inputs [i] = bc.parseInput (inputJson, bip141)
 	}
 
 	coinbase := inputs [0].IsCoinbase ()
@@ -85,7 +85,8 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}) Tx {
 				lockTime: lockTime }
 }
 
-func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}) Input {
+func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 bool) Input {
+
 	coinbase := inputJson ["coinbase"] != nil
 	sequence := uint32 (inputJson ["sequence"].(float64))
 
@@ -95,69 +96,111 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}) Input {
 	if coinbase {
 		inputScriptBytes, err = hex.DecodeString (inputJson ["coinbase"].(string))
 	} else {
-		inputScript := inputJson ["scriptSig"].(map [string] interface {})
-		inputScriptBytes, err = hex.DecodeString (inputScript ["hex"].(string))
+		scriptSig := inputJson ["scriptSig"].(map [string] interface {})
+		inputScriptBytes, err = hex.DecodeString (scriptSig ["hex"].(string))
 	}
 	if err != nil { fmt.Println (err.Error ()); return Input {} }
 
-	script := Script {}
-	if len (inputScriptBytes) > 0 {
-		script = NewScript (inputScriptBytes)
-	}
+	inputScript := NewScript (inputScriptBytes)
+	possibleSpendType := ""
 
-	//segwit
+	// segregated witness
 	segwit := Segwit {}
-	if inputJson ["txinwitness"] != nil {
+	hasSegwitFields := bip141 && inputJson ["txinwitness"] != nil
+	if hasSegwitFields {
 		segwit = bc.parseSegwit (inputJson ["txinwitness"].([] interface {}))
 	}
 
-	txType := ""
-
-	// previous output
+	// if this is a coinbase input, we have everything we need
 	if coinbase {
-		txType = "COINBASE"
-		return Input { coinbase: coinbase, spendType: txType, inputScript: script, segwit: segwit, sequence: sequence }
+		possibleSpendType = "COINBASE"
+		return Input { coinbase: coinbase, spendType: possibleSpendType, inputScript: inputScript, segwit: segwit, sequence: sequence }
 	}
 
+	redeemScript := inputScript.GetSerializedScript ()
+
+	// determine a possible/likely spend type
+	if !segwit.IsNil () && !segwit.IsEmpty () {
+		// there are segregated witness fields
+
+		if !inputScript.IsEmpty () {
+
+			// it has an non-empty input script
+			// it is one of the p2sh-wrapped spend types
+			if !redeemScript.IsNil () {
+				if redeemScript.IsP2shP2wpkhRedeemScript () {
+					possibleSpendType = "P2SH-P2WPKH"
+				} else if redeemScript.IsP2shP2wshRedeemScript () {
+					possibleSpendType = "P2SH-P2WSH"
+				} else {
+					// this should be impossible
+					// we will wait until we know the previous output type
+					fmt.Println ("Segwit and Input Script exist, but redeem script is not a p2sh-wrapped script.")
+				}
+			} else {
+
+				// there is a segregated witness
+				// there is a non-empty input script
+				// but there is no redeem script
+				// this should be impossible
+				// we will wait until we know the previous output type
+				fmt.Println ("Segwit and Input Script exist, but no redeem script.")
+
+			}
+
+		} else {
+
+			// it has an empty input script
+			// it is one of the witness types
+			possibleWitnessScript := segwit.GetWitnessScript ()
+			possibleTapScript, _ := segwit.GetTapScript ()
+
+			if !possibleWitnessScript.IsNil () && possibleTapScript.IsNil () {
+				possibleSpendType = "P2WSH"
+			} else if possibleWitnessScript.IsNil () && !possibleTapScript.IsNil () {
+				possibleSpendType = "Taproot Script Path"
+			} else if possibleWitnessScript.IsNil () && possibleTapScript.IsNil () {
+				// there are no serialized scripts
+				// it is one of the key-based witness spend types
+				if segwit.IsValidTaprootKeyPath () {
+					possibleSpendType = "Taproot Key Path"
+				} else if segwit.IsValidP2wpkh () {
+					possibleSpendType = "P2WPKH"
+				} else {
+					// this should be impossible
+					// we will wait until we know the previous output type
+					fmt.Println ("Segregated Witness has no parsable serialized script but is not a key-based spend type either.")
+				}
+			} else {
+				// both a witness script and a tap script are parsable
+				// here we will assume that it is a Taproot Script Path spend
+				fmt.Println ("Input has a parsable witness script and also a parsable tap script.")
+				possibleSpendType = "Taproot Script Path"
+			}
+
+		}
+
+	} else {
+
+		// no segregated witness fields
+		// if we have a parsable redeem script, it could be p2sh
+		// otherwise it is p2pk, multisig, p2pkh or nonstandard
+		if !redeemScript.IsNil () {
+			possibleSpendType = "P2SH"
+		}
+	}
+
+	// previous output
 	previousOutputIndex := uint32 (inputJson ["vout"].(float64))
 	previousOutputHash, err := hex.DecodeString (inputJson ["txid"].(string))
 	if err != nil { fmt.Println (err.Error ()); return Input {} }
-
-	// attempt to determine the spend type without yet knowing the output type
-	// there are public keys that can be parsed into scripts (albeit nonsensical scripts)
-	// therefore, we can't rely on the parsability of the last field of the input script alone
-	// inputs with a previous p2sh output type have redeem scripts
-	redeemScript := NewScript (script.GetSerializedScript ())
-	if !redeemScript.HasParseError () {
-		if redeemScript.IsP2shP2wshInput () {
-			txType = "P2SH-P2WSH"
-		} else if redeemScript.IsP2shP2wpkhInput () {
-			txType = "P2SH-P2WPKH"
-		}
-	} else {
-		// not a redeem script
-		redeemScript = Script {}
-	}
-
-	// p2sh-p2wsh and p2wsh inputs have a witness script
-	// Taproot Script Path inputs have a tap script
-	// Taproot and p2wsh inputs must have an empty input script
-	if script.IsP2shP2wshInput () || script.IsEmpty () {
-		if segwit.ParseSerializedScript () {
-			if script.IsP2shP2wshInput () {
-				txType = "P2SH-P2WSH"
-			} else {
-				txType = "Taproot Script Path"
-			}
-		}
-	}
 
 	return Input {
 		coinbase: coinbase,
 		previousOutputTxId: [32] byte (previousOutputHash),
 		previousOutputIndex: previousOutputIndex,
-		spendType: txType,
-		inputScript: script,
+		spendType: possibleSpendType,
+		inputScript: inputScript,
 		redeemScript: redeemScript,
 		segwit: segwit,
 		sequence: sequence }
@@ -210,12 +253,52 @@ func (bc *BitcoinCore) parseSegwit (segwitFieldsHex [] interface {}) Segwit {
 		fields [s] = segwitFieldsHex [s].(string)
 	}
 
-	return Segwit { fields: fields }
+	return NewSegwit (fields)
 }
 
 func (bc *BitcoinCore) getRawTransaction (txId string) map [string] interface {} {
 
-	jsonResult := bc.getJson ("getrawtransaction", [] interface {} { txId, true })
+	jsonResult := [] byte (nil)
+
+	if txId != "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b" {
+		jsonResult = bc.getJson ("getrawtransaction", [] interface {} { txId, true })
+	} else {
+		// the genesis transaction is a special case
+		// Bitcoin Core won't return it with this API so we handle that case here
+		// if other raw transaction values are used, they might need to be added here
+		rawJson := `{
+						"result": {
+							"txid": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+							"version": 1,
+							"size": 204,
+							"vsize": 204,
+							"weight": 816,
+							"locktime": 0,
+							"vin": [
+								{
+									"coinbase": "04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73",
+									"sequence": 4294967295
+								}
+							],
+							"vout": [
+								{
+									"value": 50.00000000,
+									"n": 0,
+									"scriptPubKey": {
+										"hex": "4104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac",
+										"type": "pubkey"
+									}
+								}
+							],
+							"hex": "01000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4d04ffff001d0104455468652054696d65732030332f4a616e2f32303039204368616e63656c6c6f72206f6e206272696e6b206f66207365636f6e64206261696c6f757420666f722062616e6b73ffffffff0100f2052a01000000434104678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5fac00000000",
+							"blockhash":"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+							"blocktime": 1231006505
+						},
+						"error": null
+					}`
+		jsonResult = make ([] byte, len (rawJson))
+		jsonResult = [] byte (rawJson)
+	}
 
 	var rawResponse map [string] interface {}
 	err := json.Unmarshal (jsonResult, &rawResponse)

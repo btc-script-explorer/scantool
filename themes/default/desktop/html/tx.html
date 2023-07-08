@@ -32,38 +32,21 @@
 		</table>
 	</div>
 
-	<div class="section-heading" style="margin-top:12px;">[[TX-INPUT-COUNT]]</div>
-	<div style="display:inline-block; padding:8px 0; background-color:#f0f0f0;">
-		<table>
-			<thead>
-				<tr>
-					<th class="tx-part-minimized" style="width:5ch;">Index</th>
-					<th class="tx-part-minimized" style="width:20ch;">Spend Type</th>
-					<th class="tx-part-minimized">Value</th>
-					<th class="tx-part-minimized" style="width:64ch; text-align:left;">Address</th>
-				</tr>
-			</thead>
-			<tbody>
-				[[TX-INPUTS]]
-			</tbody>
-		</table>
+	<div class="section-heading" style="margin-top:12px;">
+		<span id="input-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_inputs (true);">Show</span>
+		[[TX-INPUT-COUNT]]
+		<span id="input-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
 	</div>
+	<div id="inputs-minimized" style="display:block;">[[TX-INPUTS-MINIMIZED]]</div>
+	<div id="inputs-maximized" style="display:none;">[[TX-INPUTS-MAXIMIZED]]</div>
 
-	<div class="section-heading" style="margin-top:12px;">[[TX-OUTPUT-COUNT]]</div>
-	<div style="display:inline-block; padding:8px 0; background-color:#f0f0f0;">
-		<table>
-			<thead>
-				<tr>
-					<th class="tx-part-minimized" style="width:5ch;">Index</th>
-					<th class="tx-part-minimized" style="width:20ch;">Output Type</th>
-					<th class="tx-part-minimized">Value</th>
-					<th class="tx-part-minimized" style="width:64ch; text-align:left;">Address</th>
-				</tr>
-			</thead>
-			<tbody>
-				[[TX-OUTPUTS]]
-			</tbody>
-		</table>
+	<div class="section-heading" style="margin-top:12px;">
+		<span id="output-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_outputs (false);">Show</span>
+		[[TX-OUTPUT-COUNT]]
+		<span id="output-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
 	</div>
+	<div id="outputs-minimized" style="display:block;">[[TX-OUTPUTS-MINIMIZED]]</div>
+	<div id="outputs-maximized" style="display:none;">[[TX-OUTPUTS-MAXIMIZED]]</div>
+
 </div>
 
