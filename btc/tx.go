@@ -73,6 +73,7 @@ func (tx *Tx) GetHtml (theme themes.Theme) string {
 	// outputs
 	totalOut := uint64 (0)
 	outputCount := len (tx.outputs)
+
 	outputsMinimizedHtml := ""
 	outputsMaximizedHtml := ""
 	for o := 0; o < outputCount; o++ {
@@ -80,8 +81,12 @@ func (tx *Tx) GetHtml (theme themes.Theme) string {
 		outputsMinimizedHtml += tx.outputs [o].GetHtml (o, theme, true)
 		outputsMaximizedHtml += tx.outputs [o].GetHtml (o, theme, false)
 	}
+
+	minimizedOutputTableHtml := theme.GetMinimizedOutputsTableHtmlTemplate ()
+	minimizedOutputTableHtml = strings.Replace (minimizedOutputTableHtml, "[[OUTPUTS-MINIMIZED-HTML]]", outputsMinimizedHtml, 1)
+
 	html = strings.Replace (html, "[[TX-VALUE-OUT]]", strconv.FormatUint (totalOut, 10), 1)
-	html = strings.Replace (html, "[[TX-OUTPUTS-MINIMIZED]]", outputsMinimizedHtml, 1)
+	html = strings.Replace (html, "[[TX-OUTPUTS-MINIMIZED]]", minimizedOutputTableHtml, 1)
 	html = strings.Replace (html, "[[TX-OUTPUTS-MAXIMIZED]]", outputsMaximizedHtml, 1)
 
 	outputCountLabel := strconv.Itoa (outputCount) + " Output"
@@ -98,19 +103,26 @@ func (tx *Tx) GetHtml (theme themes.Theme) string {
 	html = strings.Replace (html, "[[TX-FEE]]", "0", 1)
 
 	inputCount := len (tx.inputs)
+
 	inputCountLabel := strconv.Itoa (inputCount) + " Input"
 	if inputCount > 1 { inputCountLabel += "s" }
 	html = strings.Replace (html, "[[TX-INPUT-COUNT]]", inputCountLabel, 1)
 
-	inputsHtml := ""
+	inputsMinimizedHtml := ""
+	inputsMaximizedHtml := ""
 	for i := 0; i < len (tx.inputs); i++ {
-		if tx.coinbase && i == 0 {
-			inputsHtml += tx.inputs [i].GetMinimizedHtml (i, totalOut, theme)
-		} else {
-			inputsHtml += tx.inputs [i].GetMinimizedHtml (i, 0, theme)
-		}
+		valueIn := uint64 (0)
+		if tx.coinbase && i == 0 { valueIn = totalOut }
+
+		inputsMinimizedHtml += tx.inputs [i].GetHtml (i, valueIn, theme, true)
+		inputsMaximizedHtml += tx.inputs [i].GetHtml (i, valueIn, theme, false)
 	}
-	html = strings.Replace (html, "[[TX-INPUTS]]", inputsHtml, 1)
+
+	minimizedInputTableHtml := theme.GetMinimizedInputsTableHtmlTemplate ()
+	minimizedInputTableHtml = strings.Replace (minimizedInputTableHtml, "[[INPUTS-MINIMIZED-HTML]]", inputsMinimizedHtml, 1)
+
+	html = strings.Replace (html, "[[TX-INPUTS-MINIMIZED]]", minimizedInputTableHtml, 1)
+	html = strings.Replace (html, "[[TX-INPUTS-MAXIMIZED]]", inputsMaximizedHtml, 1)
 
 	return html
 }

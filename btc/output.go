@@ -34,24 +34,18 @@ func (o *Output) GetHtml (outputIndex int, theme themes.Theme, minimized bool) s
 
 	html := theme.GetOutputHtmlTemplate (minimized)
 
-	html = strings.Replace (html, "[[INDEX]]", strconv.Itoa (outputIndex), 1)
-	html = strings.Replace (html, "[[TYPE]]", o.outputType, 1)
-	html = strings.Replace (html, "[[VALUE]]", GetValueHtml (o.value), 1)
+	html = strings.Replace (html, "[[OUTPUT-INDEX]]", strconv.Itoa (outputIndex), 1)
+	html = strings.Replace (html, "[[OUTPUT-TYPE]]", o.outputType, 1)
+	html = strings.Replace (html, "[[OUTPUT-VALUE]]", GetValueHtml (o.value), 1)
 
 	address := o.address
 	if len (address) == 0 { address = "No Address Format" }
-	html = strings.Replace (html, "[[ADDRESS]]", address, 1)
+	html = strings.Replace (html, "[[OUTPUT-ADDRESS]]", address, 1)
 
-	scriptFields := ""
-	if !o.outputScript.IsEmpty () {
-		fields := o.outputScript.GetFields ()
-		for _, field := range fields {
-			scriptFields += "<div>" + field + "</div>"
-		}
-	} else {
-		scriptFields = "Empty"
+	if !minimized {
+		scriptHtml := o.outputScript.GetHtml ("Output Script", theme)
+		html = strings.Replace (html, "[[OUTPUT-SCRIPT-HTML]]", scriptHtml, 1)
 	}
-	html = strings.Replace (html, "[[OUTPUT-SCRIPT]]", scriptFields, 1)
 
 	return html
 }

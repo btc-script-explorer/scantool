@@ -82,7 +82,7 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 				if err != nil { fmt.Println (err.Error ()) }
 
 				previousOutput := nodeClient.GetPreviousOutput ([32] byte (txIdBytes), uint32 (outputIndex))
-				previousOutputScript := previousOutput.GetOutputScript ()
+//				previousOutputScript := previousOutput.GetOutputScript ()
 
 				// return the json response
 				type previousOutputJson struct {
@@ -92,7 +92,7 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 					Value_html string
 					Output_type string
 					Address string
-					Script [] string
+//					Script [] string
 				}
 
 				inputIndex, err := strconv.ParseUint (request.FormValue ("Input_index"), 10, 32)
@@ -107,8 +107,7 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 														Value: satoshis,
 														Value_html: btc.GetValueHtml (satoshis),
 														Output_type: previousOutput.GetOutputType (),
-														Address: previousOutput.GetAddress (),
-														Script: previousOutputScript.GetFields () }
+														Address: previousOutput.GetAddress () }
 
 				jsonBytes, err := json.Marshal (previousOutputResponse)
 				if err != nil { fmt.Println (err) }
@@ -238,6 +237,7 @@ func main () {
 
 	mux.HandleFunc ("/css/", serveFile)
 	mux.HandleFunc ("/js/", serveFile)
+	mux.HandleFunc ("/image/", serveFile)
 
 	mux.HandleFunc ("/", homeController)
 	mux.HandleFunc ("/ajax", ajaxController)

@@ -86,6 +86,7 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}) Tx {
 }
 
 func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 bool) Input {
+
 	coinbase := inputJson ["coinbase"] != nil
 	sequence := uint32 (inputJson ["sequence"].(float64))
 
@@ -95,69 +96,111 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 b
 	if coinbase {
 		inputScriptBytes, err = hex.DecodeString (inputJson ["coinbase"].(string))
 	} else {
-		inputScript := inputJson ["scriptSig"].(map [string] interface {})
-		inputScriptBytes, err = hex.DecodeString (inputScript ["hex"].(string))
+		scriptSig := inputJson ["scriptSig"].(map [string] interface {})
+		inputScriptBytes, err = hex.DecodeString (scriptSig ["hex"].(string))
 	}
 	if err != nil { fmt.Println (err.Error ()); return Input {} }
 
-	script := Script {}
-	if len (inputScriptBytes) > 0 {
-		script = NewScript (inputScriptBytes)
+	inputScript := NewScript (inputScriptBytes)
+	possibleSpendType := ""
+
+	// segregated witness
+	segwit := Segwit {}
+	hasSegwitFields := bip141 && inputJson ["txinwitness"] != nil
+	if hasSegwitFields {
+		segwit = bc.parseSegwit (inputJson ["txinwitness"].([] interface {}))
 	}
 
-	txType := ""
+	// if this is a coinbase input, we have everything we need
+	if coinbase {
+		possibleSpendType = "COINBASE"
+		return Input { coinbase: coinbase, spendType: possibleSpendType, inputScript: inputScript, segwit: segwit, sequence: sequence }
+	}
 
-	//segwit
-	segwit := Segwit {}
-	if bip141 && inputJson ["txinwitness"] != nil {
-		segwit = bc.parseSegwit (inputJson ["txinwitness"].([] interface {}))
+	redeemScript := inputScript.GetSerializedScript ()
 
-		// p2sh-p2wsh and p2wsh inputs have a witness script
-		// Taproot Script Path inputs have a tap script
-		// Taproot and p2wsh inputs must have an empty input script
-		if script.IsP2shP2wshInput () || script.IsEmpty () {
-			if segwit.ParseSerializedScript () {
-				if script.IsP2shP2wshInput () {
-					txType = "P2SH-P2WSH"
+	// determine a possible/likely spend type
+	if !segwit.IsNil () && !segwit.IsEmpty () {
+		// there are segregated witness fields
+
+		if !inputScript.IsEmpty () {
+
+			// it has an non-empty input script
+			// it is one of the p2sh-wrapped spend types
+			if !redeemScript.IsNil () {
+				if redeemScript.IsP2shP2wpkhRedeemScript () {
+					possibleSpendType = "P2SH-P2WPKH"
+				} else if redeemScript.IsP2shP2wshRedeemScript () {
+					possibleSpendType = "P2SH-P2WSH"
 				} else {
-					txType = "Taproot Script Path"
+					// this should be impossible
+					// we will wait until we know the previous output type
+					fmt.Println ("Segwit and Input Script exist, but redeem script is not a p2sh-wrapped script.")
 				}
+			} else {
+
+				// there is a segregated witness
+				// there is a non-empty input script
+				// but there is no redeem script
+				// this should be impossible
+				// we will wait until we know the previous output type
+				fmt.Println ("Segwit and Input Script exist, but no redeem script.")
+
 			}
+
+		} else {
+
+			// it has an empty input script
+			// it is one of the witness types
+			possibleWitnessScript := segwit.GetWitnessScript ()
+			possibleTapScript, _ := segwit.GetTapScript ()
+
+			if !possibleWitnessScript.IsNil () && possibleTapScript.IsNil () {
+				possibleSpendType = "P2WSH"
+			} else if possibleWitnessScript.IsNil () && !possibleTapScript.IsNil () {
+				possibleSpendType = "Taproot Script Path"
+			} else if possibleWitnessScript.IsNil () && possibleTapScript.IsNil () {
+				// there are no serialized scripts
+				// it is one of the key-based witness spend types
+				if segwit.IsValidTaprootKeyPath () {
+					possibleSpendType = "Taproot Key Path"
+				} else if segwit.IsValidP2wpkh () {
+					possibleSpendType = "P2WPKH"
+				} else {
+					// this should be impossible
+					// we will wait until we know the previous output type
+					fmt.Println ("Segregated Witness has no parsable serialized script but is not a key-based spend type either.")
+				}
+			} else {
+				// both a witness script and a tap script are parsable
+				// here we will assume that it is a Taproot Script Path spend
+				fmt.Println ("Input has a parsable witness script and also a parsable tap script.")
+				possibleSpendType = "Taproot Script Path"
+			}
+
+		}
+
+	} else {
+
+		// no segregated witness fields
+		// if we have a parsable redeem script, it could be p2sh
+		// otherwise it is p2pk, multisig, p2pkh or nonstandard
+		if !redeemScript.IsNil () {
+			possibleSpendType = "P2SH"
 		}
 	}
 
 	// previous output
-	if coinbase {
-		txType = "COINBASE"
-		return Input { coinbase: coinbase, spendType: txType, inputScript: script, segwit: segwit, sequence: sequence }
-	}
-
 	previousOutputIndex := uint32 (inputJson ["vout"].(float64))
 	previousOutputHash, err := hex.DecodeString (inputJson ["txid"].(string))
 	if err != nil { fmt.Println (err.Error ()); return Input {} }
-
-	// attempt to determine the spend type without yet knowing the output type
-	// there are public keys that can be parsed into scripts (albeit nonsensical scripts)
-	// therefore, we can't rely on the parsability of the last field of the input script alone
-	// inputs with a previous p2sh output type have redeem scripts
-	redeemScript := NewScript (script.GetSerializedScript ())
-	if !redeemScript.HasParseError () {
-		if redeemScript.IsP2shP2wshInput () {
-			txType = "P2SH-P2WSH"
-		} else if redeemScript.IsP2shP2wpkhInput () {
-			txType = "P2SH-P2WPKH"
-		}
-	} else {
-		// not a redeem script
-		redeemScript = Script {}
-	}
 
 	return Input {
 		coinbase: coinbase,
 		previousOutputTxId: [32] byte (previousOutputHash),
 		previousOutputIndex: previousOutputIndex,
-		spendType: txType,
-		inputScript: script,
+		spendType: possibleSpendType,
+		inputScript: inputScript,
 		redeemScript: redeemScript,
 		segwit: segwit,
 		sequence: sequence }
@@ -210,7 +253,7 @@ func (bc *BitcoinCore) parseSegwit (segwitFieldsHex [] interface {}) Segwit {
 		fields [s] = segwitFieldsHex [s].(string)
 	}
 
-	return Segwit { fields: fields }
+	return NewSegwit (fields)
 }
 
 func (bc *BitcoinCore) getRawTransaction (txId string) map [string] interface {} {

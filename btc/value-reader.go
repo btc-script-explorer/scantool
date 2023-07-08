@@ -2,6 +2,8 @@ package btc
 
 import (
 	"strconv"
+
+	"btctx/app"
 )
 
 type ValueReader struct {
@@ -99,5 +101,14 @@ func GetValueHtml (satoshis uint64) string {
 		satoshisStr = "<span style=\"font-weight:bold;\">" + satoshisStr [0 : btcDigits] + "</span>" + satoshisStr [btcDigits :]
 	}
 	return satoshisStr
+}
+
+func GetHexFieldHtml (hexField string, maxChars int) string {
+	if len (hexField) <= maxChars {
+		return hexField
+	}
+
+	settings := app.GetSettings ()
+	return hexField [0 : maxChars - 3] + "... <img style=\"height:14px; cursor:pointer;\" src=\"http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png\" onclick=\"copy_to_clipboard ('" + hexField + "');\" />"
 }
 

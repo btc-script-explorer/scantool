@@ -2,8 +2,12 @@ package btc
 
 import (
 	"fmt"
+	"bytes"
 	"strings"
 	"encoding/hex"
+	"html/template"
+
+	"btctx/themes"
 )
 
 type Script struct {
@@ -96,6 +100,65 @@ func NewScript (rawBytes [] byte) Script {
 	return Script { rawBytes: rawBytes, fields: fields, fieldTypes: fieldTypes, parseError: parseError }
 }
 
+type ScriptData struct {
+	ScriptTitle string
+	ScriptField [] string
+}
+
+func (s *Script) GetHtml (title string, theme themes.Theme) string {
+
+	scriptHtml := theme.GetScriptHtmlTemplate ()
+
+	scriptFields := [] string (nil)
+
+	if !s.IsEmpty () {
+		fieldCount := len (s.fields)
+		if s.parseError { fieldCount++ }
+
+		scriptFields = make ([] string, fieldCount)
+		for f, field := range s.fields {
+			scriptFields [f] = GetHexFieldHtml (field, 70)
+		}
+		if s.parseError {
+			scriptFields [fieldCount - 1] = "< PARSE ERROR >"
+		}
+	} else {
+		scriptFields = make ([] string, 1)
+		scriptFields [0] = "Empty"
+	}
+
+//	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-TITLE]]", title, 1)
+//	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-FIELDS-HTML]]", scriptFieldsHtml, 1)
+
+tmpl := template.Must (template.New ("tpl").Parse (scriptHtml))
+
+scriptData := ScriptData { ScriptTitle: title, ScriptField: scriptFields }
+var buff bytes.Buffer
+if err := tmpl.Execute(&buff, scriptData); err != nil {
+    panic(err)
+}
+return buff.String ()
+
+//	return scriptHtml
+}
+
+func (s *Script) GetTextHtml (title string, theme themes.Theme) string {
+
+	scriptHtml := theme.GetScriptHtmlTemplate ()
+	scriptTextHtml := ""
+
+	if !s.IsEmpty () {
+		scriptTextHtml = "<div>" + GetHexFieldHtml (string (s.rawBytes [:]), 70) + "</div>"
+	} else {
+		scriptTextHtml = "<div>Empty</div>"
+	}
+
+	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-TITLE]]", title, 1)
+	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-FIELDS-HTML]]", scriptTextHtml, 1)
+
+	return scriptHtml
+}
+
 func (s *Script) GetFields () [] string {
 	return s.fields
 }
@@ -108,94 +171,59 @@ func (s *Script) GetHex () string {
 	return hex.EncodeToString (s.rawBytes)
 }
 
-func (s *Script) GetSerializedScript () [] byte {
+func (s *Script) GetSerializedScript () Script {
+
+	if s.IsNil () || s.IsEmpty () {
+		return Script {}
+	}
 
 	serializedScriptIndex := len (s.GetFields ()) - 1
 
-	// if there are no script fields, there is no serialized script
-	if serializedScriptIndex >= 0 {
-
-		// in the unlikely event of OP_0 being used as the length of a zero-length serialized script, we return an empty array
-		serializedScriptHex := s.GetFields () [serializedScriptIndex]
-		if serializedScriptHex == "OP_0" {
-			return make ([] byte, 0)
-		}
-
-		// if the last field is not a stack item, then it is not a serialized script
-		if s.fieldTypes [serializedScriptIndex] == 's' {
-			serializedScript, err := hex.DecodeString (serializedScriptHex)
-			if err != nil { 
-//fmt.Println (serializedScriptHex)
-				fmt.Println (err.Error ());
-				return nil
-			}
-			return serializedScript
-		}
+	// in the rare case of a zero-length serialized script, we must check for OP_0 and return an empty script
+	serializedScriptHex := s.GetFields () [serializedScriptIndex]
+	if serializedScriptHex == "OP_0" {
+		return NewScript (make ([] byte, 0))
 	}
 
-	return nil
+	// by this point, the serialized script must be interpretted as a stack item, not an opcode
+	if s.fieldTypes [serializedScriptIndex] != 's' {
+		return Script {}
+	}
+
+	serializedScriptBytes, err := hex.DecodeString (serializedScriptHex)
+	if err != nil { fmt.Println (err.Error ()); return Script {} }
+
+	possibleScript := NewScript (serializedScriptBytes)
+	if possibleScript.HasParseError () {
+		return Script {}
+	}
+
+	return possibleScript
+}
+
+func (s *Script) IsNil () bool {
+	return s.rawBytes == nil
 }
 
 func (s *Script) IsEmpty () bool {
-	return len (s.rawBytes) == 0
+	return ! s.IsNil () && len (s.rawBytes) == 0
 }
 
-func (s *Script) IsP2pkOutput () bool {
+// identification of 7 standard output types
+func (s *Script) IsP2pkOutput () bool { scriptLen := len (s.rawBytes); return (scriptLen == 35 || scriptLen == 67) && IsValidPublicKey (s.rawBytes [1 : 1 + s.rawBytes [0]]) && s.rawBytes [scriptLen - 1] == 0xac }
+func (s *Script) IsMultiSigOutput () bool { scriptLen := len (s.rawBytes); return scriptLen >= 3 && int (s.rawBytes [scriptLen - 2]) == len (s.GetFields ()) - 3 && s.rawBytes [scriptLen - 1] == 0xae }
+func (s *Script) IsP2pkhOutput () bool { return len (s.rawBytes) == 25 && s.rawBytes [0] == 0x76 && s.rawBytes [1] == 0xa9 && s.rawBytes [2] == 0x14 && s.rawBytes [23] == 0x88 && s.rawBytes [24] == 0xac }
+func (s *Script) IsP2shOutput () bool { return len (s.rawBytes) == 23 && s.rawBytes [0] == 0xa9 && s.rawBytes [1] == 0x14 && s.rawBytes [22] == 0x87 }
+func (s *Script) IsP2wpkhOutput () bool { return len (s.rawBytes) == 22 && s.rawBytes [0] == 0x00 && s.rawBytes [1] == 0x14 }
+func (s *Script) IsP2wshOutput () bool { return len (s.rawBytes) == 34 && s.rawBytes [0] == 0x00 && s.rawBytes [1] == 0x20 }
+func (s *Script) IsTaprootOutput () bool { return len (s.rawBytes) == 34 && s.rawBytes [0] == 0x51 && s.rawBytes [1] == 0x20 }
 
-	scriptLen := len (s.rawBytes)
-	if scriptLen != 35 && scriptLen != 67 {
-		return false
-	}
+func (s *Script) IsP2shP2wpkhRedeemScript () bool { return s.IsP2wpkhOutput () }
+func (s *Script) IsP2shP2wshRedeemScript () bool { return s.IsP2wshOutput () }
 
-	if !IsValidPublicKey (s.rawBytes [1 : 1 + s.rawBytes [0]]) {
-		return false
-	}
-
-	return s.rawBytes [scriptLen - 1] == 0xac
-}
-
-func (s *Script) IsMultiSigOutput () bool {
-
-	scriptLen := len (s.rawBytes)
-	if scriptLen < 3 {
-		return false
-	}
-
-	return int (s.rawBytes [scriptLen - 2]) == len (s.GetFields ()) - 3 && s.rawBytes [scriptLen - 1] == 0xae
-}
-
-func (s *Script) IsP2pkhOutput () bool {
-	return len (s.rawBytes) == 25 && s.rawBytes [0] == 0x76 && s.rawBytes [1] == 0xa9 && s.rawBytes [2] == 0x14 && s.rawBytes [23] == 0x88 && s.rawBytes [24] == 0xac
-}
-
-func (s *Script) IsP2shOutput () bool {
-	return len (s.rawBytes) == 23 && s.rawBytes [0] == 0xa9 && s.rawBytes [1] == 0x14 && s.rawBytes [22] == 0x87
-}
-
-func (s *Script) IsP2wpkhOutput () bool {
-	return len (s.rawBytes) == 22 && s.rawBytes [0] == 0x00 && s.rawBytes [1] == 0x14
-}
-
-func (s *Script) IsP2wshOutput () bool {
-	return len (s.rawBytes) == 34 && s.rawBytes [0] == 0x00 && s.rawBytes [1] == 0x20
-}
-
-func (s *Script) IsTaprootOutput () bool {
-	return len (s.rawBytes) == 34 && s.rawBytes [0] == 0x51 && s.rawBytes [1] == 0x20
-}
-
-func (s *Script) IsP2shP2wpkhInput () bool {
-	return s.IsP2wpkhOutput ()
-}
-
-func (s *Script) IsP2shP2wshInput () bool {
-	return s.IsP2wshOutput ()
-}
-
-func (s *Script) IsNullDataOutput () bool {
-	// OP_RETURN required to be first opcode here, might be slightly different than Bitcoin Core
-	return len (s.rawBytes) >= 1 && s.rawBytes [0] == 0x6a
-}
+// OP_RETURN required to be first opcode here, might be slightly different than Bitcoin Core
+func (s *Script) IsNullDataOutput () bool { return len (s.rawBytes) >= 1 && s.rawBytes [0] == 0x6a }
+func (s *Script) IsNonstandardOutput () bool { return !s.HasParseError () && !s.IsTaprootOutput () && !s.IsP2wpkhOutput () && !s.IsP2wshOutput () && !s.IsP2shOutput () && !s.IsP2pkhOutput () && !s.IsMultiSigOutput () && !s.IsP2pkOutput () && !s.IsNullDataOutput () && !s.IsWitnessUnknownOutput () }
 
 func (s *Script) IsWitnessUnknownOutput () bool {
 	exactlyTwoFields := len (s.GetFields ()) == 2
@@ -211,10 +239,6 @@ func (s *Script) IsWitnessUnknownOutput () bool {
 	if validVersion1 { return false }
 
 	return true
-}
-
-func (s *Script) IsNonstandardOutput () bool {
-	return !s.HasParseError () && !s.IsTaprootOutput () && !s.IsP2wpkhOutput () && !s.IsP2wshOutput () && !s.IsP2shOutput () && !s.IsP2pkhOutput () && !s.IsMultiSigOutput () && !s.IsP2pkOutput () && !s.IsNullDataOutput () && !s.IsWitnessUnknownOutput ()
 }
 
 // https://github.com/bitcoin/bitcoin/blob/master/src/script/script.h
