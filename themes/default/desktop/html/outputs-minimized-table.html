@@ -9,7 +9,14 @@
 			</tr>
 		</thead>
 		<tbody>
-			[[OUTPUTS-MINIMIZED-HTML]]
+			{{ range .OutputsMinimized }}
+				<tr>
+					<td class="tx-part-minimized" style="text-align:right;">{{ .OutputIndex }}</td>
+					<td class="tx-part-minimized" style="">{{ .OutputType }}</td>
+					<td class="tx-part-minimized" style="text-align:right;">{{ .Value }}</td>
+					<td class="tx-part-minimized" style="text-align:left;">{{ .Address }}</td>
+				</tr>
+			{{ end }}
 		</tbody>
 	</table>
 </div>
