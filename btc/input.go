@@ -3,21 +3,17 @@ package btc
 import (
 	"encoding/hex"
 	"strconv"
-	"strings"
-
-	"btctx/themes"
 )
 
 type Input struct {
+	previousOutputTxId [32] byte
+	previousOutputIndex uint32
 	coinbase bool
 	spendType string
 	inputScript Script
+	redeemScript Script
 	segwit Segwit
 	sequence uint32
-
-	previousOutputTxId [32] byte
-	previousOutputIndex uint32
-	redeemScript Script
 }
 
 func (i *Input) GetInputScript () Script {
@@ -32,7 +28,7 @@ func (i *Input) GetRedeemScript () Script {
 	return i.redeemScript
 }
 
-func (i *Input) HasSegwit () bool {
+func (i *Input) HasSegwitFields () bool {
 	return !i.segwit.IsNil () && !i.segwit.IsEmpty ()
 }
 
@@ -60,54 +56,46 @@ func (i *Input) GetSequence () uint32 {
 	return i.sequence
 }
 
-func (i *Input) GetHtml (inputIndex int, satoshis uint64, theme themes.Theme, minimized bool) string {
+type InputHtmlData struct {
+	WidthCh uint16
+	InputIndex uint32
+	IsCoinbase bool
+	SpendType string
+	ValueIn string
+	PreviousOutputTxId string
+	PreviousOutputIndex uint32
+	Sequence uint32
+	InputScript ScriptHtmlData
+	RedeemScript ScriptHtmlData
+	Bip141 bool
+	Segwit SegwitHtmlData
+}
 
-	html := theme.GetInputHtmlTemplate (minimized)
+func (i *Input) GetHtmlData (inputIndex uint32, satoshis uint64, bip141 bool, widthCh uint16) InputHtmlData {
 
-	html = strings.Replace (html, "[[INPUT-INDEX]]", strconv.Itoa (inputIndex), -1)
-	html = strings.Replace (html, "[[INPUT-SPEND-TYPE]]", i.spendType, 1)
+	htmlData := InputHtmlData { WidthCh: widthCh, InputIndex: inputIndex, SpendType: i.spendType, Sequence: i.sequence, Bip141: bip141 }
+	htmlId := "input-script-" + strconv.FormatUint (uint64 (inputIndex), 10)
 
-	if minimized {
-		inputValue := ""
-		if i.IsCoinbase () && satoshis > 0 { inputValue = GetValueHtml (satoshis) }
-		html = strings.Replace (html, "[[INPUT-VALUE]]", inputValue, 1)
+	if i.IsCoinbase () && satoshis > 0 {
+		htmlData.IsCoinbase = true
+		htmlData.ValueIn = GetValueHtml (satoshis)
+		htmlData.InputScript = i.inputScript.GetTextHtmlData ("Coinbase Script", htmlId, widthCh - 6)
 	} else {
-		outpoint := "N/A"
-		if !i.IsCoinbase () { outpoint = hex.EncodeToString (i.previousOutputTxId [:]) + " : " + strconv.Itoa (int (i.previousOutputIndex)) }
+		htmlData.PreviousOutputTxId = hex.EncodeToString (i.previousOutputTxId [:])
+		htmlData.PreviousOutputIndex = i.previousOutputIndex
+		htmlData.InputScript = i.inputScript.GetHtmlData ("Input Script", htmlId, widthCh - 6)
 
-		html = strings.Replace (html, "[[INPUT-OUTPOINT]]", outpoint, 1)
-		html = strings.Replace (html, "[[INPUT-SEQUENCE]]", strconv.Itoa (int (i.sequence)), 1)
-
-		// previous output is deferred until later
-		html = strings.Replace (html, "[[INPUT-PREVIOUS-OUTPUT-HTML]]", "", 1)
-
-		// segwit, if there is one
-		if i.HasSegwit () {
-			segwitHtml := i.segwit.GetHtml (theme)
-			html = strings.Replace (html, "[[INPUT-SEGWIT-HTML]]", segwitHtml, 1)
-		} else {
-			html = strings.Replace (html, "[[INPUT-SEGWIT-HTML]]", "", 1)
-		}
-
-		// input script
-		scriptHtml := ""
-		if !i.IsCoinbase () {
-			scriptHtml = i.inputScript.GetHtml ("Input Script", theme)
-		} else {
-			scriptHtml = i.inputScript.GetTextHtml ("Coinbase Script Text", theme)
-		}
-		html = strings.Replace (html, "[[INPUT-SCRIPT-HTML]]", scriptHtml, 1)
-
-		// redeem script, if there is one
+		// redeem script and segwit, if they exist
 		if i.HasRedeemScript () {
-			redeemScriptHtml := i.redeemScript.GetHtml ("Redeem Script", theme)
-			html = strings.Replace (html, "[[INPUT-REDEEM-SCRIPT-HTML]]", redeemScriptHtml, 1)
-		} else {
-			html = strings.Replace (html, "[[INPUT-REDEEM-SCRIPT-HTML]]", "", 1)
+			htmlData.RedeemScript = i.redeemScript.GetHtmlData ("Redeem Script", "redeem-script-" + strconv.FormatUint (uint64 (inputIndex), 10), widthCh - 6)
+		}
+
+		if !i.segwit.IsNil () {
+			htmlData.Segwit = i.segwit.GetHtmlData (inputIndex, widthCh - 6)
 		}
 	}
 
-	return html
+	return htmlData
 }
 
 /*

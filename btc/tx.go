@@ -2,10 +2,10 @@ package btc
 
 import (
 	"encoding/hex"
-	"strings"
-	"strconv"
+//	"strings"
+//	"strconv"
 
-	"btctx/themes"
+//	"btctx/themes"
 )
 
 type Tx struct {
@@ -26,6 +26,10 @@ func (tx *Tx) IsCoinbase () bool {
 
 func (tx *Tx) GetTxId () [32] byte {
 	return tx.id
+}
+
+func (tx *Tx) GetTxIdStr () string {
+	return hex.EncodeToString (tx.id [:])
 }
 
 func (tx *Tx) GetBlockHash () [32] byte {
@@ -56,81 +60,62 @@ func (tx *Tx) GetLockTime () uint32 {
 	return tx.lockTime
 }
 
-func (tx *Tx) GetHtml (theme themes.Theme) string {
+func (tx *Tx) GetHtmlData () map [string] interface {} {
 
-	html := theme.GetTxHtmlTemplate ()
+	boxWidths := uint16 (112)
 
-	coinbase := "No"
-	if tx.coinbase { coinbase = "Yes" }
-	html = strings.Replace (html, "[[TX-COINBASE]]", coinbase, 1)
+	htmlData := make (map [string] interface {})
 
-	bip141 := "No"
-	if tx.bip141 { bip141 = "Yes" }
-	html = strings.Replace (html, "[[TX-BIP-141]]", bip141, 1)
-
-	html = strings.Replace (html, "[[TX-LOCK-TIME]]", strconv.FormatInt (int64 (tx.lockTime), 10), 1)
+	// transaction data
+	htmlData ["IsCoinbase"] = tx.coinbase
+	htmlData ["SupportsBip141"] = tx.bip141
+	htmlData ["LockTime"] = tx.lockTime
 
 	// outputs
 	totalOut := uint64 (0)
 	outputCount := len (tx.outputs)
 
-	outputsMinimizedHtml := ""
-	outputsMaximizedHtml := ""
-	for o := 0; o < outputCount; o++ {
+	htmlData ["OutputCount"] = outputCount
+	outputCountLabel := "Output"; if outputCount > 1 { outputCountLabel += "s" }
+	htmlData ["OutputCountLabel"] = outputCountLabel
+
+	outputHtmlData := make ([] OutputHtmlData, outputCount)
+	for o := uint32 (0); o < uint32 (outputCount); o++ {
 		totalOut += tx.outputs [o].GetSatoshis ()
-		outputsMinimizedHtml += tx.outputs [o].GetHtml (o, theme, true)
-		outputsMaximizedHtml += tx.outputs [o].GetHtml (o, theme, false)
+		outputHtmlData [o] = tx.outputs [o].GetHtmlData (o, true, boxWidths)
 	}
+	htmlData ["OutputData"] = outputHtmlData
 
-	minimizedOutputTableHtml := theme.GetMinimizedOutputsTableHtmlTemplate ()
-	minimizedOutputTableHtml = strings.Replace (minimizedOutputTableHtml, "[[OUTPUTS-MINIMIZED-HTML]]", outputsMinimizedHtml, 1)
-
-	html = strings.Replace (html, "[[TX-VALUE-OUT]]", strconv.FormatUint (totalOut, 10), 1)
-	html = strings.Replace (html, "[[TX-OUTPUTS-MINIMIZED]]", minimizedOutputTableHtml, 1)
-	html = strings.Replace (html, "[[TX-OUTPUTS-MAXIMIZED]]", outputsMaximizedHtml, 1)
-
-	outputCountLabel := strconv.Itoa (outputCount) + " Output"
-	if outputCount > 1 { outputCountLabel += "s" }
-	html = strings.Replace (html, "[[TX-OUTPUT-COUNT]]", outputCountLabel, 1)
+	// totals for the transaction
+	htmlData ["ValueOut"] = totalOut
+	htmlData ["ValueIn"] = 0; if tx.coinbase { htmlData ["ValueIn"] = totalOut }
+	htmlData ["Fee"] = 0
 
 	// inputs
-	// these are set to zero because the previous outputs will be read asyncronously
-	if tx.coinbase {
-		html = strings.Replace (html, "[[TX-VALUE-IN]]", strconv.FormatUint (totalOut, 10), 1)
-	} else {
-		html = strings.Replace (html, "[[TX-VALUE-IN]]", "0", 1)
-	}
-	html = strings.Replace (html, "[[TX-FEE]]", "0", 1)
-
 	inputCount := len (tx.inputs)
 
-	inputCountLabel := strconv.Itoa (inputCount) + " Input"
-	if inputCount > 1 { inputCountLabel += "s" }
-	html = strings.Replace (html, "[[TX-INPUT-COUNT]]", inputCountLabel, 1)
+	htmlData ["InputCount"] = inputCount
+	inputCountLabel := "Input"; if inputCount > 1 { inputCountLabel += "s" }
+	htmlData ["InputCountLabel"] = inputCountLabel
 
-	inputsMinimizedHtml := ""
-	inputsMaximizedHtml := ""
-	for i := 0; i < len (tx.inputs); i++ {
-		valueIn := uint64 (0)
-		if tx.coinbase && i == 0 { valueIn = totalOut }
-
-		inputsMinimizedHtml += tx.inputs [i].GetHtml (i, valueIn, theme, true)
-		inputsMaximizedHtml += tx.inputs [i].GetHtml (i, valueIn, theme, false)
+	inputHtmlData := make ([] InputHtmlData, inputCount)
+	for i := uint32 (0); i < uint32 (inputCount); i++ {
+		valueIn := uint64 (0); if tx.coinbase && i == 0 { valueIn = totalOut }
+		inputHtmlData [i] = tx.inputs [i].GetHtmlData (i, valueIn, tx.bip141, boxWidths)
 	}
+	htmlData ["InputData"] = inputHtmlData
 
-	minimizedInputTableHtml := theme.GetMinimizedInputsTableHtmlTemplate ()
-	minimizedInputTableHtml = strings.Replace (minimizedInputTableHtml, "[[INPUTS-MINIMIZED-HTML]]", inputsMinimizedHtml, 1)
-
-	html = strings.Replace (html, "[[TX-INPUTS-MINIMIZED]]", minimizedInputTableHtml, 1)
-	html = strings.Replace (html, "[[TX-INPUTS-MAXIMIZED]]", inputsMaximizedHtml, 1)
-
-	return html
+	return htmlData
 }
 
 type PendingInput struct {
-	Input_index int
-	Prev_tx_id string
-	Output_index uint32
+	Tx_id string
+	Input_index uint32
+
+	Prev_out_tx_id string
+	Prev_out_index uint32
+
+	Tap_script_index int64
 }
 
 func (tx *Tx) GetPendingInputs () [] PendingInput {
@@ -140,9 +125,17 @@ func (tx *Tx) GetPendingInputs () [] PendingInput {
 	}
 
 	pendingInputs := make ([] PendingInput, inputCount)
-	for i := 0; i < inputCount; i++ {
+	for i := uint32 (0); i < uint32 (inputCount); i++ {
 		previousOutputTxId := tx.inputs [i].GetPreviousOutputTxId ()
-		pendingInputs [i] = PendingInput { Input_index: i, Prev_tx_id: hex.EncodeToString (previousOutputTxId [:]), Output_index: tx.inputs [i].GetPreviousOutputIndex () }
+		pendingInputs [i] = PendingInput { Tx_id: tx.GetTxIdStr (), Input_index: i, Prev_out_tx_id: hex.EncodeToString (previousOutputTxId [:]), Prev_out_index: tx.inputs [i].GetPreviousOutputIndex () }
+
+		segwit := tx.inputs [i].GetSegwit ()
+		if !segwit.IsNil () {
+			tapScript, tapScriptIndex := segwit.GetTapScript ()
+			if !tapScript.IsNil () {
+				pendingInputs [i].Tap_script_index = tapScriptIndex
+			}
+		}
 	}
 
 	return pendingInputs

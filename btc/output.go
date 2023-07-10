@@ -2,9 +2,7 @@ package btc
 
 import (
 	"strconv"
-	"strings"
-
-	"btctx/themes"
+	"html/template"
 )
 
 type Output struct {
@@ -30,24 +28,20 @@ func (o *Output) GetAddress () string {
 	return o.address
 }
 
-func (o *Output) GetHtml (outputIndex int, theme themes.Theme, minimized bool) string {
+type OutputHtmlData struct {
+	WidthCh uint16
+	OutputIndex uint32
+	ShowOutputIndex bool
+	OutputType string
+	Value template.HTML
+	Address string
+	OutputScript ScriptHtmlData
+}
 
-	html := theme.GetOutputHtmlTemplate (minimized)
-
-	html = strings.Replace (html, "[[OUTPUT-INDEX]]", strconv.Itoa (outputIndex), 1)
-	html = strings.Replace (html, "[[OUTPUT-TYPE]]", o.outputType, 1)
-	html = strings.Replace (html, "[[OUTPUT-VALUE]]", GetValueHtml (o.value), 1)
-
+func (o *Output) GetHtmlData (outputIndex uint32, showOutputIndex bool, widthCh uint16) OutputHtmlData {
 	address := o.address
 	if len (address) == 0 { address = "No Address Format" }
-	html = strings.Replace (html, "[[OUTPUT-ADDRESS]]", address, 1)
-
-	if !minimized {
-		scriptHtml := o.outputScript.GetHtml ("Output Script", theme)
-		html = strings.Replace (html, "[[OUTPUT-SCRIPT-HTML]]", scriptHtml, 1)
-	}
-
-	return html
+	return OutputHtmlData { WidthCh: widthCh, OutputIndex: outputIndex, ShowOutputIndex: showOutputIndex, OutputType: o.outputType, Value: template.HTML (GetValueHtml (o.value)), Address: address, OutputScript: o.outputScript.GetHtmlData ("Output Script", "output-script-" + strconv.FormatUint (uint64 (outputIndex), 10), widthCh - 6) }
 }
 
 /*

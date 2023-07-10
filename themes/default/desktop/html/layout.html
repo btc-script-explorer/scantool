@@ -1,9 +1,11 @@
+{{ define "Layout" }}
+
 <!DOCTYPE html>
 <html>
 	<head>
 		<link rel="stylesheet" type="text/css" href="/css/explorer.css" />
 		<script type="text/javascript" src="/js/jquery-3.7.0.min.js"></script>
-		<script type="text/javascript">[[CUSTOM-JAVASCRIPT]]</script>
+		{{ .CustomJavascript }}
 		<script type="text/javascript" src="/js/explorer.js"></script>
 	</head>
 	<body>
@@ -11,9 +13,10 @@
 			<div id="page-header">
 				<a class="menu-item" href="/">Home</a>
 			</div>
-			<div class="page-content">[[LAYOUT-PAGE-CONTENT]]</div>
+			<div class="page-content">{{ template "LayoutContent" .ExplorerPage }}</div>
 			<div class="page-footer"></div>
 		</div>
 	</body>
 </html>
 
+{{ end }}

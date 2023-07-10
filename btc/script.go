@@ -2,12 +2,10 @@ package btc
 
 import (
 	"fmt"
-	"bytes"
 	"strings"
 	"encoding/hex"
-	"html/template"
 
-	"btctx/themes"
+	"btctx/app"
 )
 
 type Script struct {
@@ -32,6 +30,7 @@ func NewScript (rawBytes [] byte) Script {
 	pos := 0
 	bytesRemaining := len (rawBytes)
 
+	// parse the script
 	for bytesRemaining > 0 {
 
 		if len (hexFields) > 0 {
@@ -61,10 +60,22 @@ func NewScript (rawBytes [] byte) Script {
 			fieldLen = int (nextByte)
 		} else {
 			// it is a stack item using a push data opcode
+			valueSize := 0
 			switch nextByte {
-				case 0x4c: fieldLen = int (valueReader.ReadNumeric (rawBytes [pos : pos + 1])); pos += 1; bytesRemaining -= 1; break
-				case 0x4d: fieldLen = int (valueReader.ReadNumeric (rawBytes [pos : pos + 2])); pos += 2; bytesRemaining -= 2; break
-				case 0x4e: fieldLen = int (valueReader.ReadNumeric (rawBytes [pos : pos + 4])); pos += 4; bytesRemaining -= 4; break
+				case 0x4c: valueSize = 1; break
+				case 0x4d: valueSize = 2; break
+				case 0x4e: valueSize = 4; break
+			}
+
+			// we must make sure there are enough bytes left, or else there is a parse error
+			if bytesRemaining >= valueSize {
+				fieldLen = int (valueReader.ReadNumeric (rawBytes [pos : pos + valueSize]))
+				pos += valueSize
+				bytesRemaining -= valueSize
+			} else {
+				fieldLen = 1
+				pos += bytesRemaining
+				bytesRemaining = 0
 			}
 		}
 
@@ -100,63 +111,66 @@ func NewScript (rawBytes [] byte) Script {
 	return Script { rawBytes: rawBytes, fields: fields, fieldTypes: fieldTypes, parseError: parseError }
 }
 
-type ScriptData struct {
-	ScriptTitle string
-	ScriptField [] string
+type ScriptFieldHtmlData struct {
+	DisplayText string
+	ShowCopyButton bool
+	CopyImageUrl string
+	CopyText string
 }
 
-func (s *Script) GetHtml (title string, theme themes.Theme) string {
+type ScriptHtmlData struct {
+	HtmlId string
+	Title string
+	Fields [] ScriptFieldHtmlData
+}
 
-	scriptHtml := theme.GetScriptHtmlTemplate ()
+func (s *Script) GetHtmlData (title string, htmlId string, maxWidthCh uint16) ScriptHtmlData {
 
-	scriptFields := [] string (nil)
+	scriptFields := [] ScriptFieldHtmlData (nil)
 
 	if !s.IsEmpty () {
-		fieldCount := len (s.fields)
-		if s.parseError { fieldCount++ }
+		settings := app.GetSettings ()
+		copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
+		fieldCount := len (s.fields); if s.parseError { fieldCount++ }
 
-		scriptFields = make ([] string, fieldCount)
+		scriptFields = make ([] ScriptFieldHtmlData, fieldCount)
 		for f, field := range s.fields {
-			scriptFields [f] = GetHexFieldHtml (field, 70)
+			if uint16 (len (field)) > maxWidthCh {
+				scriptFields [f] = ScriptFieldHtmlData { DisplayText: field [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyImageUrl: copyImageUrl, CopyText: field }
+			} else {
+				scriptFields [f] = ScriptFieldHtmlData { DisplayText: field, ShowCopyButton: false }
+			}
 		}
+
 		if s.parseError {
-			scriptFields [fieldCount - 1] = "< PARSE ERROR >"
+			scriptFields [fieldCount - 1] = ScriptFieldHtmlData { DisplayText: "< PARSE ERROR >", ShowCopyButton: false }
 		}
 	} else {
-		scriptFields = make ([] string, 1)
-		scriptFields [0] = "Empty"
+		scriptFields = make ([] ScriptFieldHtmlData, 1)
+		scriptFields [0] = ScriptFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
 	}
 
-//	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-TITLE]]", title, 1)
-//	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-FIELDS-HTML]]", scriptFieldsHtml, 1)
-
-tmpl := template.Must (template.New ("tpl").Parse (scriptHtml))
-
-scriptData := ScriptData { ScriptTitle: title, ScriptField: scriptFields }
-var buff bytes.Buffer
-if err := tmpl.Execute(&buff, scriptData); err != nil {
-    panic(err)
-}
-return buff.String ()
-
-//	return scriptHtml
+	return ScriptHtmlData { HtmlId: htmlId, Title: title, Fields: scriptFields }
 }
 
-func (s *Script) GetTextHtml (title string, theme themes.Theme) string {
+func (s *Script) GetTextHtmlData (title string, htmlId string, maxWidthCh uint16) ScriptHtmlData {
 
-	scriptHtml := theme.GetScriptHtmlTemplate ()
-	scriptTextHtml := ""
+	scriptFields := make ([] ScriptFieldHtmlData, 1)
 
 	if !s.IsEmpty () {
-		scriptTextHtml = "<div>" + GetHexFieldHtml (string (s.rawBytes [:]), 70) + "</div>"
+		scriptText := GetHexFieldHtml (string (s.rawBytes [:]), int (maxWidthCh))
+		if uint16 (len (scriptText)) > maxWidthCh {
+			settings := app.GetSettings ()
+			copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
+			scriptFields [0] = ScriptFieldHtmlData { DisplayText: scriptText [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyImageUrl: copyImageUrl, CopyText: scriptText }
+		} else {
+			scriptFields [0] = ScriptFieldHtmlData { DisplayText: scriptText, ShowCopyButton: false }
+		}
 	} else {
-		scriptTextHtml = "<div>Empty</div>"
+		scriptFields [0] = ScriptFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
 	}
 
-	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-TITLE]]", title, 1)
-	scriptHtml = strings.Replace (scriptHtml, "[[SCRIPT-FIELDS-HTML]]", scriptTextHtml, 1)
-
-	return scriptHtml
+	return ScriptHtmlData { HtmlId: htmlId, Title: title, Fields: scriptFields }
 }
 
 func (s *Script) GetFields () [] string {

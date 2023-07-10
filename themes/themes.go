@@ -1,11 +1,12 @@
 package themes
 
 import (
-	"fmt"
-	"os"
+//	"fmt"
+	"bytes"
 	"strings"
+	"html/template"
 
-//	"btctx/btc"
+	"btctx/btc"
 )
 
 type Theme struct {
@@ -21,12 +22,83 @@ func GetThemeForUserAgent (userAgent string) Theme {
 	return GetTheme ("default", "desktop")
 }
 
+func (t *Theme) getExplorerPageHtmlData (queryText string, queryResults map [string] interface {}) map [string] interface {} {
+	explorerPageData := make (map [string] interface {})
+	explorerPageData ["QueryText"] = queryText
+	if queryResults != nil {
+		explorerPageData ["QueryResults"] = queryResults
+	}
+	return explorerPageData
+}
+
+func (t *Theme) getLayoutHtmlData (customJavascript string, explorerPageData map [string] interface {}) map [string] interface {} {
+	layoutData := make (map [string] interface {})
+	layoutData ["CustomJavascript"] = template.HTML (`<script type="text/javascript">` + customJavascript + "</script>")
+	layoutData ["ExplorerPage"] = explorerPageData
+	return layoutData
+}
+
+func (t *Theme) GetExplorerPageHtml () string {
+
+	// get the data
+	explorerPageData := t.getExplorerPageHtmlData ("", nil)
+	layoutData := t.getLayoutHtmlData ("", explorerPageData)
+
+	// parse the files
+	files := [] string {
+		t.GetPath () + "html/layout.html",
+		t.GetPath () + "html/page-explorer.html" }
+
+	templ := template.Must (template.ParseFiles (files...))
+	templ.Parse (`{{ define "QueryResults" }}{{ end }}`)
+
+	// execute the templates
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Layout", layoutData); err != nil {
+		panic (err)
+	}
+
+	// return the html
+	return buff.String ()
+}
+
+func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
+
+	// get the data
+	txPageHtmlData := tx.GetHtmlData ()
+	explorerPageHtmlData := t.getExplorerPageHtmlData (tx.GetTxIdStr (), txPageHtmlData)
+	layoutHtmlData := t.getLayoutHtmlData (customJavascript, explorerPageHtmlData)
+
+	// parse the files
+	layoutHtmlFiles := [] string {
+		t.GetPath () + "html/layout.html",
+		t.GetPath () + "html/page-explorer.html",
+		t.GetPath () + "html/tx.html",
+		t.GetPath () + "html/inputs-minimized.html",
+		t.GetPath () + "html/input-maximized.html",
+		t.GetPath () + "html/outputs-minimized.html",
+		t.GetPath () + "html/output-maximized.html",
+		t.GetPath () + "html/script.html",
+		t.GetPath () + "html/segwit.html" }
+	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
+
+	// execute the templates
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil {
+		panic (err)
+	}
+
+	// return the html
+	return buff.String ()
+}
+
 func (t *Theme) GetPath () string {
 	return "themes/" + t.themeName + "/" + t.layoutName + "/"
 }
 
+/*
 func (t *Theme) getHtml (fileName string) string {
-	fileBytes, err := os.ReadFile (t.GetPath () + fileName)
+	fileBytes, err := os.ReadFile (t.GetPath () + "html/" + fileName)
 	if err != nil {
 		fmt.Println (err.Error ())
 		return ""
@@ -36,41 +108,29 @@ func (t *Theme) getHtml (fileName string) string {
 }
 
 func (t *Theme) GetTxHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/tx.html")
+	return t.getHtml ("html/tx.html")
 }
 
 func (t *Theme) GetInputHtmlTemplate (minimized bool) string {
-	if minimized { return t.getHtml ("html/btc-objects/input-minimized.html") }
-	return t.getHtml ("html/btc-objects/input-maximized.html")
+	if minimized { return t.getHtml ("html/input-minimized.html") }
+	return t.getHtml ("html/input-maximized.html")
 }
 
 func (t *Theme) GetMinimizedInputsTableHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/inputs-minimized-table.html")
+	return t.getHtml ("html/inputs-minimized-table.html")
 }
 
 func (t *Theme) GetOutputHtmlTemplate (minimized bool) string {
-	if minimized { return t.getHtml ("html/btc-objects/output-minimized.html") }
-	return t.getHtml ("html/btc-objects/output-maximized.html")
+	if minimized { return t.getHtml ("html/output-minimized.html") }
+	return t.getHtml ("html/output-maximized.html")
 }
 
 func (t *Theme) GetMinimizedOutputsTableHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/outputs-minimized-table.html")
+	return t.getHtml ("html/outputs-minimized-table.html")
 }
 
 func (t *Theme) GetScriptHtmlTemplate () string {
-	return t.getHtml ("html/btc-objects/script.html")
+	return t.getHtml ("html/script.html")
 }
-
-func (t *Theme) GetExplorerPageHtml (queryId string, queryResult string, customJavascript string) string {
-	pageHtml := t.getHtml ("html/pages/home.html")
-	pageHtml = strings.Replace (pageHtml, "[[QUERY-ID]]", queryId, 1)
-	pageHtml = strings.Replace (pageHtml, "[[QUERY-RESULT]]", queryResult, 1)
-
-	layoutHtml := t.getHtml ("html/layout.html")
-	layoutHtml = strings.Replace (layoutHtml, "[[CUSTOM-JAVASCRIPT]]", customJavascript, -1)
-	layoutHtml = strings.Replace (layoutHtml, "[[LAYOUT-PATH]]", t.GetPath (), -1)
-	layoutHtml = strings.Replace (layoutHtml, "[[LAYOUT-PAGE-CONTENT]]", pageHtml, 1)
-
-	return layoutHtml
-}
+*/
 

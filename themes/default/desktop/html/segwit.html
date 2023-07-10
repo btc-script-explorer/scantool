@@ -1,5 +1,5 @@
-{{ define "Script" }}
-	<div style="font-family:serif; font-weight:bold; text-decoration:underline; margin:10px 0 6px 0;">{{.Title}}</div>
+{{ define "Segwit" }}
+	<div style="font-family:serif; font-weight:bold; text-decoration:underline; margin:10px 0 6px 0;">Segregated Witness</div>
 	<div id="{{ .HtmlId }}">
 		{{range $index, $field := .Fields}}
 			<div id="{{ $.HtmlId }}-field-{{ $index }}" style="font-family:monospace; text-align:center; overflow-x:hidden;">
@@ -10,5 +10,7 @@
 			</div>
 		{{end}}
 	</div>
+	{{ template "Script" .WitnessScript }}
+	{{ template "Script" .TapScript }}
 {{end}}
 

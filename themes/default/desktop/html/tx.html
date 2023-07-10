@@ -1,3 +1,5 @@
+{{ define "QueryResults" }}
+
 <div style="margin-bottom:48px;">
 	<div class="section-heading">Transaction</div>
 	<div style="display:inline-block; font-size:large; padding:8px; background-color:#f0f0f0;">
@@ -5,48 +7,62 @@
 			<tbody>
 				<tr>
 					<td style="text-align:right; padding-right:8px;">Coinbase:</td>
-					<td style="text-align:left;">[[TX-COINBASE]]</td>
+					<td style="text-align:left;">{{ if .IsCoinbase }}Yes{{ else }}No{{ end }}</td>
 				</tr>
 				<tr>
 					<td style="text-align:right; padding-right:8px;">BIP 141:</td>
-					<td style="text-align:left;">[[TX-BIP-141]]</td>
+					<td style="text-align:left;">{{ if .SupportsBip141 }}Yes{{ else }}No{{ end }}</td>
 				</tr>
 				<tr>
 					<td style="text-align:right; padding-right:8px;">Lock Time:</td>
-					<td style="text-align:left;">[[TX-LOCK-TIME]]</td>
+					<td style="text-align:left;">{{ .LockTime }}</td>
 				</tr>
 				<tr style="height:12px;"></tr>
 				<tr>
 					<td style="text-align:right; padding-right:8px;">In:</td>
-					<td style="text-align:right;" id="tx-value-in">[[TX-VALUE-IN]]</td>
+					<td style="text-align:right;" id="tx-value-in">{{ .ValueIn }}</td>
 				</tr>
 				<tr>
 					<td style="text-align:right; padding-right:8px;">Out:</td>
-					<td style="text-align:right;" id="tx-value-out">[[TX-VALUE-OUT]]</td>
+					<td style="text-align:right;" id="tx-value-out">{{ .ValueOut }}</td>
 				</tr>
 				<tr>
 					<td style="text-align:right; padding-right:8px;">Fee:</td>
-					<td style="text-align:right;" id="tx-fee">[[TX-FEE]]</td>
+					<td style="text-align:right;" id="tx-fee">{{ .Fee }}</td>
 				</tr>
 			</tbody>
 		</table>
 	</div>
 
 	<div class="section-heading" style="margin-top:12px;">
-		<span id="input-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_inputs (true);">Show</span>
-		[[TX-INPUT-COUNT]]
+		<span id="input-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_inputs ();">Show</span>
+		{{ .InputCount }} {{ .InputCountLabel }}
 		<span id="input-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
 	</div>
-	<div id="inputs-minimized" style="display:block;">[[TX-INPUTS-MINIMIZED]]</div>
-	<div id="inputs-maximized" style="display:none;">[[TX-INPUTS-MAXIMIZED]]</div>
+	<div id="inputs-minimized" style="display:block;">
+		{{ template "InputsMinimized" .InputData }}
+	</div>
+	<div id="inputs-maximized" style="display:none;">
+		{{ range .InputData }}
+			{{ template "Input" . }}
+		{{ end }}
+	</div>
 
 	<div class="section-heading" style="margin-top:12px;">
-		<span id="output-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_outputs (false);">Show</span>
-		[[TX-OUTPUT-COUNT]]
+		<span id="output-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_outputs ();">Show</span>
+		{{ .OutputCount }} {{ .OutputCountLabel }}
 		<span id="output-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
 	</div>
-	<div id="outputs-minimized" style="display:block;">[[TX-OUTPUTS-MINIMIZED]]</div>
-	<div id="outputs-maximized" style="display:none;">[[TX-OUTPUTS-MAXIMIZED]]</div>
+	<div id="outputs-minimized" style="display:block;">
+		{{ template "OutputsMinimized" .OutputData }}
+	</div>
+	<div id="outputs-maximized" style="display:none;">
+		{{ range .OutputData }}
+			{{ template "Output" . }}
+		{{ end }}
+	</div>
 
 </div>
+
+{{ end }}
 
