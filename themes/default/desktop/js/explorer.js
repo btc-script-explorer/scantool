@@ -30,13 +30,15 @@ function handle_pending_inputs ()
 {
 	if (pending_inputs.length == 0)
 	{
-		show_bitcoin_in_bold ();
+		$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').html ()))
+		$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').html ()))
+		$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').html ()))
 		return;
 	}
 
 	var ajax_data = pending_inputs [0];
 	ajax_data.method = 'getpreviousoutput';
-console.log ('getpreviousoutput request:'); console.log (ajax_data);
+console.log ('getpreviousoutput request:', ajax_data);
 
 	$.ajax (
 	{
@@ -47,46 +49,76 @@ console.log ('getpreviousoutput request:'); console.log (ajax_data);
 //		error: function (jqXHR, textStatus, errorThrown) {},
 		success: function (data, textStatus, jqXHR)
 		{
-console.log ('getpreviousoutput response:'); console.log (data);
+console.log ('getpreviousoutput response:', data);
 
-			// set the data for the received previous output
-			$ ('#input-minimized-address-' + data.Input_index).html (data.Address);
+			// previous output address
+			$ ('#input-minimized-address-' + data.Input_index).html (data.Prev_out_Address);
 
-			$ ('#input-minimized-value-' + data.Input_index).html (data.Value_html);
-			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Value;
+			// value in
+			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Prev_out_value;
 			$ ('#tx-value-in').html (value_in);
+			$ ('#input-minimized-value-' + data.Input_index).html (get_value_html (data.Prev_out_value));
 
-			// update the fee
+			// fee
 			var value_out = parseInt ($ ('#tx-value-out').html ());
 			if (value_in >= value_out)
 				$ ('#tx-fee').html (value_in - value_out);
 
-			// update the spend type
-			var input_tx_type = $ ('#input-minimized-tx-type-' + data.Input_index).html ();
-			if (input_tx_type.length == 0)
+			var segwit_field_count = $ ('#segwit-' + data.Input_index).children ().length;
+
+			// spend type
+			var predicted_spend_type = $ ('#input-minimized-spend-type-' + data.Input_index).html ();
+			if (data.Prev_out_type == 'Taproot')
 			{
-				if (data.Output_type == 'Taproot')
+				// tap script
+				if (predicted_spend_type == 'Taproot Script Path')
 				{
-					$ ('#input-minimized-tx-type-' + data.Input_index).html ('Taproot Key Path');
-					$ ('#input-spend-type-' + data.Input_index).html ('Taproot Key Path');
+					if (pending_inputs [0].Tap_script_index < segwit_field_count - 1)
+						$ ('#segwit-' + data.Input_index + '-field-' + pending_inputs [0].Tap_script_index).html ('< TAP SCRIPT >');
+					else if (predicted_spend_type != 'Taproot Key Path' && predicted_spend_type != 'Taproot Script Path')
+						console.log ('Expecting ' + (pending_inputs [0].Tap_script_index + 1) + ' segwit fields, but only found ' + segwit_field_count + ' for ' + predicted_spend_type + ' input.');
 				}
+				else if (predicted_spend_type != 'Taproot Key Path' && predicted_spend_type != 'Taproot Script Path')
+					console.log (data.Prev_out_type + ' output type with ' + predicted_spend_type + ' spend type.');
+			}
+			else if (data.Prev_out_type == 'P2SH')
+			{
+				var input_script_field_count = $ ('#input-script-' + data.Input_index).children ().length;
+
+				// redeem script
+				if (typeof $ ('#redeem-script-' + data.Input_index) !== 'undefined' && input_script_field_count > 0)
+					$ ('#input-script-' + data.Input_index + '-field-' + (input_script_field_count - 1)).html ('< REDEEM SCRIPT >');
 				else
+					console.log ('No redeem script for ' + predicted_spend_type + ' input.');
+
+				// witness script
+				if (predicted_spend_type == 'P2SH-P2WSH')
 				{
-					$ ('#input-minimized-tx-type-' + data.Input_index).html (data.Output_type);
-					$ ('#input-spend-type-' + data.Input_index).html (data.Output_type);
+					if (segwit_field_count > 0)
+						$ ('#segwit-' + data.Input_index + '-field-' + (segwit_field_count - 1)).html ('< WITNESS SCRIPT >');
+					else
+						console.log ('No segwit fields for ' + predicted_spend_type + ' input.');
 				}
+
+				if (predicted_spend_type != 'P2SH-P2WPKH' && predicted_spend_type != 'P2SH-P2WSH' && predicted_spend_type != 'P2SH')
+					console.log (data.Prev_out_type + ' output type with ' + predicted_spend_type + ' spend type.');
 			}
 			else
 			{
-				var p2sh_wrapped = (input_tx_type == 'P2SH-P2WPKH' || input_tx_type == 'P2SH-P2WSH') && data.Output_type == 'P2SH';
-				var taproot_script_path = input_tx_type == 'Taproot Script Path' && data.Output_type == 'Taproot';
-				if (!p2sh_wrapped && !taproot_script_path)
-				{
-					console.log (data.Output_type + ' incorrectly identified as ' + input_tx_type);
-					$ ('#input-minimized-tx-type-' + data.Input_index).html (data.Output_type);
-					$ ('#input-spend-type-' + data.Input_index).html (data.Output_type);
-				}
+				$ ('#input-minimized-spend-type-' + data.Input_index).html (data.Prev_out_type);
+				$ ('#input-spend-type-' + data.Input_index).html (data.Prev_out_type);
 			}
+
+/*
+			if (predicted_spend_type.length == 0)
+			{
+			}
+			else
+			{
+				var p2sh_wrapped = (predicted_spend_type == 'P2SH-P2WPKH' || predicted_spend_type == 'P2SH-P2WSH') && data.Prev_out_type == 'P2SH';
+				var taproot_script_path = predicted_spend_type == 'Taproot Script Path' && data.Prev_out_type == 'Taproot';
+			}
+*/
 
 			// get the next one
 			// an interval could be used as a timer in case some of the responses are never received
@@ -94,26 +126,26 @@ console.log ('getpreviousoutput response:'); console.log (data);
 			if (pending_inputs.length > 0)
 				handle_pending_inputs ();
 			else
-				show_bitcoin_in_bold ();
+			{
+				$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').html ()))
+				$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').html ()))
+				$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').html ()))
+			}
 		}
 //		complete: function (jqXHR, textStatus) {}
 	});
 }
 
-function show_bitcoin_in_bold ()
+function get_value_html (value)
 {
-	// make the tx in, tx out and tx fee amounts show bitcoin in bold
-	var field_ids = [ 'tx-value-in', 'tx-value-out', 'tx-fee' ];
-	for (var i = 0; i < field_ids.length; i++)
+	var val_str = Number (value).toString ();
+	if (val_str.length > 8)
 	{
-		var val_str = $ ('#' + field_ids [i]).html ();
-		if (val_str.length > 8)
-		{
-			var btc_digits = val_str.length - 8;
-			var value_html = '<span style="font-weight:bold;">' + val_str.substr (0, btc_digits) + '</span>' + val_str.substr (btc_digits);
-			$ ('#' + field_ids [i]).html (value_html);
-		}
+		var btc_digits = val_str.length - 8;
+		val_str = '<span style="font-weight:bold;">' + val_str.substr (0, btc_digits) + '</span>' + val_str.substr (btc_digits);
 	}
+
+	return val_str;
 }
 
 async function copy_to_clipboard (data)
@@ -129,13 +161,13 @@ function toggle_inputs (event)
 	{
 		min.css ('display', 'none');
 		max.css ('display', 'block');
-		$ ('#inputs-toggle').html ('Hide');
+		$ ('#input-toggle').html ('Hide');
 	}
 	else
 	{
 		min.css ('display', 'block');
 		max.css ('display', 'none');
-		$ ('#inputs-toggle').html ('Show');
+		$ ('#input-toggle').html ('Show');
 	}
 }
 
@@ -180,6 +212,12 @@ function ()
 
 	if (typeof pending_inputs !== 'undefined' && Array.isArray (pending_inputs))
 		handle_pending_inputs ();
+	else
+	{
+		$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').html ()))
+		$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').html ()))
+		$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').html ()))
+	}
 
 	// set up the Enter key handler
 	$ ('#query-box').on ('keypress', function (e) { if (e.which == 0x0d) get_transaction ($ ('#query-box').val ()); })

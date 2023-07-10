@@ -36,8 +36,6 @@ td
 #page
 {
 	display: inline-block;
-	max-width: 140ch;
-
 	background-color: white;
 	text-align: center;
 }
@@ -96,6 +94,7 @@ td
 	margin: 8px 0 6px;
 }
 
+/*
 .text-block
 {
 	display: inline-block;
@@ -103,6 +102,7 @@ td
 	text-align: left;
 	margin: 4px 0 8px;
 }
+*/
 
 #page-footer
 {

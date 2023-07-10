@@ -33,7 +33,7 @@ type inputJson struct {
 
 	SegwitFields [] string
 	WitnessScriptFields [] string
-	TapScriptIndex int
+	TapScriptIndex int64
 	TapScriptFields [] string
 
 	SpendType string

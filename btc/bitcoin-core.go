@@ -106,9 +106,12 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 b
 
 	// segregated witness
 	segwit := Segwit {}
-	hasSegwitFields := bip141 && inputJson ["txinwitness"] != nil
-	if hasSegwitFields {
-		segwit = bc.parseSegwit (inputJson ["txinwitness"].([] interface {}))
+	if bip141 {
+		if inputJson ["txinwitness"] != nil {
+			segwit = bc.parseSegwit (inputJson ["txinwitness"].([] interface {}))
+		} else {
+			segwit = bc.parseSegwit (make ([] interface {}, 0))
+		}
 	}
 
 	// if this is a coinbase input, we have everything we need

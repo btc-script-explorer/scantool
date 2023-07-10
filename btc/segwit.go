@@ -2,17 +2,17 @@ package btc
 
 import (
 	"fmt"
-	"strings"
 	"encoding/hex"
+	"strconv"
 
-	"btctx/themes"
+	"btctx/app"
 )
 
 type Segwit struct {
 	hexFields [] string
 	witnessScript Script
 	tapScript Script
-	tapScriptIndex int
+	tapScriptIndex int64
 }
 
 func NewSegwit (hexFields [] string) Segwit {
@@ -26,7 +26,7 @@ func (s *Segwit) GetWitnessScript () Script {
 	return s.witnessScript
 }
 
-func (s *Segwit) GetTapScript () (Script, int) {
+func (s *Segwit) GetTapScript () (Script, int64) {
 	return s.tapScript, s.tapScriptIndex
 }
 
@@ -42,35 +42,66 @@ func (s *Segwit) IsEmpty () bool {
 	return len (s.hexFields) == 0
 }
 
-func (s *Segwit) GetHtml (theme themes.Theme) string {
+type SegwitFieldHtmlData struct {
+	DisplayText string
+	ShowCopyButton bool
+	CopyImageUrl string
+	CopyText string
+}
+
+type SegwitHtmlData struct {
+	HtmlId string
+	Fields [] SegwitFieldHtmlData
+	WitnessScript ScriptHtmlData
+	TapScript ScriptHtmlData
+}
+
+func (s *Segwit) GetHtmlData (inputIndex uint32, maxWidthCh uint16) SegwitHtmlData {
 
 	if s.IsNil () {
-		return ""
+		return SegwitHtmlData {}
 	}
 
-	segwitFieldsHtml := ""
+	htmlId := "segwit-" + strconv.FormatUint (uint64 (inputIndex), 10)
+
+	fields := [] SegwitFieldHtmlData (nil)
 	if !s.IsEmpty () {
-		for _, field := range s.hexFields {
-			segwitFieldsHtml += "<div>" + GetHexFieldHtml (field, 70) + "</div>"
+		settings := app.GetSettings ()
+		copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
+
+		fields = make ([] SegwitFieldHtmlData, len (s.hexFields))
+		for f, field := range s.hexFields {
+			if uint16 (len (field)) > maxWidthCh {
+				fields [f] = SegwitFieldHtmlData { DisplayText: field [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyImageUrl: copyImageUrl, CopyText: field }
+			} else {
+				fields [f] = SegwitFieldHtmlData { DisplayText: field, ShowCopyButton: false }
+			}
 		}
 	} else {
-		segwitFieldsHtml = "<div>Empty</div>"
+		fields = make ([] SegwitFieldHtmlData, 1)
+		fields [0] = SegwitFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
 	}
 
-	segwitHtml := theme.GetScriptHtmlTemplate ()
-	segwitHtml = strings.Replace (segwitHtml, "[[SCRIPT-TITLE]]", "Segregated Witness", 1)
-	segwitHtml = strings.Replace (segwitHtml, "[[SCRIPT-FIELDS-HTML]]", segwitFieldsHtml, 1)
+	htmlData := SegwitHtmlData { HtmlId: htmlId, Fields: fields }
 
-	return segwitHtml
+	if !s.witnessScript.IsNil () {
+		htmlData.WitnessScript = s.witnessScript.GetHtmlData ("Witness Script", htmlId + "-witness-script", maxWidthCh - 6)
+	}
+
+	if !s.tapScript.IsNil () {
+		htmlData.TapScript = s.tapScript.GetHtmlData ("Tap Script", htmlId + "-tap-script", maxWidthCh - 6)
+	}
+
+	return htmlData
 }
 
 func (s *Segwit) IsValidP2wpkh () bool {
 	if len (s.hexFields) != 2 { return false }
 
-	publicKeyBytes, err := hex.DecodeString (s.hexFields [0])
+	signatureBytes, err := hex.DecodeString (s.hexFields [0])
 	if err != nil { fmt.Println (err.Error ()); return false }
 
-	signatureBytes, err := hex.DecodeString (s.hexFields [1])
+	publicKeyBytes, err := hex.DecodeString (s.hexFields [1])
 	if err != nil { fmt.Println (err.Error ()); return false }
 
 	return IsValidPublicKey (publicKeyBytes) && IsValidECSignature (signatureBytes)
@@ -95,6 +126,7 @@ func (s *Segwit) IsValidTaprootKeyPath () bool {
 
 func (s *Segwit) parseWitnessScript () {
 
+	// if there are no segwit fields, then there is no witness script
 	fieldCount := len (s.hexFields)
 	if fieldCount < 1 { return }
 
@@ -103,7 +135,7 @@ func (s *Segwit) parseWitnessScript () {
 	witnessScriptBytes, err := hex.DecodeString (s.hexFields [witnessScriptIndex])
 	if err != nil { fmt.Println (err.Error ()); return }
 
-	// it must be parsable
+	// the script must be parsable
 	witnessScript := NewScript (witnessScriptBytes)
 	if witnessScript.HasParseError () { return }
 
@@ -111,6 +143,8 @@ func (s *Segwit) parseWitnessScript () {
 }
 
 func (s *Segwit) parseTapscript () {
+
+	// gather some data to determine whether this could be a Taproot segwit block
 	minimumFieldCount := 2
 	actualFieldCount := len (s.hexFields)
 	controlBlockIndex := actualFieldCount - 1
@@ -120,20 +154,20 @@ func (s *Segwit) parseTapscript () {
 		controlBlockIndex--
 	}
 
-	// there must be a minimum number of fields in order to have a tap script
+	// if there is not the required minimum number of segwit fields, then there is no tap script
 	if actualFieldCount < minimumFieldCount { return }
 
 	// the control block must be of a valid length
-	// we subtract 2 and mod with 64 because these are hex fields with 2 characters representing each byte
+	// we use (len - 2) % 64 because these are hex strings with 2 characters representing each byte in the segwit field
 	controlBlockLengthValid := (len (s.hexFields [controlBlockIndex]) - 2) % 64 == 0
 	if !controlBlockLengthValid { return }
 
 	// now we read the tap script
-	tapScriptIndex := controlBlockIndex - 1
+	tapScriptIndex := int64 (controlBlockIndex) - 1
 	tapScriptBytes, err := hex.DecodeString (s.hexFields [tapScriptIndex])
 	if err != nil { fmt.Println (err.Error ()); return }
 
-	// it must be parsable
+	// the script must be parsable
 	tapScript := NewScript (tapScriptBytes)
 	if tapScript.HasParseError () { return }
 

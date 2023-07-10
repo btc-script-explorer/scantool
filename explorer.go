@@ -18,6 +18,11 @@ import (
 )
 
 func serveFile (response http.ResponseWriter, request *http.Request) {
+	// themes need support for the favicon yet
+	if request.URL.Path == "/favicon.ico" {
+		return
+	}
+
 	theme := themes.GetThemeForUserAgent (request.UserAgent ())
 	http.ServeFile (response, request, theme.GetPath () + request.URL.Path)
 }
@@ -30,41 +35,40 @@ func homeController (response http.ResponseWriter, request *http.Request) {
 		fmt.Println ("invalid path: ", request.URL.Path)
 	}
 
-	queryId := ""
-	queryResult := ""
-	customJavascript := ""
-
 	theme := themes.GetThemeForUserAgent (request.UserAgent ())
+	nodeClient := btc.GetNodeClient ()
+	html := ""
 
-	if len (params) == 3 {
-//fmt.Println (request.URL.Path)
-		queryType := params [1]
-		queryId = params [2]
+	queryType := ""; if len (params) >= 2 { queryType = params [1] }
+	switch queryType {
+		case "block":
+			break
+		case "tx":
+			if len (params) < 3 { fmt.Println ("Wrong number of parameters received. Request ignored."); return }
 
-		nodeClient := btc.GetNodeClient ()
+			txId := params [2]
+//fmt.Println (txId)
+			txIdBytes, err := hex.DecodeString (txId)
+			if err != nil { panic (err.Error ()) }
+//fmt.Println (txIdBytes)
 
-		switch queryType {
-			case "block":
-				break
-			case "tx":
-				txIdBytes, err := hex.DecodeString (queryId)
-				if err != nil { fmt.Println (err.Error ()) }
+			tx := nodeClient.GetTx ([32] byte (txIdBytes [:]))
 
-				tx := nodeClient.GetTx ([32] byte (txIdBytes [:]))
-				queryResult = tx.GetHtml (theme)
+			pendingInputsBytes, err := json.Marshal (tx.GetPendingInputs ())
+			if err != nil { fmt.Println (err.Error ()) }
 
-				pendingInputsBytes, err := json.Marshal (tx.GetPendingInputs ())
-				if err != nil { fmt.Println (err.Error ()) }
-
-				pendingInputsJson := string (pendingInputsBytes)
-				customJavascript = "var pending_inputs = JSON.parse ('" + pendingInputsJson + "');"
-				break
-			case "address":
-				break
-		}
+			pendingInputsJson := string (pendingInputsBytes)
+			customJavascript := "var pending_inputs = JSON.parse ('" + pendingInputsJson + "');"
+			html = theme.GetTxHtml (tx, customJavascript)
+			break
+		case "address":
+			break
+		default:
+			html = theme.GetExplorerPageHtml ()
+			break
 	}
 
-	fmt.Fprint (response, theme.GetExplorerPageHtml (queryId, queryResult, customJavascript))
+	fmt.Fprint (response, html)
 }
 
 func ajaxController (response http.ResponseWriter, request *http.Request) {
@@ -75,10 +79,10 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 	if request.Method == "POST" {
 		switch request.FormValue ("method") {
 			case "getpreviousoutput":
-				txIdBytes, err := hex.DecodeString (request.FormValue ("Prev_tx_id"))
+				txIdBytes, err := hex.DecodeString (request.FormValue ("Prev_out_tx_id"))
 				if err != nil { fmt.Println (err.Error ()) }
 
-				outputIndex, err := strconv.ParseUint (request.FormValue ("Output_index"), 10, 32)
+				outputIndex, err := strconv.ParseUint (request.FormValue ("Prev_out_index"), 10, 32)
 				if err != nil { fmt.Println (err.Error ()) }
 
 				previousOutput := nodeClient.GetPreviousOutput ([32] byte (txIdBytes), uint32 (outputIndex))
@@ -88,10 +92,10 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 				type previousOutputJson struct {
 					Input_tx_id string
 					Input_index uint32
-					Value uint64
-					Value_html string
-					Output_type string
-					Address string
+					Prev_out_value uint64
+					Prev_out_type string
+					Prev_out_Address string
+					Prev_out_html string
 //					Script [] string
 				}
 
@@ -103,11 +107,10 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 
 				satoshis := previousOutput.GetSatoshis ()
 				previousOutputResponse := previousOutputJson { Input_tx_id: request.FormValue ("tx_id"),
-														Input_index: uint32 (inputIndex),
-														Value: satoshis,
-														Value_html: btc.GetValueHtml (satoshis),
-														Output_type: previousOutput.GetOutputType (),
-														Address: previousOutput.GetAddress () }
+																Input_index: uint32 (inputIndex),
+																Prev_out_value: satoshis,
+																Prev_out_type: previousOutput.GetOutputType (),
+																Prev_out_Address: previousOutput.GetAddress () }
 
 				jsonBytes, err := json.Marshal (previousOutputResponse)
 				if err != nil { fmt.Println (err) }
@@ -235,6 +238,7 @@ func main () {
 
 	mux := http.NewServeMux ()
 
+	mux.HandleFunc ("/favicon.ico", serveFile)
 	mux.HandleFunc ("/css/", serveFile)
 	mux.HandleFunc ("/js/", serveFile)
 	mux.HandleFunc ("/image/", serveFile)
