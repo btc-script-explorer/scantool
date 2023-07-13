@@ -1,8 +1,12 @@
 package btc
 
 import (
+	"fmt"
 	"encoding/hex"
 	"strconv"
+	"html/template"
+
+	"btctx/app"
 )
 
 type Input struct {
@@ -16,12 +20,113 @@ type Input struct {
 	sequence uint32
 }
 
+func NewInput (coinbase bool,
+				previousOutputTxId [32] byte, 
+				previousOutputIndex uint32, 
+spendType string, 
+inputScript Script, 
+redeemScript Script, 
+segwit Segwit, 
+				sequence uint32) Input {
+
+	i := Input {
+		coinbase: coinbase,
+		previousOutputTxId: previousOutputTxId,
+		previousOutputIndex: previousOutputIndex,
+		spendType: spendType,
+		inputScript: inputScript,
+		redeemScript: redeemScript,
+		segwit: segwit,
+		sequence: sequence }
+
+	i.setFieldTypes ()
+
+	return i
+}
+
+func (i *Input) setFieldTypes () {
+
+	// P2SH-wrapped types
+	if i.spendType == "P2SH-P2WPKH" || i.spendType == "P2SH-P2WSH" {
+
+		// input script
+		if i.redeemScript.IsNil () { fmt.Println (i.spendType + " input with no input script.") }
+		parsedFieldCount := i.inputScript.GetParsedFieldCount ()
+		if parsedFieldCount != 1 { fmt.Println (i.spendType + " input script has wrong field count. Found ", parsedFieldCount, ", expected 1.") }
+
+		inputScriptFieldTypes := [...] string { "Serialized Redeem Script" }
+		i.inputScript.SetFieldTypes (inputScriptFieldTypes [:])
+
+		// redeem script should always exist for these types
+		if i.redeemScript.IsNil () { fmt.Println (i.spendType + " input with no redeem script.") }
+		parsedFieldCount = i.redeemScript.GetParsedFieldCount ()
+		if parsedFieldCount != 2 { fmt.Println (i.spendType + " redeem script has wrong field count. Found ", parsedFieldCount, ", expected 2.") }
+
+		redeemScriptFieldTypes := make ([] string, 2)
+		redeemScriptFieldTypes [0] = "OP_0"
+		if i.spendType == "P2SH-P2WPKH" { redeemScriptFieldTypes [1] = "20-Byte Witness Program" } else 
+		if i.spendType == "P2SH-P2WSH" { redeemScriptFieldTypes [1] = "32-Byte Witness Program" }
+
+		i.redeemScript.SetFieldTypes (redeemScriptFieldTypes [:])
+
+	// witness types
+	} else if i.spendType == "P2WPKH" || i.spendType == "P2WSH" || i.spendType == "Taproot Key Path" || i.spendType == "Taproot Script Path" {
+		if !i.inputScript.IsEmpty () { fmt.Println (i.spendType + " input has non-empty input script.") }
+
+		switch i.spendType {
+			case "P2WPKH": break
+			case "P2WSH": break
+			case "Taproot Key Path": break
+			case "Taproot Script Path": break
+		}
+
+	// coinbase, legacy and non-standard types
+	} else {
+		if !i.segwit.IsEmpty () { fmt.Println (i.spendType + " has non-empty segwit.") }
+
+		// input script
+		inputScriptFields := i.inputScript.GetFields ()
+		inputScriptStackItemStr := i.inputScript.GetRawFieldTypes ()
+		inputScriptFieldCount := len (inputScriptFields)
+		inputScriptFieldTypes := make ([] string, inputScriptFieldCount)
+		for f, field := range inputScriptFields {
+			if inputScriptStackItemStr [f] == 'o' {
+				inputScriptFieldTypes [f] = field
+				continue
+			}
+
+			inputScriptFieldTypes [f] = GetStackItemType (field, false, false)
+		}
+
+		if !i.redeemScript.IsNil () {
+			// it would have identified the redeem script as a data field, so we modify that here
+			inputScriptFieldTypes [inputScriptFieldCount - 1] = "Serialized Redeem Script"
+		}
+		i.inputScript.SetFieldTypes (inputScriptFieldTypes)
+
+		// redeem script
+		redeemScriptFields := i.redeemScript.GetFields ()
+		redeemScriptFieldCount := len (redeemScriptFields)
+		redeemScriptStackItemStr := i.redeemScript.GetRawFieldTypes ()
+		redeemScriptFieldTypes := make ([] string, redeemScriptFieldCount)
+		for f, field := range redeemScriptFields {
+			if redeemScriptStackItemStr [f] == 'o' {
+				redeemScriptFieldTypes [f] = field
+				continue
+			}
+
+			redeemScriptFieldTypes [f] = GetStackItemType (field, false, false)
+		}
+		i.redeemScript.SetFieldTypes (redeemScriptFieldTypes)
+	}
+}
+
 func (i *Input) GetInputScript () Script {
 	return i.inputScript
 }
 
 func (i *Input) HasRedeemScript () bool {
-	return i.redeemScript.GetFields () != nil
+	return !i.redeemScript.IsNil ()
 }
 
 func (i *Input) GetRedeemScript () Script {
@@ -61,7 +166,8 @@ type InputHtmlData struct {
 	InputIndex uint32
 	IsCoinbase bool
 	SpendType string
-	ValueIn string
+	ValueIn template.HTML
+	TxBaseUrl string
 	PreviousOutputTxId string
 	PreviousOutputIndex uint32
 	Sequence uint32
@@ -76,24 +182,21 @@ func (i *Input) GetHtmlData (inputIndex uint32, satoshis uint64, bip141 bool, wi
 	htmlData := InputHtmlData { WidthCh: widthCh, InputIndex: inputIndex, SpendType: i.spendType, Sequence: i.sequence, Bip141: bip141 }
 	htmlId := "input-script-" + strconv.FormatUint (uint64 (inputIndex), 10)
 
-	if i.IsCoinbase () && satoshis > 0 {
+	if i.IsCoinbase () {
 		htmlData.IsCoinbase = true
-		htmlData.ValueIn = GetValueHtml (satoshis)
-		htmlData.InputScript = i.inputScript.GetTextHtmlData ("Coinbase Script", htmlId, widthCh - 6)
+		htmlData.ValueIn = template.HTML (GetValueHtml (satoshis))
+		htmlData.InputScript = i.inputScript.GetHtmlData ("Coinbase Script", htmlId, widthCh - 6, "text")
 	} else {
+		settings := app.GetSettings ()
+		htmlData.TxBaseUrl = "http://" + settings.Website.GetFullUrl () + "/tx"
 		htmlData.PreviousOutputTxId = hex.EncodeToString (i.previousOutputTxId [:])
 		htmlData.PreviousOutputIndex = i.previousOutputIndex
-		htmlData.InputScript = i.inputScript.GetHtmlData ("Input Script", htmlId, widthCh - 6)
-
-		// redeem script and segwit, if they exist
-		if i.HasRedeemScript () {
-			htmlData.RedeemScript = i.redeemScript.GetHtmlData ("Redeem Script", "redeem-script-" + strconv.FormatUint (uint64 (inputIndex), 10), widthCh - 6)
-		}
-
-		if !i.segwit.IsNil () {
-			htmlData.Segwit = i.segwit.GetHtmlData (inputIndex, widthCh - 6)
-		}
+		htmlData.InputScript = i.inputScript.GetHtmlData ("Input Script", htmlId, widthCh - 6, "hex")
 	}
+
+	// redeem script and segwit
+	htmlData.RedeemScript = i.redeemScript.GetHtmlData ("Redeem Script", "redeem-script-" + strconv.FormatUint (uint64 (inputIndex), 10), widthCh - 6, "hex")
+	htmlData.Segwit = i.segwit.GetHtmlData (inputIndex, widthCh - 6)
 
 	return htmlData
 }

@@ -1,16 +1,18 @@
 {{ define "Segwit" }}
-	<div style="font-family:serif; font-weight:bold; text-decoration:underline; margin:10px 0 6px 0;">Segregated Witness</div>
-	<div id="{{ .HtmlId }}">
-		{{range $index, $field := .Fields}}
-			<div id="{{ $.HtmlId }}-field-{{ $index }}" style="font-family:monospace; text-align:center; overflow-x:hidden;">
-				{{ $field.DisplayText }}
-				{{ if $field.ShowCopyButton }}
-					<img style="height:14px; cursor:pointer;" src="{{ $field.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-				{{ end }}
-			</div>
-		{{end}}
-	</div>
-	{{ template "Script" .WitnessScript }}
-	{{ template "Script" .TapScript }}
+	{{ if not .IsNil }}
+		<div style="font-family:serif; font-weight:bold; text-decoration:underline; margin:10px 0 6px 0;">Segregated Witness</div>
+		<div id="{{ .HtmlId }}">
+			{{range $index, $field := .Fields}}
+				<div id="{{ $.HtmlId }}-field-{{ $index }}" style="font-family:monospace; text-align:center; overflow-x:hidden;">
+					{{ $field.DisplayText }}
+					{{ if $field.ShowCopyButton }}
+						<img style="height:14px; cursor:pointer;" src="{{ $field.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+					{{ end }}
+				</div>
+			{{end}}
+		</div>
+		{{ template "Script" .WitnessScript }}
+		{{ template "Script" .TapScript }}
+	{{end}}
 {{end}}
 

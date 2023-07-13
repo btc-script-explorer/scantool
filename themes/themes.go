@@ -4,6 +4,7 @@ import (
 //	"fmt"
 	"bytes"
 	"strings"
+	"strconv"
 	"html/template"
 
 	"btctx/btc"
@@ -54,9 +55,7 @@ func (t *Theme) GetExplorerPageHtml () string {
 
 	// execute the templates
 	var buff bytes.Buffer
-	if err := templ.ExecuteTemplate (&buff, "Layout", layoutData); err != nil {
-		panic (err)
-	}
+	if err := templ.ExecuteTemplate (&buff, "Layout", layoutData); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()
@@ -84,9 +83,27 @@ func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 
 	// execute the templates
 	var buff bytes.Buffer
-	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil {
-		panic (err)
-	}
+	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+
+func (t *Theme) GetPreviousOutputHtml (inputIndex uint32, previousOutput btc.Output) string {
+
+	// get the data
+	scriptHtmlId := "input-" + strconv.FormatUint (uint64 (inputIndex), 10) + "-previous-output-script"
+	previousOutputHtmlData := previousOutput.GetHtmlData (scriptHtmlId, "Previous Output", 0, 72)
+	
+	// parse the file
+	layoutHtmlFiles := [] string {
+		t.GetPath () + "html/output-maximized.html",
+		t.GetPath () + "html/script.html" }
+	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
+
+	// execute the template
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Output", previousOutputHtmlData); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()

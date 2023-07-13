@@ -54,12 +54,13 @@ type SegwitHtmlData struct {
 	Fields [] SegwitFieldHtmlData
 	WitnessScript ScriptHtmlData
 	TapScript ScriptHtmlData
+	IsNil bool
 }
 
 func (s *Segwit) GetHtmlData (inputIndex uint32, maxWidthCh uint16) SegwitHtmlData {
 
 	if s.IsNil () {
-		return SegwitHtmlData {}
+		return SegwitHtmlData { IsNil: true}
 	}
 
 	htmlId := "segwit-" + strconv.FormatUint (uint64 (inputIndex), 10)
@@ -82,16 +83,17 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, maxWidthCh uint16) SegwitHtmlDa
 		fields [0] = SegwitFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
 	}
 
-	htmlData := SegwitHtmlData { HtmlId: htmlId, Fields: fields }
+	htmlData := SegwitHtmlData { HtmlId: htmlId, Fields: fields, IsNil: false }
 
 	if !s.witnessScript.IsNil () {
-		htmlData.WitnessScript = s.witnessScript.GetHtmlData ("Witness Script", htmlId + "-witness-script", maxWidthCh - 6)
+		htmlData.WitnessScript = s.witnessScript.GetHtmlData ("Witness Script", htmlId + "-witness-script", maxWidthCh - 6, "hex")
 	}
 
 	if !s.tapScript.IsNil () {
-		htmlData.TapScript = s.tapScript.GetHtmlData ("Tap Script", htmlId + "-tap-script", maxWidthCh - 6)
+		htmlData.TapScript = s.tapScript.GetHtmlData ("Tap Script", htmlId + "-tap-script", maxWidthCh - 6, "hex")
 	}
 
+//fmt.Println (htmlData)
 	return htmlData
 }
 
@@ -104,7 +106,7 @@ func (s *Segwit) IsValidP2wpkh () bool {
 	publicKeyBytes, err := hex.DecodeString (s.hexFields [1])
 	if err != nil { fmt.Println (err.Error ()); return false }
 
-	return IsValidPublicKey (publicKeyBytes) && IsValidECSignature (signatureBytes)
+	return IsValidECPublicKey (publicKeyBytes) && IsValidECSignature (signatureBytes)
 }
 
 /*

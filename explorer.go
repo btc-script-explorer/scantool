@@ -74,7 +74,7 @@ func homeController (response http.ResponseWriter, request *http.Request) {
 func ajaxController (response http.ResponseWriter, request *http.Request) {
 
 	nodeClient := btc.GetNodeClient ()
-//	theme := themes.GetThemeForUserAgent (request.UserAgent ())
+	theme := themes.GetThemeForUserAgent (request.UserAgent ())
 
 	if request.Method == "POST" {
 		switch request.FormValue ("method") {
@@ -85,8 +85,14 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 				outputIndex, err := strconv.ParseUint (request.FormValue ("Prev_out_index"), 10, 32)
 				if err != nil { fmt.Println (err.Error ()) }
 
+				inputIndex, err := strconv.ParseUint (request.FormValue ("Input_index"), 10, 32)
+				if err != nil {
+					fmt.Println (err.Error ())
+					return
+				}
+
 				previousOutput := nodeClient.GetPreviousOutput ([32] byte (txIdBytes), uint32 (outputIndex))
-//				previousOutputScript := previousOutput.GetOutputScript ()
+				previousOutputHtml := theme.GetPreviousOutputHtml (uint32 (inputIndex), previousOutput)
 
 				// return the json response
 				type previousOutputJson struct {
@@ -96,13 +102,6 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 					Prev_out_type string
 					Prev_out_Address string
 					Prev_out_html string
-//					Script [] string
-				}
-
-				inputIndex, err := strconv.ParseUint (request.FormValue ("Input_index"), 10, 32)
-				if err != nil {
-					fmt.Println (err.Error ())
-					return
 				}
 
 				satoshis := previousOutput.GetSatoshis ()
@@ -110,7 +109,9 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 																Input_index: uint32 (inputIndex),
 																Prev_out_value: satoshis,
 																Prev_out_type: previousOutput.GetOutputType (),
-																Prev_out_Address: previousOutput.GetAddress () }
+																Prev_out_Address: previousOutput.GetAddress (),
+//																Prev_out_html: previousOutput.GetHtmlData (outputIndex, false, 68)
+																Prev_out_html: previousOutputHtml }
 
 				jsonBytes, err := json.Marshal (previousOutputResponse)
 				if err != nil { fmt.Println (err) }

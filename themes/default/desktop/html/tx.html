@@ -2,41 +2,75 @@
 
 <div style="margin-bottom:48px;">
 	<div class="section-heading">Transaction</div>
-	<div style="display:inline-block; font-size:large; padding:8px; background-color:#f0f0f0;">
-		<table>
-			<tbody>
-				<tr>
-					<td style="text-align:right; padding-right:8px;">Coinbase:</td>
-					<td style="text-align:left;">{{ if .IsCoinbase }}Yes{{ else }}No{{ end }}</td>
-				</tr>
-				<tr>
-					<td style="text-align:right; padding-right:8px;">BIP 141:</td>
-					<td style="text-align:left;">{{ if .SupportsBip141 }}Yes{{ else }}No{{ end }}</td>
-				</tr>
-				<tr>
-					<td style="text-align:right; padding-right:8px;">Lock Time:</td>
-					<td style="text-align:left;">{{ .LockTime }}</td>
-				</tr>
-				<tr style="height:12px;"></tr>
-				<tr>
-					<td style="text-align:right; padding-right:8px;">In:</td>
-					<td style="text-align:right;" id="tx-value-in">{{ .ValueIn }}</td>
-				</tr>
-				<tr>
-					<td style="text-align:right; padding-right:8px;">Out:</td>
-					<td style="text-align:right;" id="tx-value-out">{{ .ValueOut }}</td>
-				</tr>
-				<tr>
-					<td style="text-align:right; padding-right:8px;">Fee:</td>
-					<td style="text-align:right;" id="tx-fee">{{ .Fee }}</td>
-				</tr>
-			</tbody>
-		</table>
+
+	<div style="display:inline-block; background-color:#f0f0f0;">
+		<div>
+			<div style="display:inline-block; padding:8px;">
+				<table>
+					<tbody>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">Block:</td>
+							<td style="text-align:left;">{{ .BlockHeight }}</td>
+						</tr>
+						<tr>
+							<td style="text-align:right; padding-right:8px;"></td>
+							<td style="text-align:left;">{{ .BlockHash }}</td>
+						</tr>
+						<tr>
+							<td style="text-align:right; padding-right:8px;"></td>
+							<td style="text-align:left;">{{ .BlockTime }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<div>
+			<div style="display:inline-block; padding:8px;">
+				<table>
+					<tbody>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">Coinbase:</td>
+							<td style="text-align:left;">{{ if .IsCoinbase }}Yes{{ else }}No{{ end }}</td>
+						</tr>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">BIP 141:</td>
+							<td style="text-align:left;">{{ if .SupportsBip141 }}Yes{{ else }}No{{ end }}</td>
+						</tr>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">Lock Time:</td>
+							<td style="text-align:left;">{{ .LockTime }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+		<div>
+			<div style="display:inline-block; padding:8px;">
+				<table>
+					<tbody>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">Value In:</td>
+							<td style="text-align:right;" id="tx-value-in">{{ .ValueIn }}</td>
+						</tr>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">Value Out:</td>
+							<td style="text-align:right;" id="tx-value-out">{{ .ValueOut }}</td>
+						</tr>
+						<tr>
+							<td style="text-align:right; padding-right:8px;">Fee:</td>
+							<td style="text-align:right;" id="tx-fee">{{ .Fee }}</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
 	</div>
 
 	<div class="section-heading" style="margin-top:12px;">
 		<span id="input-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_inputs ();">Show</span>
-		{{ .InputCount }} {{ .InputCountLabel }}
+		{{ .InputCountLabel }}
 		<span id="input-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
 	</div>
 	<div id="inputs-minimized" style="display:block;">
@@ -50,7 +84,7 @@
 
 	<div class="section-heading" style="margin-top:12px;">
 		<span id="output-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_outputs ();">Show</span>
-		{{ .OutputCount }} {{ .OutputCountLabel }}
+		{{ .OutputCountLabel }}
 		<span id="output-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
 	</div>
 	<div id="outputs-minimized" style="display:block;">

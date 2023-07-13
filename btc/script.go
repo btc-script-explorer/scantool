@@ -2,6 +2,7 @@ package btc
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"encoding/hex"
 
@@ -10,8 +11,9 @@ import (
 
 type Script struct {
 	rawBytes [] byte
-	fields [] string
-	fieldTypes string
+	rawFieldTypes string
+	hexFields [] string
+	parsedFieldTypes [] string
 	parseError bool
 }
 
@@ -20,8 +22,6 @@ func NewScript (rawBytes [] byte) Script {
 	if rawBytes == nil {
 		return Script {}
 	}
-
-	valueReader := ValueReader {}
 
 	parseError := false
 	hexFields := ""
@@ -69,7 +69,7 @@ func NewScript (rawBytes [] byte) Script {
 
 			// we must make sure there are enough bytes left, or else there is a parse error
 			if bytesRemaining >= valueSize {
-				fieldLen = int (valueReader.ReadNumeric (rawBytes [pos : pos + valueSize]))
+				fieldLen = int (ReadNumeric (rawBytes [pos : pos + valueSize]))
 				pos += valueSize
 				bytesRemaining -= valueSize
 			} else {
@@ -108,79 +108,126 @@ func NewScript (rawBytes [] byte) Script {
 		}
 	}
 
-	return Script { rawBytes: rawBytes, fields: fields, fieldTypes: fieldTypes, parseError: parseError }
+	return Script { rawBytes: rawBytes, hexFields: fields, rawFieldTypes: fieldTypes, parseError: parseError }
+}
+
+func (s *Script) GetParsedFieldCount () int {
+	return len (s.hexFields)
+}
+
+func (s *Script) SetFieldTypes (fieldTypes [] string) {
+
+	fieldTypeCount := len (fieldTypes)
+	hexFieldCount := len (s.hexFields)
+
+	if hexFieldCount != fieldTypeCount { fmt.Println ("Setting script with ", hexFieldCount, " fields to ", fieldTypeCount, " field types."); return }
+
+//	s.parsedFieldTypes = make ([] string, fieldTypeCount)
+//	for f, field := range fieldTypes {
+//		s.parsedFieldTypes [f] = field
+//	}
+	s.parsedFieldTypes = fieldTypes
 }
 
 type ScriptFieldHtmlData struct {
-	DisplayText string
+	DisplayField string
 	ShowCopyButton bool
-	CopyImageUrl string
 	CopyText string
 }
 
 type ScriptHtmlData struct {
 	HtmlId string
 	Title string
-	Fields [] ScriptFieldHtmlData
+	Default string
+	HexFields [] ScriptFieldHtmlData
+	TextFields [] ScriptFieldHtmlData
+	TypeFields [] ScriptFieldHtmlData
+	CopyImageUrl string
+	IsNil bool
 }
 
-func (s *Script) GetHtmlData (title string, htmlId string, maxWidthCh uint16) ScriptHtmlData {
+func (s *Script) GetHtmlData (title string, htmlId string, maxWidthCh uint16, defaultDisplay string) ScriptHtmlData {
 
-	scriptFields := [] ScriptFieldHtmlData (nil)
+	if s.IsNil () {
+		return ScriptHtmlData { IsNil: true}
+	}
+
+	hexFieldsHtml := [] ScriptFieldHtmlData (nil)
+	textFieldsHtml := [] ScriptFieldHtmlData (nil)
+	typeFieldsHtml := [] ScriptFieldHtmlData (nil)
 
 	if !s.IsEmpty () {
-		settings := app.GetSettings ()
-		copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
-		fieldCount := len (s.fields); if s.parseError { fieldCount++ }
+		fieldCount := len (s.hexFields); if s.parseError { fieldCount++ }
 
-		scriptFields = make ([] ScriptFieldHtmlData, fieldCount)
-		for f, field := range s.fields {
+		hexFieldsHtml = make ([] ScriptFieldHtmlData, fieldCount)
+		textFieldsHtml = make ([] ScriptFieldHtmlData, fieldCount)
+		typeFieldsHtml = make ([] ScriptFieldHtmlData, fieldCount)
+
+		for f, field := range s.hexFields {
+
+			// hex strings			
 			if uint16 (len (field)) > maxWidthCh {
-				scriptFields [f] = ScriptFieldHtmlData { DisplayText: field [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyImageUrl: copyImageUrl, CopyText: field }
+				hexFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: field [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyText: field }
 			} else {
-				scriptFields [f] = ScriptFieldHtmlData { DisplayText: field, ShowCopyButton: false }
+				hexFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: field, ShowCopyButton: false }
+			}
+
+			// text and type strings
+			fieldBytes, _ := hex.DecodeString (field)
+
+			if s.rawFieldTypes [f] == 's' {
+				// if it is a stack item
+				textField := string (fieldBytes)
+				if uint16 (len (textField)) > maxWidthCh {
+					textFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: textField [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyText: textField }
+				} else {
+					textFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: textField, ShowCopyButton: false }
+				}
+
+				typeFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: s.parsedFieldTypes [f], ShowCopyButton: false }
+			} else {
+				// if it is an opcode, display it as is
+				textFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: field, ShowCopyButton: false }
+				typeFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: field, ShowCopyButton: false }
 			}
 		}
 
 		if s.parseError {
-			scriptFields [fieldCount - 1] = ScriptFieldHtmlData { DisplayText: "< PARSE ERROR >", ShowCopyButton: false }
+			parseErrorStr := "<<< PARSE ERROR >>>"
+			hexFieldsHtml [fieldCount - 1] = ScriptFieldHtmlData { DisplayField: parseErrorStr, ShowCopyButton: false }
+			textFieldsHtml [fieldCount - 1] = ScriptFieldHtmlData { DisplayField: parseErrorStr, ShowCopyButton: false }
+			typeFieldsHtml [fieldCount - 1] = ScriptFieldHtmlData { DisplayField: parseErrorStr, ShowCopyButton: false }
 		}
 	} else {
-		scriptFields = make ([] ScriptFieldHtmlData, 1)
-		scriptFields [0] = ScriptFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
+		hexFieldsHtml = make ([] ScriptFieldHtmlData, 1)
+		textFieldsHtml = make ([] ScriptFieldHtmlData, 1)
+		typeFieldsHtml = make ([] ScriptFieldHtmlData, 1)
+
+		emptyStr := "Empty"
+		hexFieldsHtml [0] = ScriptFieldHtmlData { DisplayField: emptyStr, ShowCopyButton: false }
+		textFieldsHtml [0] = ScriptFieldHtmlData { DisplayField: emptyStr, ShowCopyButton: false }
+		typeFieldsHtml [0] = ScriptFieldHtmlData { DisplayField: emptyStr, ShowCopyButton: false }
 	}
 
-	return ScriptHtmlData { HtmlId: htmlId, Title: title, Fields: scriptFields }
-}
+	settings := app.GetSettings ()
+	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
 
-func (s *Script) GetTextHtmlData (title string, htmlId string, maxWidthCh uint16) ScriptHtmlData {
-
-	scriptFields := make ([] ScriptFieldHtmlData, 1)
-
-	if !s.IsEmpty () {
-		scriptText := GetHexFieldHtml (string (s.rawBytes [:]), int (maxWidthCh))
-		if uint16 (len (scriptText)) > maxWidthCh {
-			settings := app.GetSettings ()
-			copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
-			scriptFields [0] = ScriptFieldHtmlData { DisplayText: scriptText [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyImageUrl: copyImageUrl, CopyText: scriptText }
-		} else {
-			scriptFields [0] = ScriptFieldHtmlData { DisplayText: scriptText, ShowCopyButton: false }
-		}
-	} else {
-		scriptFields [0] = ScriptFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
-	}
-
-	return ScriptHtmlData { HtmlId: htmlId, Title: title, Fields: scriptFields }
-}
-
-func (s *Script) GetFields () [] string {
-	return s.fields
+	return ScriptHtmlData { HtmlId: htmlId, Title: title, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl, Default: defaultDisplay, IsNil: false }
 }
 
 func (s *Script) HasParseError () bool {
 	return s.parseError
 }
 
+func (s *Script) GetFields () [] string {
+	return s.hexFields
+}
+
+func (s *Script) GetRawFieldTypes () string {
+	return s.rawFieldTypes
+}
+
+// used only in test mode
 func (s *Script) GetHex () string {
 	return hex.EncodeToString (s.rawBytes)
 }
@@ -191,27 +238,39 @@ func (s *Script) GetSerializedScript () Script {
 		return Script {}
 	}
 
-	serializedScriptIndex := len (s.GetFields ()) - 1
+	serializedScriptIndex := len (s.hexFields) - 1
 
 	// in the rare case of a zero-length serialized script, we must check for OP_0 and return an empty script
-	serializedScriptHex := s.GetFields () [serializedScriptIndex]
+	serializedScriptHex := s.hexFields [serializedScriptIndex]
 	if serializedScriptHex == "OP_0" {
+		s.rawFieldTypes = s.rawFieldTypes [0 : serializedScriptIndex] + "s" // it is being used as a stack item
+		s.hexFields [serializedScriptIndex] = "00"
 		return NewScript (make ([] byte, 0))
 	}
 
-	// by this point, the serialized script must be interpretted as a stack item, not an opcode
-	if s.fieldTypes [serializedScriptIndex] != 's' {
+	// if the serialized script is some other opcode, then this is not a serialized script
+	if s.rawFieldTypes [serializedScriptIndex] != 's' {
 		return Script {}
 	}
 
+	// get the bytes
 	serializedScriptBytes, err := hex.DecodeString (serializedScriptHex)
 	if err != nil { fmt.Println (err.Error ()); return Script {} }
 
+	// parse it
 	possibleScript := NewScript (serializedScriptBytes)
 	if possibleScript.HasParseError () {
 		return Script {}
 	}
 
+	// it parses, but it is not valid if it contains OP_INVALIDOPCODE
+	for _, f := range possibleScript.hexFields {
+		if f == "OP_INVALIDOPCODE" {
+			return Script {}
+		}
+	}
+
+	// it could be an serialized script
 	return possibleScript
 }
 
@@ -220,27 +279,86 @@ func (s *Script) IsNil () bool {
 }
 
 func (s *Script) IsEmpty () bool {
-	return ! s.IsNil () && len (s.rawBytes) == 0
+	return len (s.rawBytes) == 0
 }
 
-// identification of 7 standard output types
-func (s *Script) IsP2pkOutput () bool { scriptLen := len (s.rawBytes); return (scriptLen == 35 || scriptLen == 67) && IsValidPublicKey (s.rawBytes [1 : 1 + s.rawBytes [0]]) && s.rawBytes [scriptLen - 1] == 0xac }
-func (s *Script) IsMultiSigOutput () bool { scriptLen := len (s.rawBytes); return scriptLen >= 3 && int (s.rawBytes [scriptLen - 2]) == len (s.GetFields ()) - 3 && s.rawBytes [scriptLen - 1] == 0xae }
+// identification of the 7 standard redeemable output types
+func (s *Script) IsP2pkOutput () bool {
+	scriptLen := len (s.rawBytes)
+	if scriptLen != 35 && scriptLen != 67 { return false }
+
+	pubkeyLen := int (s.rawBytes [0])
+	if scriptLen <= pubkeyLen { return false }
+
+	return IsValidECPublicKey (s.rawBytes [1 : 1 + pubkeyLen]) && s.rawBytes [scriptLen - 1] == 0xac
+}
+
+func (s *Script) opcodeToHexInt (opcode string) string {
+	switch opcode {
+		case "OP_0": return "00"
+		case "OP_1": return "01"
+		case "OP_2": return "02"
+		case "OP_3": return "03"
+		case "OP_4": return "04"
+		case "OP_5": return "05"
+		case "OP_6": return "06"
+		case "OP_7": return "07"
+		case "OP_8": return "08"
+		case "OP_9": return "09"
+		case "OP_10": return "0a"
+		case "OP_11": return "0b"
+		case "OP_12": return "0c"
+		case "OP_13": return "0d"
+		case "OP_14": return "0e"
+		case "OP_15": return "0f"
+		case "OP_16": return "10"
+	}
+	fmt.Println ("Script.opcodeToHexInt called with invalid opcode: ", opcode)
+	return ""
+}
+
+func (s *Script) IsMultiSigOutput () bool {
+
+	fieldCount := len (s.hexFields)
+	if fieldCount < 3 { return false }
+
+	// this type gets into the gray area where an opcode is also a stack item, so we handle that here
+	sigCountIndex := 0
+	pubKeyCountIndex := fieldCount - 2
+
+	sigCountHex := s.hexFields [sigCountIndex]
+	pubKeyCountHex := s.hexFields [pubKeyCountIndex]
+
+	if s.rawFieldTypes [sigCountIndex] == 'o' { sigCountHex = s.opcodeToHexInt (sigCountHex) }
+	if s.rawFieldTypes [pubKeyCountIndex] == 'o' { pubKeyCountHex = s.opcodeToHexInt (pubKeyCountHex) }
+
+	sigCount, _ := strconv.ParseUint (sigCountHex, 16, 32)
+	pubKeyCount, _ := strconv.ParseUint (pubKeyCountHex, 16, 32)
+
+	if sigCount > pubKeyCount { return false }
+	if pubKeyCount != uint64 (fieldCount - 3) { return false }
+
+	lastFieldIndex := fieldCount - 1
+	return string (s.rawFieldTypes [lastFieldIndex]) == "o" && s.hexFields [lastFieldIndex] == "OP_CHECKMULTISIG"
+}
+
 func (s *Script) IsP2pkhOutput () bool { return len (s.rawBytes) == 25 && s.rawBytes [0] == 0x76 && s.rawBytes [1] == 0xa9 && s.rawBytes [2] == 0x14 && s.rawBytes [23] == 0x88 && s.rawBytes [24] == 0xac }
 func (s *Script) IsP2shOutput () bool { return len (s.rawBytes) == 23 && s.rawBytes [0] == 0xa9 && s.rawBytes [1] == 0x14 && s.rawBytes [22] == 0x87 }
 func (s *Script) IsP2wpkhOutput () bool { return len (s.rawBytes) == 22 && s.rawBytes [0] == 0x00 && s.rawBytes [1] == 0x14 }
 func (s *Script) IsP2wshOutput () bool { return len (s.rawBytes) == 34 && s.rawBytes [0] == 0x00 && s.rawBytes [1] == 0x20 }
 func (s *Script) IsTaprootOutput () bool { return len (s.rawBytes) == 34 && s.rawBytes [0] == 0x51 && s.rawBytes [1] == 0x20 }
 
+// identification of the 2 p2sh-wrapped spend types
 func (s *Script) IsP2shP2wpkhRedeemScript () bool { return s.IsP2wpkhOutput () }
 func (s *Script) IsP2shP2wshRedeemScript () bool { return s.IsP2wshOutput () }
 
-// OP_RETURN required to be first opcode here, might be slightly different than Bitcoin Core
+// OP_RETURN required to be first opcode
 func (s *Script) IsNullDataOutput () bool { return len (s.rawBytes) >= 1 && s.rawBytes [0] == 0x6a }
-func (s *Script) IsNonstandardOutput () bool { return !s.HasParseError () && !s.IsTaprootOutput () && !s.IsP2wpkhOutput () && !s.IsP2wshOutput () && !s.IsP2shOutput () && !s.IsP2pkhOutput () && !s.IsMultiSigOutput () && !s.IsP2pkOutput () && !s.IsNullDataOutput () && !s.IsWitnessUnknownOutput () }
+
+func (s *Script) IsNonstandardOutput () bool { return !s.IsTaprootOutput () && !s.IsP2wpkhOutput () && !s.IsP2wshOutput () && !s.IsP2shOutput () && !s.IsP2pkhOutput () && !s.IsMultiSigOutput () && !s.IsP2pkOutput () && !s.IsNullDataOutput () && !s.IsWitnessUnknownOutput () }
 
 func (s *Script) IsWitnessUnknownOutput () bool {
-	exactlyTwoFields := len (s.GetFields ()) == 2
+	exactlyTwoFields := len (s.hexFields) == 2
 	if !exactlyTwoFields { return false }
 
 	firstByteIsValidWitnessVersion := s.rawBytes [0] == 0x00 || (s.rawBytes [0] >= 0x51 && s.rawBytes [0] <= 0x60)

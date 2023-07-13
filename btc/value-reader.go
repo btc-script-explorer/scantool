@@ -1,15 +1,11 @@
 package btc
 
 import (
+	"encoding/hex"
 	"strconv"
-
-	"btctx/app"
 )
 
-type ValueReader struct {
-}
-
-func (vr *ValueReader) ReadNumeric (rawBytes [] byte) uint64 {
+func ReadNumeric (rawBytes [] byte) uint64 {
 	var val uint64
 	for i := len (rawBytes) - 1; i >= 0; i-- {
 		val |= uint64 (rawBytes [i])
@@ -20,10 +16,10 @@ func (vr *ValueReader) ReadNumeric (rawBytes [] byte) uint64 {
 	return val
 }
 
-func (vr *ValueReader) ReadVarInt (rawBytes [] byte) (uint64, int) {
+func ReadVarInt (rawBytes [] byte) (uint64, int) {
 
 	byteCount := 1
-	firstByte := vr.ReadNumeric (rawBytes [0:1])
+	firstByte := ReadNumeric (rawBytes [0:1])
 	if firstByte <= 0xfc {
 		return firstByte, byteCount
 	}
@@ -34,10 +30,10 @@ func (vr *ValueReader) ReadVarInt (rawBytes [] byte) (uint64, int) {
 		case 0xff: byteCount += 8; break
 	}
 	
-	return vr.ReadNumeric (rawBytes [1 : firstByte]), byteCount
+	return ReadNumeric (rawBytes [1 : firstByte]), byteCount
 }
 
-func (vr *ValueReader) ReverseBytes (rawBytes [] byte) [] byte {
+func ReverseBytes (rawBytes [] byte) [] byte {
 
 	byteCount := len (rawBytes)
 	indexLimit := byteCount - 1
@@ -49,48 +45,59 @@ func (vr *ValueReader) ReverseBytes (rawBytes [] byte) [] byte {
 }
 
 
-func IsValidPublicKey (field [] byte) bool {
-	fieldLen := len (field)
-	if fieldLen != 33 && fieldLen != 65 {
-		return false
-	}
+func IsValidUncompressedPublicKey (field [] byte) bool {
+	return len (field) == 65 && field [0] == 0x04
+}
 
-	firstByte := field [0]
-	if fieldLen == 33 && firstByte != 0x02 && firstByte != 0x03 {
-		return false
-	}
-	if fieldLen == 65 && firstByte != 0x04 {
-		return false
-	}
+func IsValidCompressedPublicKey (field [] byte) bool {
+	return len (field) == 33 && (field [0] == 0x02 || field [0] == 0x03)
+}
 
-	return true
+func IsValidECPublicKey (field [] byte) bool {
+	return IsValidCompressedPublicKey (field) || IsValidUncompressedPublicKey (field)
 }
 
 func IsValidECSignature (field [] byte) bool {
+
 	fieldLen := len (field)
+	if fieldLen < 4 { return false }
 
-	if fieldLen < 55 || fieldLen > 78 {
-		return false
-	}
+	// first byte
+	if field [0] != 0x30 { return false }
 
-	if field [0] != 0x30 {
-		return false
-	}
+	// overall length
+	signatureLen := int (field [1])
+	if fieldLen < signatureLen { return false }
+	if field [2] != 0x02 { return false }
 
+	// r
+	rLen := int (field [3])
+	if fieldLen < rLen + 6 { return false }
+	if field [rLen + 4] != 0x02 { return false }
+
+	// s
+	sLen := int (field [rLen + 5])
+	if rLen + sLen + 4 != signatureLen { return false }
+
+	// sighash byte
 	lastByte := field [fieldLen - 1]
-	validSighashByte := lastByte == 0x01 || lastByte == 0x02 || lastByte == 0x03 || lastByte == 0x81 || lastByte == 0x82 || lastByte == 0x83
-	return validSighashByte
+	return lastByte == 0x01 || lastByte == 0x02 || lastByte == 0x03 || lastByte == 0x81 || lastByte == 0x82 || lastByte == 0x83
+}
+
+func IsValidSchnorrPublicKey (field [] byte) bool {
+
+	// we don't have much to go on here other than the length
+	return len (field) == 32
 }
 
 func IsValidSchnorrSignature (field [] byte) bool {
-	fieldLen := len (field)
 
+	fieldLen := len (field)
 	if fieldLen == 64 { return true }
 	if fieldLen != 65 { return false }
 
 	lastByte := field [fieldLen - 1]
-	validSighashByte := lastByte == 0x01 || lastByte == 0x02 || lastByte == 0x03 || lastByte == 0x81 || lastByte == 0x82 || lastByte == 0x83
-	return validSighashByte
+	return lastByte == 0x01 || lastByte == 0x02 || lastByte == 0x03 || lastByte == 0x81 || lastByte == 0x82 || lastByte == 0x83
 }
 
 func GetValueHtml (satoshis uint64) string {
@@ -103,12 +110,16 @@ func GetValueHtml (satoshis uint64) string {
 	return satoshisStr
 }
 
-func GetHexFieldHtml (hexField string, maxChars int) string {
-	if len (hexField) <= maxChars {
-		return hexField
-	}
+func GetStackItemType (fieldText string, bip141 bool, taproot bool) string {
 
-	settings := app.GetSettings ()
-	return hexField [0 : maxChars - 3] + "... <img style=\"height:14px; cursor:pointer;\" src=\"http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png\" onclick=\"copy_to_clipboard ('" + hexField + "');\" />"
+	fieldBytes, _ := hex.DecodeString (fieldText)
+
+	if IsValidECSignature (fieldBytes) { return "Signature (EC)" }
+	if IsValidUncompressedPublicKey (fieldBytes) { return "Uncompressed Public Key" }
+	if IsValidCompressedPublicKey (fieldBytes) { return "Compressed Public Key" }
+
+	fieldLen := len (fieldBytes)
+	s := ""; if fieldLen != 1 { s = "s" }
+	return "Data (" + strconv.Itoa (fieldLen) + " Byte" + s + ")"
 }
 
