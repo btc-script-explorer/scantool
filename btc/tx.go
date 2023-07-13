@@ -2,16 +2,15 @@ package btc
 
 import (
 	"encoding/hex"
-//	"strings"
-//	"strconv"
-
-//	"btctx/themes"
+	"time"
+	"strconv"
 )
 
 type Tx struct {
 	id [32] byte
-	blockHash [32] byte
+	blockHeight uint32
 	blockTime int64
+	blockHash [32] byte
 	version uint32
 	coinbase bool
 	bip141 bool
@@ -67,6 +66,9 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 	htmlData := make (map [string] interface {})
 
 	// transaction data
+	htmlData ["BlockHeight"] = tx.blockHeight
+	htmlData ["BlockTime"] = time.Unix (tx.blockTime, 0).UTC ()
+	htmlData ["BlockHash"] = hex.EncodeToString (tx.blockHash [:])
 	htmlData ["IsCoinbase"] = tx.coinbase
 	htmlData ["SupportsBip141"] = tx.bip141
 	htmlData ["LockTime"] = tx.lockTime
@@ -75,14 +77,15 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 	totalOut := uint64 (0)
 	outputCount := len (tx.outputs)
 
-	htmlData ["OutputCount"] = outputCount
-	outputCountLabel := "Output"; if outputCount > 1 { outputCountLabel += "s" }
+	outputCountLabel := strconv.Itoa (outputCount) + " Output"; if outputCount > 1 { outputCountLabel += "s" }
 	htmlData ["OutputCountLabel"] = outputCountLabel
 
 	outputHtmlData := make ([] OutputHtmlData, outputCount)
 	for o := uint32 (0); o < uint32 (outputCount); o++ {
 		totalOut += tx.outputs [o].GetSatoshis ()
-		outputHtmlData [o] = tx.outputs [o].GetHtmlData (o, true, boxWidths)
+		boxTitle := "Output " + strconv.FormatUint (uint64 (o), 10)
+		scriptHtmlId := "output-script-" + strconv.FormatUint (uint64 (o), 10)
+		outputHtmlData [o] = tx.outputs [o].GetHtmlData (scriptHtmlId, boxTitle, o, boxWidths)
 	}
 	htmlData ["OutputData"] = outputHtmlData
 
@@ -94,8 +97,7 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 	// inputs
 	inputCount := len (tx.inputs)
 
-	htmlData ["InputCount"] = inputCount
-	inputCountLabel := "Input"; if inputCount > 1 { inputCountLabel += "s" }
+	inputCountLabel := strconv.Itoa (inputCount) + " Input"; if inputCount > 1 { inputCountLabel += "s" }
 	htmlData ["InputCountLabel"] = inputCountLabel
 
 	inputHtmlData := make ([] InputHtmlData, inputCount)

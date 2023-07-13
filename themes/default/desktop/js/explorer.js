@@ -38,7 +38,7 @@ function handle_pending_inputs ()
 
 	var ajax_data = pending_inputs [0];
 	ajax_data.method = 'getpreviousoutput';
-console.log ('getpreviousoutput request:', ajax_data);
+//console.log ('getpreviousoutput request:', ajax_data);
 
 	$.ajax (
 	{
@@ -49,17 +49,23 @@ console.log ('getpreviousoutput request:', ajax_data);
 //		error: function (jqXHR, textStatus, errorThrown) {},
 		success: function (data, textStatus, jqXHR)
 		{
-console.log ('getpreviousoutput response:', data);
+//console.log ('getpreviousoutput response:', data);
 
-			// previous output address
-			$ ('#input-minimized-address-' + data.Input_index).html (data.Prev_out_Address);
-
-			// value in
-			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Prev_out_value;
-			$ ('#tx-value-in').html (value_in);
+			// previous output value in the minimized input window
 			$ ('#input-minimized-value-' + data.Input_index).html (get_value_html (data.Prev_out_value));
 
-			// fee
+			// previous output address in the minimized input window
+			var has_address_format = data.Prev_out_type == 'Taproot' || data.Prev_out_type == 'P2WPKH' || data.Prev_out_type == 'P2WSH' || data.Prev_out_type == 'P2PKH' || data.Prev_out_type == 'P2SH';
+			$ ('#input-minimized-address-' + data.Input_index).html (has_address_format ? data.Prev_out_Address : 'No Address Format');
+
+			// previous output box in the maximized input
+			$ ('#input-' + data.Input_index + '-previous-output').html (data.Prev_out_html);
+
+			// update the tx value in
+			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Prev_out_value;
+			$ ('#tx-value-in').html (value_in);
+
+			// update the tx fee
 			var value_out = parseInt ($ ('#tx-value-out').html ());
 			if (value_in >= value_out)
 				$ ('#tx-fee').html (value_in - value_out);
@@ -74,28 +80,30 @@ console.log ('getpreviousoutput response:', data);
 				if (predicted_spend_type == 'Taproot Script Path')
 				{
 					if (pending_inputs [0].Tap_script_index < segwit_field_count - 1)
-						$ ('#segwit-' + data.Input_index + '-field-' + pending_inputs [0].Tap_script_index).html ('< TAP SCRIPT >');
+						$ ('#segwit-' + data.Input_index + '-field-' + pending_inputs [0].Tap_script_index).html ('&lt;&lt;&lt; SERIALIZED TAP SCRIPT &gt;&gt;&gt;');
 					else if (predicted_spend_type != 'Taproot Key Path' && predicted_spend_type != 'Taproot Script Path')
 						console.log ('Expecting ' + (pending_inputs [0].Tap_script_index + 1) + ' segwit fields, but only found ' + segwit_field_count + ' for ' + predicted_spend_type + ' input.');
 				}
 				else if (predicted_spend_type != 'Taproot Key Path' && predicted_spend_type != 'Taproot Script Path')
-					console.log (data.Prev_out_type + ' output type with ' + predicted_spend_type + ' spend type.');
+					console.log ('Input ' + data.Input_index + ' has a ' + data.Prev_out_type + ' previous output type with ' + predicted_spend_type + ' spend type.');
 			}
 			else if (data.Prev_out_type == 'P2SH')
 			{
+/*
 				var input_script_field_count = $ ('#input-script-' + data.Input_index).children ().length;
 
 				// redeem script
 				if (typeof $ ('#redeem-script-' + data.Input_index) !== 'undefined' && input_script_field_count > 0)
-					$ ('#input-script-' + data.Input_index + '-field-' + (input_script_field_count - 1)).html ('< REDEEM SCRIPT >');
+					$ ('#input-script-' + data.Input_index + '-field-' + (input_script_field_count - 1)).html ('&lt;&lt;&lt; SERIALIZED REDEEM SCRIPT &gt;&gt;&gt;');
 				else
 					console.log ('No redeem script for ' + predicted_spend_type + ' input.');
+*/
 
 				// witness script
 				if (predicted_spend_type == 'P2SH-P2WSH')
 				{
 					if (segwit_field_count > 0)
-						$ ('#segwit-' + data.Input_index + '-field-' + (segwit_field_count - 1)).html ('< WITNESS SCRIPT >');
+						$ ('#segwit-' + data.Input_index + '-field-' + (segwit_field_count - 1)).html ('&lt;&lt;&lt; SERIALIZED WITNESS SCRIPT &gt;&gt;&gt;');
 					else
 						console.log ('No segwit fields for ' + predicted_spend_type + ' input.');
 				}
@@ -103,7 +111,17 @@ console.log ('getpreviousoutput response:', data);
 				if (predicted_spend_type != 'P2SH-P2WPKH' && predicted_spend_type != 'P2SH-P2WSH' && predicted_spend_type != 'P2SH')
 					console.log (data.Prev_out_type + ' output type with ' + predicted_spend_type + ' spend type.');
 			}
-			else
+			else if (data.Prev_out_type == 'P2WSH')
+			{
+				if (segwit_field_count > 0)
+					$ ('#segwit-' + data.Input_index + '-field-' + (segwit_field_count - 1)).html ('&lt;&lt;&lt; SERIALIZED WITNESS SCRIPT &gt;&gt;&gt;');
+				else
+					console.log ('No segwit fields for ' + data.Prev_out_type + ' input.');
+			}
+			else if (data.Prev_out_type == 'P2WPKH')
+			{
+			}
+			else // P2PK, MultiSig, P2PKH, Non-Standard
 			{
 				$ ('#input-minimized-spend-type-' + data.Input_index).html (data.Prev_out_type);
 				$ ('#input-spend-type-' + data.Input_index).html (data.Prev_out_type);
@@ -187,6 +205,36 @@ function toggle_outputs (event)
 		max.css ('display', 'none');
 		$ ('#output-toggle').html ('Show');
 	}
+}
+
+function toggle_script_view (html_id, view_type)
+{
+	var view_types = ['hex', 'text', 'type'];
+
+	// hide the old type
+	for (var t in view_types)
+	{
+		var old_element = $ ('#' + html_id + '-' + view_types [t]);
+		if (old_element.css ('display') == 'block')
+		{
+			if (view_types [t] == view_type)
+				return;
+
+			old_element.css ('display', 'none');
+
+			var old_element_button = $ ('#' + html_id + '-' + view_types [t] + '-button');
+			old_element_button.css ('font-weight', 'normal');
+			old_element_button.css ('cursor', 'pointer');
+
+			break;
+		}
+	}
+
+	// show the new type
+	$ ('#' + html_id + '-' + view_type).css ('display', 'block');
+	var new_element_button = $ ('#' + html_id + '-' + view_type + '-button');
+	new_element_button.css ('font-weight', 'bold');
+	new_element_button.css ('cursor', 'normal');
 }
 
 function handle_resize ()
