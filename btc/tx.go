@@ -1,16 +1,17 @@
 package btc
 
 import (
-	"encoding/hex"
 	"time"
 	"strconv"
+
+	"btctx/app"
 )
 
 type Tx struct {
-	id [32] byte
+	id string
 	blockHeight uint32
 	blockTime int64
-	blockHash [32] byte
+	blockHash string
 	version uint32
 	coinbase bool
 	bip141 bool
@@ -19,19 +20,19 @@ type Tx struct {
 	lockTime uint32
 }
 
+func (tx *Tx) IsNil () bool {
+	return len (tx.id) == 0
+}
+
 func (tx *Tx) IsCoinbase () bool {
 	return tx.coinbase
 }
 
-func (tx *Tx) GetTxId () [32] byte {
+func (tx *Tx) GetTxId () string {
 	return tx.id
 }
 
-func (tx *Tx) GetTxIdStr () string {
-	return hex.EncodeToString (tx.id [:])
-}
-
-func (tx *Tx) GetBlockHash () [32] byte {
+func (tx *Tx) GetBlockHash () string {
 	return tx.blockHash
 }
 
@@ -47,8 +48,16 @@ func (tx *Tx) SupportsBip141 () bool {
 	return tx.bip141
 }
 
+func (tx *Tx) GetInputCount () int {
+	return len (tx.inputs)
+}
+
 func (tx *Tx) GetInputs () [] Input {
 	return tx.inputs
+}
+
+func (tx *Tx) GetOutputCount () int {
+	return len (tx.outputs)
 }
 
 func (tx *Tx) GetOutputs () [] Output {
@@ -61,14 +70,14 @@ func (tx *Tx) GetLockTime () uint32 {
 
 func (tx *Tx) GetHtmlData () map [string] interface {} {
 
-	boxWidths := uint16 (112)
-
 	htmlData := make (map [string] interface {})
 
 	// transaction data
+	settings := app.GetSettings ()
+	htmlData ["BaseUrl"] = "http://" + settings.Website.GetFullUrl ()
 	htmlData ["BlockHeight"] = tx.blockHeight
 	htmlData ["BlockTime"] = time.Unix (tx.blockTime, 0).UTC ()
-	htmlData ["BlockHash"] = hex.EncodeToString (tx.blockHash [:])
+	htmlData ["BlockHash"] = tx.blockHash
 	htmlData ["IsCoinbase"] = tx.coinbase
 	htmlData ["SupportsBip141"] = tx.bip141
 	htmlData ["LockTime"] = tx.lockTime
@@ -85,7 +94,7 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 		totalOut += tx.outputs [o].GetSatoshis ()
 		boxTitle := "Output " + strconv.FormatUint (uint64 (o), 10)
 		scriptHtmlId := "output-script-" + strconv.FormatUint (uint64 (o), 10)
-		outputHtmlData [o] = tx.outputs [o].GetHtmlData (scriptHtmlId, boxTitle, o, boxWidths)
+		outputHtmlData [o] = tx.outputs [o].GetHtmlData (scriptHtmlId, boxTitle, o)
 	}
 	htmlData ["OutputData"] = outputHtmlData
 
@@ -103,7 +112,7 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 	inputHtmlData := make ([] InputHtmlData, inputCount)
 	for i := uint32 (0); i < uint32 (inputCount); i++ {
 		valueIn := uint64 (0); if tx.coinbase && i == 0 { valueIn = totalOut }
-		inputHtmlData [i] = tx.inputs [i].GetHtmlData (i, valueIn, tx.bip141, boxWidths)
+		inputHtmlData [i] = tx.inputs [i].GetHtmlData (i, valueIn, tx.bip141)
 	}
 	htmlData ["InputData"] = inputHtmlData
 
@@ -129,7 +138,7 @@ func (tx *Tx) GetPendingInputs () [] PendingInput {
 	pendingInputs := make ([] PendingInput, inputCount)
 	for i := uint32 (0); i < uint32 (inputCount); i++ {
 		previousOutputTxId := tx.inputs [i].GetPreviousOutputTxId ()
-		pendingInputs [i] = PendingInput { Tx_id: tx.GetTxIdStr (), Input_index: i, Prev_out_tx_id: hex.EncodeToString (previousOutputTxId [:]), Prev_out_index: tx.inputs [i].GetPreviousOutputIndex () }
+		pendingInputs [i] = PendingInput { Tx_id: tx.GetTxId (), Input_index: i, Prev_out_tx_id: previousOutputTxId, Prev_out_index: tx.inputs [i].GetPreviousOutputIndex () }
 
 		segwit := tx.inputs [i].GetSegwit ()
 		if !segwit.IsNil () {

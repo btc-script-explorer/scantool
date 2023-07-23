@@ -1,0 +1,116 @@
+{{ define "QueryResults" }}
+
+	<div style="margin-bottom:48px;">
+		<div>
+			<div style="display:inline-block; border:1px solid black; background-color:#f0f0f0; text-align:center;">
+				<div style="font-size:20px; color:white; background-color:black;">Block Info</div>
+				<div style="padding:12px;">
+					<div>
+						<div style="display:inline-block;">
+							<table>
+								<tbody>
+									<tr>
+										<td style="text-align:right; padding-right:8px;">Height:</td>
+										<td style="text-align:left;">{{ .Height }}</td>
+									</tr>
+									<tr>
+										<td style="text-align:right; padding-right:8px;">Hash:</td>
+										<td style="text-align:left;">{{ .Hash }}</td>
+									</tr>
+									{{ if ne .PreviousHash nil }}
+										<tr>
+											<td style="text-align:right; padding-right:8px;">Previous:</td>
+											<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .PreviousHash }}">{{ .PreviousHash }}</a></td>
+										</tr>
+									{{ end }}
+									{{ if ne .NextHash nil }}
+										<tr>
+											<td style="text-align:right; padding-right:8px;">Next:</td>
+											<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .NextHash }}">{{ .NextHash }}</a></td>
+										</tr>
+									{{ end }}
+									<tr>
+										<td style="text-align:right; padding-right:8px;">Time:</td>
+										<td style="text-align:left;">{{ .Time }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<div style="margin-top:16px;">
+						<div style="display:inline-block;">
+							<table>
+								<tbody>
+									<tr>
+										<td style="text-align:right; padding-right:8px;">Transactions:</td>
+										<td style="text-align:left;">{{ .TxCount }}</td>
+									</tr>
+									<tr>
+										<td style="text-align:right; padding-right:8px;">Inputs:</td>
+										<td style="text-align:left;">{{ .InputCount }}</td>
+									</tr>
+									<tr>
+										<td style="text-align:right; padding-right:8px;">Outputs:</td>
+										<td style="text-align:left;">{{ .OutputCount }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div style="margin-top:20px;">
+			{{ if ne .SpendTypeChart nil }}
+				<div style="display:inline-block; border:1px solid black;">
+					<div style="font-size:20px; color:white; background-color:black;">Spend Types</div>
+					<div style="padding:8px; background-color:#f0f0f0;">
+						<div style="display:inline-block;">{{ .SpendTypeChart }}</div>
+					</div>
+				</div>
+			{{ end }}
+
+			<div style="display:inline-block; border:1px solid black;">
+				<div style="font-size:20px; color:white; background-color:black;">Output Types</div>
+				<div style="padding:8px; background-color:#f0f0f0;">
+					<div style="display:inline-block;">{{ .OutputTypeChart }}</div>
+				</div>
+			</div>
+		</div>
+
+		<div style="margin-top:20px;">
+			<div style="display:inline-block; border:1px solid black;">
+				<div style="font-size:20px; color:white; background-color:black;">Transactions</div>
+				<div style="padding:8px; background-color:#f0f0f0;">
+					<div style="display:inline-block;">
+						<table>
+							<thead>
+								<tr style="font-family:monospace;">
+									<th style="text-align:center; padding:0 8px 6px;">Index</th>
+									<th style="text-align:center; padding:0 8px 6px;">Tx ID</th>
+									<th style="text-align:center; padding:0 8px 6px;">Inputs</th>
+									<th style="text-align:center; padding:0 8px 6px;">Outputs</th>
+								</tr>
+							</thead>
+							<tbody>
+								{{ range $I, $Tx := .TxDetail }}
+									<tr>
+										<td style="text-align:center; padding:0 8px;">{{ $Tx.Index }}</td>
+										<td style="text-align:center; padding:0 8px;"><a href="{{ $.BaseUrl }}/tx/{{ $Tx.TxId }}">{{ $Tx.TxId }}</a></td>
+										<td style="text-align:center; padding:0 8px;">{{ $Tx.InputCount }}</td>
+										<td style="text-align:center; padding:0 8px;">{{ $Tx.OutputCount }}</td>
+									</tr>
+								{{ end }}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+{{ end }}
+

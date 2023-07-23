@@ -6,7 +6,6 @@ import (
 	"strings"
 	"encoding/hex"
 	"encoding/json"
-	"bufio"
 	"os"
 	"net/http"
 	"log"
@@ -27,45 +26,114 @@ func serveFile (response http.ResponseWriter, request *http.Request) {
 	http.ServeFile (response, request, theme.GetPath () + request.URL.Path)
 }
 
+// return an array of possible query types
+func determineQueryTypes (queryParam string) [] string {
+
+	paramLen := len (queryParam)
+	if paramLen == 64 {
+		// it is a block or transaction hash
+		_, err := hex.DecodeString (queryParam)
+		if err != nil { fmt.Println (queryParam + " is not a valid hex string."); return [] string {} }
+		return [] string { "tx", "block" }
+	} else {
+		// it could be a block height
+		_, err := strconv.ParseUint (queryParam, 10, 32)
+		if err != nil { fmt.Println (queryParam + " is not a valid block height."); return [] string {} }
+		return [] string { "block" }
+	}
+
+	return [] string {}
+}
+
 func homeController (response http.ResponseWriter, request *http.Request) {
 
-	params := strings.Split (request.URL.Path, "/")
-	if len (params) > 3 {
-		// TODO: Implement better error responses here
-		fmt.Println ("invalid path: ", request.URL.Path)
+	modifiedPath := request.URL.Path
+	if modifiedPath [0] == '/' { modifiedPath = modifiedPath [1:] }
+
+	var params [] string
+	paramCount := 0
+	if len (modifiedPath) > 0 {
+		params = strings.Split (modifiedPath, "/")
+		paramCount = len (params)
+//		if paramCount > 2 {
+			// TODO: Implement better error responses here
+//			fmt.Println ("invalid path: ", request.URL.Path)
+//		}
 	}
 
 	theme := themes.GetThemeForUserAgent (request.UserAgent ())
 	nodeClient := btc.GetNodeClient ()
 	html := ""
 
-	queryType := ""; if len (params) >= 2 { queryType = params [1] }
-	switch queryType {
-		case "block":
-			break
-		case "tx":
-			if len (params) < 3 { fmt.Println ("Wrong number of parameters received. Request ignored."); return }
+	queryTypes := [] string { "block" } // default query type
+	if paramCount >= 1 { queryTypes [0] = params [0] }
 
-			txId := params [2]
-//fmt.Println (txId)
-			txIdBytes, err := hex.DecodeString (txId)
-			if err != nil { panic (err.Error ()) }
-//fmt.Println (txIdBytes)
+	if queryTypes [0] == "search" {
+		if paramCount < 2 { fmt.Println ("No search parameter provided."); return }
+		queryTypes = determineQueryTypes (params [1])
+	}
 
-			tx := nodeClient.GetTx ([32] byte (txIdBytes [:]))
+	for _, queryType := range queryTypes {
+		switch queryType {
+			case "block":
+				blockParam := ""
+				if paramCount >= 2 { blockParam = params [1] }
+				paramLen := len (blockParam)
 
-			pendingInputsBytes, err := json.Marshal (tx.GetPendingInputs ())
-			if err != nil { fmt.Println (err.Error ()) }
+				// determine the block hash
+				// the params could be a hash, height, height range or it could be left empty (current block)
+				blockHash := ""
+				if paramLen == 0 {
+					// it is the default block, the current block
+					blockHash = nodeClient.GetCurrentBlockHash ()
+				} else if paramLen == 64 {
+					// it could be a block hash
+					blockHash = blockParam
+				} else {
+					// it could be a block height
+					blockHeight, err := strconv.Atoi (blockParam)
+					if err == nil {
+						blockHash = nodeClient.GetBlockHash (blockHeight)
+					}
+				}
 
-			pendingInputsJson := string (pendingInputsBytes)
-			customJavascript := "var pending_inputs = JSON.parse ('" + pendingInputsJson + "');"
-			html = theme.GetTxHtml (tx, customJavascript)
-			break
-		case "address":
-			break
-		default:
-			html = theme.GetExplorerPageHtml ()
-			break
+				if len (blockHash) > 0 {
+					block := nodeClient.GetBlock (blockHash)
+					if !block.IsNil () {
+						html = theme.GetBlockHtml (block, "")
+					}
+				}
+
+				break
+
+			case "tx":
+				if paramCount < 2 { fmt.Println ("Wrong number of parameters for tx. Request ignored."); return }
+
+				txId := params [1]
+				txIdBytes, err := hex.DecodeString (txId)
+				if err != nil { panic (err.Error ()) }
+
+				tx := nodeClient.GetTx (hex.EncodeToString (txIdBytes))
+				if !tx.IsNil () {
+					pendingInputsBytes, err := json.Marshal (tx.GetPendingInputs ())
+					if err != nil { fmt.Println (err.Error ()) }
+
+					pendingInputsJson := string (pendingInputsBytes)
+					customJavascript := "var pending_inputs = JSON.parse ('" + pendingInputsJson + "');"
+					html = theme.GetTxHtml (tx, customJavascript)
+				}
+
+				break
+
+//			case "address":
+//				break
+		}
+
+		if len (html) > 0 { break }
+	}
+
+	if len (html) == 0 {
+		html = theme.GetExplorerPageHtml ()
 	}
 
 	fmt.Fprint (response, html)
@@ -91,7 +159,7 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 					return
 				}
 
-				previousOutput := nodeClient.GetPreviousOutput ([32] byte (txIdBytes), uint32 (outputIndex))
+				previousOutput := nodeClient.GetPreviousOutput (hex.EncodeToString (txIdBytes), uint32 (outputIndex))
 				previousOutputHtml := theme.GetPreviousOutputHtml (uint32 (inputIndex), previousOutput)
 
 				// return the json response
@@ -125,112 +193,9 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 func main () {
 	settings := app.GetSettings ()
 
-	// if we are writing test files, write it to a file
-	testMode := settings.Test.GetTestMode ()
-	if testMode != "" {
-
+	if settings.Test.GetTestMode () != "" {
 		settings.Test.ExitOnError ()
-
-		testDirectory := settings.Test.GetDirectory ()
-		nodeClient := btc.GetNodeClient ()
-
-// TODO: Create welcome banner for testing. Show the mode, directory and source file.
-
-		if testMode == "save" {
-
-			// read the tx ids from the source file
-			file, err := os.Open (settings.Test.GetSourceFile ())
-			if err != nil { fmt.Println (err.Error ()) }
-			defer file.Close ()
-
-			scanner := bufio.NewScanner (file)
-			for scanner.Scan () {
-				line := scanner.Text ()
-
-				// ignore blank lines and lines beginning with #
-				if len (line) < 64 || line [0] == '#' {
-					continue
-				}
-
-				// read only the first 64 characters of each line, leaving the rest for comments
-				txId := line [0:64]
-				txIdBytes, err := hex.DecodeString (txId)
-				if err != nil {
-					fmt.Println (err.Error ())
-					continue
-				}
-
-				// write the JSON files
-				tx := nodeClient.GetTx ([32] byte (txIdBytes))
-				test.WriteTx (tx, testDirectory)
-				fmt.Println (txId)
-			}
-			if err := scanner.Err (); err != nil {
-				fmt.Println (err.Error ())
-			}
-
-/*
-			fileBytes, err := os.ReadFile (settings.Test.GetSourceFile ())
-			if err != nil {
-				fmt.Println (err.Error ())
-				os.Exit (1)
-			}
-
-			// read the transactions
-			fileSize := len (fileBytes)
-			for b := 0; b < fileSize; b += 65 {
-
-				// ignore blank lines and lines beginning with #
-
-				// read only the first 64 characters of each line, leaving the rest for comments
-				txId := string (fileBytes [b : b + 64])
-				txIdBytes, err := hex.DecodeString (txId)
-				if err != nil {
-					fmt.Println (err.Error ())
-					continue
-				}
-
-				// write the JSON files
-				tx := nodeClient.GetTx ([32] byte (txIdBytes))
-				test.WriteTx (tx, testDirectory)
-				fmt.Println (txId)
-			}
-*/
-		} else if testMode == "verify" {
-
-			// get the files to read from
-			files, err := os.ReadDir (testDirectory)
-			if err != nil {
-				fmt.Println (err.Error ())
-				os.Exit (1)
-			}
-
-			// iterate through the transactions, getting data from the node to compare with the JSON file data
-			nodeClient := btc.GetNodeClient ()
-			for _, file := range files {
-
-				// extract the tx id from the filename
-				filePathParts := strings.Split (file.Name (), ".")
-				txId := filePathParts [0]
-
-				txIdBytes, err := hex.DecodeString (txId)
-				if err != nil {
-					fmt.Println (err.Error ())
-					os.Exit (1)
-				}
-
-				// get the transaction from the node
-				tx := nodeClient.GetTx ([32] byte (txIdBytes))
-
-				// verify it
-				if test.VerifyTx (tx, testDirectory) {
-					fmt.Println (txId, "OK")
-				} else {
-					fmt.Println (txId, "Failed")
-				}
-			}
-		}
-
+		test.RunTests (settings.Test)
 		os.Exit (0)
 	}
 

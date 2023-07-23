@@ -3,23 +3,87 @@ package btc
 import (
 	"fmt"
 	"encoding/hex"
-	"strconv"
 
 	"btctx/app"
 )
 
+func ShortenField (fieldText string, length uint, dotCount uint) string {
+
+	fieldLength := uint (len (fieldText))
+	if fieldLength <= length { return fieldText }
+
+	if dotCount >= length { return fieldText }
+
+	charsToInclude := length - dotCount
+	if charsToInclude < 2 { return fieldText }
+
+	charsInEachPart := charsToInclude / 2
+	part1End := charsInEachPart + (charsToInclude % 2)
+	part2Begin := fieldLength - charsInEachPart
+
+	// build the final result
+	shortenedField := fieldText [0 : part1End]
+	for i := uint (0); i < dotCount; i++ { shortenedField += "." }
+	shortenedField += fieldText [part2Begin :]
+
+	return shortenedField
+}
+
+type SegwitField struct {
+	rawBytes [] byte
+	dataType string
+}
+
+func (swf *SegwitField) AsBytes () [] byte {
+	return swf.rawBytes
+}
+
+// if maxLength is 0, it will be ignored
+func (swf *SegwitField) AsHex (maxLength uint) string {
+	hexField := hex.EncodeToString (swf.rawBytes)
+	if maxLength == 0 || uint (len (hexField)) <= maxLength {
+		return hexField
+	}
+
+	return ShortenField (hexField, maxLength, 5)
+}
+
+func (swf *SegwitField) AsType () string {
+	return swf.dataType
+}
+
+func (swf *SegwitField) AsText (maxLength uint) string {
+	textField := string (swf.rawBytes)
+	if maxLength == 0 || uint (len (textField)) <= maxLength {
+		return textField
+	}
+
+	return ShortenField (textField, maxLength, 5)
+}
+
+
 type Segwit struct {
-	hexFields [] string
+	fields [] SegwitField
 	witnessScript Script
 	tapScript Script
 	tapScriptIndex int64
 }
 
-func NewSegwit (hexFields [] string) Segwit {
-	segwit := Segwit { hexFields: hexFields, tapScriptIndex: -1 }
-	segwit.parseWitnessScript ()
-	segwit.parseTapscript ()
-	return segwit
+func NewSegwit (rawFields [] [] byte) Segwit {
+
+	fields := make ([] SegwitField, len (rawFields))
+	for f, field := range rawFields {
+		fields [f] = SegwitField { rawBytes: field }
+	}
+
+	// segwit is not aware of the types of all of its fields, so identification will be deferred until the HTML is rendered
+	for f, field := range fields {
+		if len (field.rawBytes) == 0 {
+			fields [f].dataType = "<<< ZERO-LENGTH FIELD >>>"
+		}
+	}
+
+	return Segwit { fields: fields, tapScriptIndex: -1 }
 }
 
 func (s *Segwit) GetWitnessScript () Script {
@@ -30,125 +94,215 @@ func (s *Segwit) GetTapScript () (Script, int64) {
 	return s.tapScript, s.tapScriptIndex
 }
 
-func (s *Segwit) GetFields () [] string {
-	return s.hexFields
+func (s *Segwit) GetFields () [] SegwitField {
+	return s.fields
 }
 
 func (s *Segwit) IsNil () bool {
-	return s.hexFields == nil
+	return s.fields == nil
 }
 
 func (s *Segwit) IsEmpty () bool {
-	return len (s.hexFields) == 0
+	return len (s.fields) == 0
 }
 
 type SegwitFieldHtmlData struct {
 	DisplayText string
 	ShowCopyButton bool
-	CopyImageUrl string
 	CopyText string
 }
 
 type SegwitHtmlData struct {
 	HtmlId string
+	DisplayTypeClassPrefix string
+	CharWidth uint
 	Fields [] SegwitFieldHtmlData
+	HexFields [] SegwitFieldHtmlData
+	TextFields [] SegwitFieldHtmlData
+	TypeFields [] SegwitFieldHtmlData
 	WitnessScript ScriptHtmlData
 	TapScript ScriptHtmlData
+	CopyImageUrl string
 	IsNil bool
 }
 
-func (s *Segwit) GetHtmlData (inputIndex uint32, maxWidthCh uint16) SegwitHtmlData {
+func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string) SegwitHtmlData {
 
 	if s.IsNil () {
 		return SegwitHtmlData { IsNil: true}
 	}
 
-	htmlId := "segwit-" + strconv.FormatUint (uint64 (inputIndex), 10)
+	htmlId := fmt.Sprintf ("input-%d-segwit", inputIndex)
+	const maxCharWidth = uint (89)
 
-	fields := [] SegwitFieldHtmlData (nil)
+	var hexFieldsHtml [] SegwitFieldHtmlData
+	textFieldsHtml := [] SegwitFieldHtmlData (nil)
+	typeFieldsHtml := [] SegwitFieldHtmlData (nil)
+
 	if !s.IsEmpty () {
-		settings := app.GetSettings ()
-		copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
 
-		fields = make ([] SegwitFieldHtmlData, len (s.hexFields))
-		for f, field := range s.hexFields {
-			if uint16 (len (field)) > maxWidthCh {
-				fields [f] = SegwitFieldHtmlData { DisplayText: field [0 : maxWidthCh - 2] + "...", ShowCopyButton: true, CopyImageUrl: copyImageUrl, CopyText: field }
+		fieldCount := len (s.fields);
+
+		// segwit does not know what some of its types are, so it identifies data types when the HTML is rendered
+		if !s.witnessScript.IsNil () { s.fields [fieldCount - 1].dataType = "<<< SERIALIZED WITNESS SCRIPT >>>" }
+		if !s.tapScript.IsNil () {
+
+			cbIndex := s.getControlBlockIndex ()
+			cbLeafCount := 0
+			if cbIndex != -1 {
+				cbLeafCount = (len (s.fields [cbIndex].rawBytes) - 1) / 32
 			} else {
-				fields [f] = SegwitFieldHtmlData { DisplayText: field, ShowCopyButton: false }
+				fmt.Println ("Segwit has tap script but no control block.")
+			}
+
+			annexIndex := -1
+			if s.HasAnnex () { annexIndex = len (s.fields) - 1 }
+
+			// set the field types for the Segwit
+			for i, field := range s.fields {
+				if i == int (s.tapScriptIndex) { s.fields [s.tapScriptIndex].dataType = "<<< SERIALIZED TAP SCRIPT >>>" } else
+				if i == annexIndex { s.fields [annexIndex].dataType = fmt.Sprintf ("Annex (%d Bytes)", len (s.fields [annexIndex].rawBytes)) } else
+				if i == cbIndex {
+					leafCountLabel := "TapLea"
+					if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
+					s.fields [cbIndex].dataType = fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel)
+				} else {
+					s.fields [i].dataType = GetStackItemType (field.AsBytes (), true)
+				}
+			}
+
+			// set the field types for the Tap Script
+			for i, field := range s.tapScript.fields {
+				if !field.IsOpcode () {
+					s.tapScript.fields [i].dataType = GetStackItemType (field.AsBytes (), true)
+				}
 			}
 		}
-	} else {
-		fields = make ([] SegwitFieldHtmlData, 1)
-		fields [0] = SegwitFieldHtmlData { DisplayText: "Empty", ShowCopyButton: false }
+
+		hexFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
+		textFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
+		typeFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
+
+		for f, field := range s.fields {
+
+			// hex strings
+			entireHexField := field.AsHex (0)
+			hexFieldsHtml [f] = SegwitFieldHtmlData { DisplayText: field.AsHex (maxCharWidth), ShowCopyButton: false }
+			if hexFieldsHtml [f].DisplayText != entireHexField {
+				hexFieldsHtml [f].ShowCopyButton = true
+				hexFieldsHtml [f].CopyText = entireHexField
+			}
+
+			// text strings
+			entireTextField := field.AsText (0)
+			textFieldsHtml [f] = SegwitFieldHtmlData { DisplayText: field.AsText (maxCharWidth), ShowCopyButton: false }
+			if textFieldsHtml [f].DisplayText != entireTextField {
+				textFieldsHtml [f].ShowCopyButton = true
+				textFieldsHtml [f].CopyText = entireTextField
+			}
+
+			// field types
+			typeFieldsHtml [f] = SegwitFieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
+		}
 	}
 
-	htmlData := SegwitHtmlData { HtmlId: htmlId, Fields: fields, IsNil: false }
+	settings := app.GetSettings ()
+	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
 
-	if !s.witnessScript.IsNil () {
-		htmlData.WitnessScript = s.witnessScript.GetHtmlData ("Witness Script", htmlId + "-witness-script", maxWidthCh - 6, "hex")
-	}
+	htmlData := SegwitHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl, IsNil: false }
 
-	if !s.tapScript.IsNil () {
-		htmlData.TapScript = s.tapScript.GetHtmlData ("Tap Script", htmlId + "-tap-script", maxWidthCh - 6, "hex")
-	}
+	htmlData.WitnessScript = s.witnessScript.GetHtmlData ("Witness Script", htmlId + "-witness-script", displayTypeClassPrefix + "-witness-script", "serialized")
+	htmlData.TapScript = s.tapScript.GetHtmlData ("Tap Script", htmlId + "-tap-script", displayTypeClassPrefix + "-tap-script", "serialized")
 
-//fmt.Println (htmlData)
 	return htmlData
 }
 
 func (s *Segwit) IsValidP2wpkh () bool {
-	if len (s.hexFields) != 2 { return false }
+	if len (s.fields) != 2 { return false }
 
-	signatureBytes, err := hex.DecodeString (s.hexFields [0])
-	if err != nil { fmt.Println (err.Error ()); return false }
-
-	publicKeyBytes, err := hex.DecodeString (s.hexFields [1])
-	if err != nil { fmt.Println (err.Error ()); return false }
-
+	signatureBytes := s.fields [0].AsBytes ()
+	publicKeyBytes := s.fields [1].AsBytes ()
 	return IsValidECPublicKey (publicKeyBytes) && IsValidECSignature (signatureBytes)
 }
-
-/*
-func (s *Segwit) IsValidP2wsh () bool {
-}
-*/
 
 func (s *Segwit) IsValidTaprootKeyPath () bool {
 	exactFieldCount := 1
 	if s.HasAnnex () { exactFieldCount++ }
 
-	if len (s.hexFields) != exactFieldCount { return false }
+	if len (s.fields) != exactFieldCount { return false }
 
-	signatureBytes, err := hex.DecodeString (s.hexFields [0])
-	if err != nil { fmt.Println (err.Error ()); return false }
-
+	signatureBytes := s.fields [0].AsBytes ()
 	return IsValidSchnorrSignature (signatureBytes)
 }
 
-func (s *Segwit) parseWitnessScript () {
+/*
+func (s *Segwit) IsValidP2wsh (setWitnessScript bool) bool {
+	witnessScript := s.parseWitnessScript ()
+
+	if setWitnessScript {
+		s.witnessScript = witnessScript
+	}
+
+	return !witnessScript.IsNil ()
+}
+*/
+
+func (s *Segwit) parseWitnessScript () Script {
 
 	// if there are no segwit fields, then there is no witness script
-	fieldCount := len (s.hexFields)
-	if fieldCount < 1 { return }
+	fieldCount := len (s.fields)
+	if fieldCount < 1 { return Script {} }
 
 	// read the witness script
 	witnessScriptIndex := fieldCount - 1
-	witnessScriptBytes, err := hex.DecodeString (s.hexFields [witnessScriptIndex])
-	if err != nil { fmt.Println (err.Error ()); return }
+	witnessScriptBytes := s.fields [witnessScriptIndex].AsBytes ()
 
 	// the script must be parsable
 	witnessScript := NewScript (witnessScriptBytes)
-	if witnessScript.HasParseError () { return }
+	if witnessScript.HasParseError () { return Script {} }
 
-	s.witnessScript = witnessScript
+	return witnessScript
 }
 
-func (s *Segwit) parseTapscript () {
+/*
+func (s *Segwit) IsValidTaprootScriptPath (setTapScript bool) bool {
 
-	// gather some data to determine whether this could be a Taproot segwit block
+	tapScript, tapScriptIndex := s.parseTapScript ()
+
+	if setTapScript {
+		s.tapScript = tapScript
+		s.tapScriptIndex = tapScriptIndex
+	}
+
+	return tapScriptIndex != -1
+}
+*/
+
+func (s *Segwit) parseTapScript () (Script, int64) {
+
+	controlBlockIndex := s.getControlBlockIndex ()
+	if controlBlockIndex == -1 { return Script {}, -1 }
+
+	// now we read the tap script
+	tapScriptIndex := int64 (controlBlockIndex) - 1
+	tapScriptBytes := s.fields [tapScriptIndex].AsBytes ()
+
+	// the script must be parsable
+	tapScript := NewScript (tapScriptBytes)
+	if tapScript.IsNil () || tapScript.HasParseError () { return Script {}, -1 }
+
+	return tapScript, tapScriptIndex
+}
+
+func (s *Segwit) HasAnnex () bool {
+	fieldCount := len (s.fields)
+	return fieldCount > 1 && s.fields [fieldCount - 1].AsBytes () [0] == 0x50;
+}
+
+func (s *Segwit) getControlBlockIndex () int {
+
 	minimumFieldCount := 2
-	actualFieldCount := len (s.hexFields)
+	actualFieldCount := len (s.fields)
 	controlBlockIndex := actualFieldCount - 1
 
 	if s.HasAnnex () {
@@ -156,81 +310,14 @@ func (s *Segwit) parseTapscript () {
 		controlBlockIndex--
 	}
 
-	// if there is not the required minimum number of segwit fields, then there is no tap script
-	if actualFieldCount < minimumFieldCount { return }
+	// if this is really a control block, there will be a minimum number of segwit fields
+	if actualFieldCount < minimumFieldCount { return -1 }
 
-	// the control block must be of a valid length
-	// we use (len - 2) % 64 because these are hex strings with 2 characters representing each byte in the segwit field
-	controlBlockLengthValid := (len (s.hexFields [controlBlockIndex]) - 2) % 64 == 0
-	if !controlBlockLengthValid { return }
+	// a valid control must have a valid length
+	controlBlockLength := len (s.fields [controlBlockIndex].AsBytes ())
+	validControlBlockLength := controlBlockLength >= 33 && (controlBlockLength - 1) % 32 == 0
+	if !validControlBlockLength { return -1 }
 
-	// now we read the tap script
-	tapScriptIndex := int64 (controlBlockIndex) - 1
-	tapScriptBytes, err := hex.DecodeString (s.hexFields [tapScriptIndex])
-	if err != nil { fmt.Println (err.Error ()); return }
-
-	// the script must be parsable
-	tapScript := NewScript (tapScriptBytes)
-	if tapScript.HasParseError () { return }
-
-	s.tapScript = tapScript
-	s.tapScriptIndex = tapScriptIndex
+	return controlBlockIndex
 }
 
-func (s *Segwit) HasAnnex () bool {
-	fieldCount := len (s.hexFields)
-	return fieldCount > 1 && s.hexFields [fieldCount - 1] [0:2] == "50";
-}
-
-/*
-// This function can be used to read a raw transaction as a byte array.
-// This method has been abandoned because it does not include bitcoin addresses.
-// However, it is still included here, commented out, in case it becomes more
-// convenient to read transactions this way if/when other bitcoin node types are supported.
-func NewSegwit (raw_bytes [] byte) (Segwit, int) {
-
-	value_reader := ValueReader {}
-
-	pos := 0
-
-	field_count, byte_count := value_reader.ReadVarInt (raw_bytes [pos:])
-	pos += byte_count
-
-//fmt.Println ("Segwit fields = ", field_count)
-
-	raw_fields := make ([] [] byte, field_count)
-	if field_count > 0 {
-		for s := 0; s < int (field_count); s++ {
-			field_len, byte_count := value_reader.ReadVarInt (raw_bytes [pos:])
-			pos += int (byte_count)
-
-			raw_fields [s] = make ([] byte, field_len)
-			copy (raw_fields [s], raw_bytes [pos : pos + int (field_len)])
-//			fields [s] = hex.EncodeToString (raw_bytes [pos : pos + int (field_len)])
-//fmt.Println (fields [s])
-			pos += int (field_len)
-//fmt.Println (s + 1, ": Field len = ", field_len, ", pos = ", pos)
-		}
-	}
-
-	return Segwit { raw_fields: raw_fields, has_witness_script: false, has_tap_script: false }, pos
-}
-
-func (s *Segwit) ParseSerializedScript () bool {
-	if s.IsValidP2wpkh () || s.IsValidTaprootKeyPath () { return false }
-
-	// get the index of the serialized script
-	script_index := len (s.raw_fields) - 1
-	is_taproot_script_path, tap_script_index := s.IsValidTaprootScriptPath ()
-	if is_taproot_script_path { script_index = tap_script_index }
-
-	// parse it
-	serialized_script, _ := NewScript (s.raw_fields [script_index])
-	if serialized_script.parse_error { return false }
-
-	s.has_witness_script = !is_taproot_script_path
-	s.has_tap_script = is_taproot_script_path
-	s.serialized_script = serialized_script
-	return true
-}
-*/
