@@ -49,16 +49,19 @@ function handle_pending_inputs ()
 		{
 //console.log ('getpreviousoutput response:', data);
 
-			// previous output value in the minimized input window
+			// previous output type
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-type').html (data.Prev_out_type);
+
+			// previous output value
 			$ ('#input-minimized-' + data.Input_index + '-value').html (get_value_html (data.Prev_out_value));
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-value').html (get_value_html (data.Prev_out_value));
 
-			// previous output address in the minimized input window
-//			var has_address_format = data.Prev_out_type == 'Taproot' || data.Prev_out_type == 'P2WPKH' || data.Prev_out_type == 'P2WSH' || data.Prev_out_type == 'P2PKH' || data.Prev_out_type == 'P2SH';
-//			$ ('#input-minimized-address-' + data.Input_index + '').html (has_address_format ? data.Prev_out_Address : 'No Address Format');
-			$ ('#input-minimized-' + data.Input_index + '-address').html (data.Prev_out_Address);
+			// previous output address
+			$ ('#input-minimized-' + data.Input_index + '-address').html (data.Prev_out_address);
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-address').html (data.Prev_out_address);
 
-			// previous output box in the maximized input
-			$ ('#input-maximized-' + data.Input_index + '-previous-output').html (data.Prev_out_html);
+			// previous output script
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-script').html (data.Prev_out_script_html);
 
 			// update the tx value in
 			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Prev_out_value;
@@ -138,23 +141,28 @@ function toggle_outputs (event)
 	}
 }
 
-function toggle_script_view (html_id_prefix, field_list_theme, view_type)
+function toggle_script_view (html_id_prefix, off_class_prefix, on_class_prefix, view_type)
 {
 	var view_types = ['hex', 'text', 'type'];
-	var selected_button_class = 'field-list-title-bar-selected-' + field_list_theme;
 
 	// hide all of the divs and turn off all of the buttons
 	for (var t in view_types)
 	{
 		var element_id = html_id_prefix + view_types [t];
-		$ ('.' + element_id).css ('display', 'none');
-		$ ('#' + element_id + '-button').removeClass (selected_button_class);
+		var button_id = element_id + '-button';
+		if (view_types [t] == view_type)
+		{
+			$ ('.' + element_id).css ('display', 'block');
+			$ ('#' + button_id).removeClass (off_class_prefix);
+			$ ('#' + button_id).addClass (on_class_prefix);
+		}
+		else
+		{
+			$ ('.' + element_id).css ('display', 'none');
+			$ ('#' + button_id).removeClass (on_class_prefix);
+			$ ('#' + button_id).addClass (off_class_prefix);
+		}
 	}
-
-	// show the new type and turn on the correct button
-	var element_id = html_id_prefix + view_type;
-	$ ('.' + element_id).css ('display', 'block');
-	$ ('#' + element_id + '-button').addClass (selected_button_class);
 }
 
 function handle_resize ()

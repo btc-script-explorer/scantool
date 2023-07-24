@@ -4,7 +4,6 @@ import (
 //	"fmt"
 	"bytes"
 	"strings"
-	"strconv"
 	"html/template"
 
 	"btctx/app"
@@ -120,6 +119,7 @@ func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 	return buff.String ()
 }
 
+/*
 func (t *Theme) GetPreviousOutputHtml (inputIndex uint32, previousOutput btc.Output) string {
 
 	// get the data
@@ -135,6 +135,25 @@ func (t *Theme) GetPreviousOutputHtml (inputIndex uint32, previousOutput btc.Out
 	// execute the template
 	var buff bytes.Buffer
 	if err := templ.ExecuteTemplate (&buff, "Output", previousOutputHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+*/
+
+func (t *Theme) GetPreviousOutputScriptHtml (script btc.Script, htmlId string, displayTypeClassPrefix string) string {
+
+	// get the data
+	previousOutputHtmlData := script.GetHtmlData (htmlId, displayTypeClassPrefix)
+	
+	// parse the file
+	layoutHtmlFiles := [] string {
+		t.GetPath () + "html/script.html" }
+	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
+
+	// execute the template
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Script", previousOutputHtmlData); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()

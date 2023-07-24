@@ -1,75 +1,59 @@
 {{ define "Segwit" }}
-	{{ if not .IsNil }}
-		<div id="{{ .HtmlId }}">
-			<div class="field-list field-list-theme-non-serialized">
-				<div class="field-list-title-bar field-list-title-bar-theme-non-serialized">
-					<div style="display:inline-block; width:32%;"></div>
-					<div style="display:inline-block; width:32%;">Segregated Witness</div>
-					<div style="display:inline-block; width:32%; text-align:center;">
-						<div id="{{ .DisplayTypeClassPrefix }}-segwit-as-hex-button" class="field-list-view-toggle-button field-list-title-bar-selected-non-serialized" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-segwit-as-', 'non-serialized', 'hex');">As Hex</div>
-						<div id="{{ .DisplayTypeClassPrefix }}-segwit-as-text-button" class="field-list-view-toggle-button" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-segwit-as-', 'non-serialized', 'text');">As Text</div>
-						<div id="{{ .DisplayTypeClassPrefix }}-segwit-as-type-button" class="field-list-view-toggle-button" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-segwit-as-', 'non-serialized', 'type');">As Type</div>
-					</div>
+
+	<div id="{{ .HtmlId }}">
+		<div class="field-list field-list-theme-non-serialized">
+			<div style="">
+
+				<div id="{{ .HtmlId }}-hex" class="{{ .DisplayTypeClassPrefix }}-as-hex" style="display:block;">
+					{{range $index, $field := .HexFields}}
+						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+							{{ if gt (len $field.DisplayText) 0 }}
+								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
+								{{ if $field.ShowCopyButton }}
+									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+								{{ else }}
+									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+								{{ end }}
+							{{ else }}
+								&nbsp;
+							{{ end }}
+						</div>
+					{{end}}
 				</div>
 
-				<div style="padding:12px;">
-
-					<div id="{{ .HtmlId }}-hex" class="{{ .DisplayTypeClassPrefix }}-segwit-as-hex" style="display:block;">
-						{{range $index, $field := .HexFields}}
-							<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
-								{{ if gt (len $field.DisplayText) 0 }}
-									<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
-									{{ if $field.ShowCopyButton }}
-										<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-									{{ else }}
-										<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
-									{{ end }}
+				<div id="{{ .HtmlId }}-text" class="{{ .DisplayTypeClassPrefix }}-as-text" style="display:none;">
+					{{range $index, $field := .TextFields}}
+						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+							{{ if gt (len $field.DisplayText) 0 }}
+								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
+								{{ if $field.ShowCopyButton }}
+									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
 								{{ else }}
-									&nbsp;
+									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
 								{{ end }}
-							</div>
-						{{end}}
-					</div>
-
-					<div id="{{ .HtmlId }}-text" class="{{ .DisplayTypeClassPrefix }}-segwit-as-text" style="display:none;">
-						{{range $index, $field := .TextFields}}
-							<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
-								{{ if gt (len $field.DisplayText) 0 }}
-									<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
-									{{ if $field.ShowCopyButton }}
-										<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-									{{ else }}
-										<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
-									{{ end }}
-								{{ else }}
-									&nbsp;
-								{{ end }}
-							</div>
-						{{end}}
-					</div>
-
-					<div id="{{ .HtmlId }}-type" class="{{ .DisplayTypeClassPrefix }}-segwit-as-type" style="display:none;">
-						{{range $index, $field := .TypeFields}}
-							<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
-									<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
-									{{ if $field.ShowCopyButton }}
-										<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-									{{ else }}
-										<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
-									{{ end }}
-							</div>
-						{{end}}
-					</div>
-
+							{{ else }}
+								&nbsp;
+							{{ end }}
+						</div>
+					{{end}}
 				</div>
-			</div>
 
-			<div style="margin-top:12px;">
-				{{ template "Script" .WitnessScript }}
-				{{ template "Script" .TapScript }}
+				<div id="{{ .HtmlId }}-type" class="{{ .DisplayTypeClassPrefix }}-as-type" style="display:none;">
+					{{range $index, $field := .TypeFields}}
+						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
+								{{ if $field.ShowCopyButton }}
+									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+								{{ else }}
+									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+								{{ end }}
+						</div>
+					{{end}}
+				</div>
+
 			</div>
 		</div>
+	</div>
 
-	{{end}}
 {{end}}
 

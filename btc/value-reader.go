@@ -112,7 +112,7 @@ func GetValueHtml (satoshis uint64) string {
 func GetStackItemType (field [] byte, schnorr bool) string {
 
 	if !schnorr {
-		if IsValidECSignature (field) { return "ECDSA Signature" }
+		if IsValidECSignature (field) { return "Signature" }
 //		if IsValidUncompressedPublicKey (field) { return "Uncompressed Public Key" }
 //		if IsValidCompressedPublicKey (field) { return "Compressed Public Key" }
 		if IsValidECPublicKey (field) { return "Public Key" }

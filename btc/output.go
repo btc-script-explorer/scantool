@@ -48,25 +48,25 @@ func (o *Output) setFieldTypes () {
 
 	if o.outputType == OUTPUT_TYPE_TAPROOT {
 //		o.outputScript.SetFieldType (0, "OP_1")
-		o.outputScript.SetFieldType (1, "32-Byte Witness Program (Public Key)")
+		o.outputScript.SetFieldType (1, "Witness Program (Public Key)")
 	} else
 	if o.outputType == OUTPUT_TYPE_P2WSH {
 //		o.outputScript.SetFieldType (0, "OP_0")
-		o.outputScript.SetFieldType (1, "32-Byte Witness Program")
+		o.outputScript.SetFieldType (1, "Witness Program (Script Hash)")
 	} else
 	if o.outputType == OUTPUT_TYPE_P2WPKH {
 //		o.outputScript.SetFieldType (0, "OP_0")
-		o.outputScript.SetFieldType (1, "20-Byte Witness Program")
+		o.outputScript.SetFieldType (1, "Witness Program (Public Key Hash)")
 	} else
 	if o.outputType == OUTPUT_TYPE_P2SH {
 //		o.outputScript.SetFieldType (0, "OP_HASH160")
-		o.outputScript.SetFieldType (1, "20-Byte Script Hash")
+		o.outputScript.SetFieldType (1, "Script Hash")
 //		o.outputScript.SetFieldType (2, "OP_EQUAL")
 	} else
 	if o.outputType == OUTPUT_TYPE_P2PKH {
 //		o.outputScript.SetFieldType (0, "OP_DUP")
 //		o.outputScript.SetFieldType (1, "OP_HASH160")
-		o.outputScript.SetFieldType (2, "20-Byte Key Hash")
+		o.outputScript.SetFieldType (2, "Public Key Hash")
 //		o.outputScript.SetFieldType (3, "OP_EQUALVERIFY")
 //		o.outputScript.SetFieldType (4, "OP_CHECKSIG")
 	} else
@@ -109,11 +109,11 @@ func (o *Output) GetOutputType () string {
 }
 
 func (o *Output) GetAddress () string {
+	if len (o.address) == 0 { return "No Address Format" }
 	return o.address
 }
 
 type OutputHtmlData struct {
-	BoxTitle string
 	OutputIndex uint32
 	OutputType string
 	Value template.HTML
@@ -121,13 +121,12 @@ type OutputHtmlData struct {
 	OutputScript ScriptHtmlData
 }
 
-func (o *Output) GetHtmlData (scriptHtmlId string, boxTitle string, outputIndex uint32) OutputHtmlData {
+func (o *Output) GetHtmlData (scriptHtmlId string, displayTypeClassPrefix string, outputIndex uint32) OutputHtmlData {
 
-	address := o.address
-	if len (address) == 0 { address = "No Address Format" }
-
-	displayTypeClassPrefix := fmt.Sprintf ("output-%d-output-script", outputIndex)
-	outputScriptHtml := o.outputScript.GetHtmlData ("Output Script", scriptHtmlId, displayTypeClassPrefix, "non-serialized")
-	return OutputHtmlData { BoxTitle: boxTitle, OutputIndex: outputIndex, OutputType: o.outputType, Value: template.HTML (GetValueHtml (o.value)), Address: address, OutputScript: outputScriptHtml }
+	if len (displayTypeClassPrefix) == 0 {
+		displayTypeClassPrefix = fmt.Sprintf ("output-%d-output-script", outputIndex)
+	}
+	outputScriptHtml := o.outputScript.GetHtmlData (scriptHtmlId, displayTypeClassPrefix)
+	return OutputHtmlData { OutputIndex: outputIndex, OutputType: o.outputType, Value: template.HTML (GetValueHtml (o.value)), Address: o.GetAddress (), OutputScript: outputScriptHtml }
 }
 

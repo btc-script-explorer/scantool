@@ -146,16 +146,14 @@ func NewScript (rawBytes [] byte) Script {
 	fields := make ([] ScriptField, fieldCount)
 	if fieldCount > 0 {
 		ifCount := 0
-		elseCount := 0
 		endIfCount := 0
 		for f, field := range fieldMap {
 			fieldText := field.AsHex (0)
 			if fieldText == "OP_IF" || fieldText == "OP_NOTIF" { ifCount++ }
-			if fieldText == "OP_ELSE" { elseCount++ }
 			if fieldText == "OP_ENDIF" { endIfCount++ }
 			fields [f] = field
 		}
-		if ifCount != endIfCount || elseCount > ifCount {
+		if ifCount != endIfCount {
 			// the script turned out to be invalid after all
 			return Script {}
 		}
@@ -201,10 +199,7 @@ type ScriptFieldHtmlData struct {
 type ScriptHtmlData struct {
 	HtmlId string
 	DisplayTypeClassPrefix string
-	DisplayViewControls bool
-	FieldListTheme string
 	CharWidth uint
-	Title string
 	HexFields [] ScriptFieldHtmlData
 	TextFields [] ScriptFieldHtmlData
 	TypeFields [] ScriptFieldHtmlData
@@ -212,7 +207,7 @@ type ScriptHtmlData struct {
 	IsNil bool
 }
 
-func (s *Script) GetHtmlData (title string, htmlId string, displayTypeClassPrefix string, fieldListTheme string) ScriptHtmlData {
+func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) ScriptHtmlData {
 
 	if s.IsNil () {
 		return ScriptHtmlData { IsNil: true}
@@ -220,23 +215,27 @@ func (s *Script) GetHtmlData (title string, htmlId string, displayTypeClassPrefi
 
 	const maxCharWidth = uint (89)
 
-	var hexFieldsHtml [] ScriptFieldHtmlData
+//	var hexFieldsHtml [] ScriptFieldHtmlData
+//	var textFieldsHtml [] ScriptFieldHtmlData
+//	var typeFieldsHtml [] ScriptFieldHtmlData
 
-	scriptHtmlData := ScriptHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, FieldListTheme: fieldListTheme, Title: title, CharWidth: maxCharWidth, IsNil: false }
+	scriptHtmlData := ScriptHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, IsNil: false }
 
 	if s.IsEmpty () {
-		hexFieldsHtml = make ([] ScriptFieldHtmlData, 1)
-		hexFieldsHtml [0] = ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false }
+//		hexFieldsHtml = make ([] ScriptFieldHtmlData, 1)
+//		hexFieldsHtml [0] = ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false }
+		scriptHtmlData.HexFields = [] ScriptFieldHtmlData { ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false } }
+		scriptHtmlData.TextFields = [] ScriptFieldHtmlData { ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false } }
+		scriptHtmlData.TypeFields = [] ScriptFieldHtmlData { ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false } }
 
-		scriptHtmlData.HexFields = hexFieldsHtml
-		scriptHtmlData.DisplayViewControls = false
+//		scriptHtmlData.HexFields = hexFieldsHtml
 		return scriptHtmlData
 	}
 
 	fieldCount := len (s.fields);
 	if s.parseError { fieldCount++ }
 
-	hexFieldsHtml = make ([] ScriptFieldHtmlData, fieldCount)
+	hexFieldsHtml := make ([] ScriptFieldHtmlData, fieldCount)
 	textFieldsHtml := make ([] ScriptFieldHtmlData, fieldCount)
 	typeFieldsHtml := make ([] ScriptFieldHtmlData, fieldCount)
 
@@ -276,7 +275,6 @@ func (s *Script) GetHtmlData (title string, htmlId string, displayTypeClassPrefi
 	scriptHtmlData.TextFields = textFieldsHtml
 	scriptHtmlData.TypeFields = typeFieldsHtml
 	scriptHtmlData.CopyImageUrl = copyImageUrl
-	scriptHtmlData.DisplayViewControls = true
 
 	return scriptHtmlData
 }
@@ -315,21 +313,14 @@ func (s *Script) GetSerializedScript () Script {
 		return Script {}
 	}
 
-	serializedScriptIndex := len (s.fields) - 1
-
-	// check for a zero-length serialized script
-	serializedScriptBytes := s.fields [serializedScriptIndex].AsBytes ()
-	if len (serializedScriptBytes) == 1 && serializedScriptBytes [0] == 0x00 {
-		s.fields [serializedScriptIndex].isOpcode = false
-		return NewScript (make ([] byte, 0))
-	}
-
 	// if the serialized script is not a stack item, then this is not a serialized script
+	serializedScriptIndex := len (s.fields) - 1
 	if s.fields [serializedScriptIndex].IsOpcode () {
 		return Script {}
 	}
 
 	// parse it
+	serializedScriptBytes := s.fields [serializedScriptIndex].AsBytes ()
 	possibleScript := NewScript (serializedScriptBytes)
 	if possibleScript.HasParseError () {
 		return Script {}

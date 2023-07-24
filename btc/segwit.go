@@ -103,7 +103,7 @@ func (s *Segwit) IsNil () bool {
 }
 
 func (s *Segwit) IsEmpty () bool {
-	return len (s.fields) == 0
+	return s.IsNil () || len (s.fields) == 0
 }
 
 type SegwitFieldHtmlData struct {
@@ -123,21 +123,22 @@ type SegwitHtmlData struct {
 	WitnessScript ScriptHtmlData
 	TapScript ScriptHtmlData
 	CopyImageUrl string
-	IsNil bool
+//	IsNil bool
+	IsEmpty bool
 }
 
-func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string) SegwitHtmlData {
+func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, usingSchnorrSignatures bool) SegwitHtmlData {
 
 	if s.IsNil () {
-		return SegwitHtmlData { IsNil: true}
+		return SegwitHtmlData { IsEmpty: true}
 	}
 
 	htmlId := fmt.Sprintf ("input-%d-segwit", inputIndex)
 	const maxCharWidth = uint (89)
 
 	var hexFieldsHtml [] SegwitFieldHtmlData
-	textFieldsHtml := [] SegwitFieldHtmlData (nil)
-	typeFieldsHtml := [] SegwitFieldHtmlData (nil)
+	var textFieldsHtml [] SegwitFieldHtmlData
+	var typeFieldsHtml [] SegwitFieldHtmlData
 
 	if !s.IsEmpty () {
 
@@ -155,21 +156,17 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string) 
 				fmt.Println ("Segwit has tap script but no control block.")
 			}
 
-			annexIndex := -1
-			if s.HasAnnex () { annexIndex = len (s.fields) - 1 }
-
-			// set the field types for the Segwit
-			for i, field := range s.fields {
-				if i == int (s.tapScriptIndex) { s.fields [s.tapScriptIndex].dataType = "<<< SERIALIZED TAP SCRIPT >>>" } else
-				if i == annexIndex { s.fields [annexIndex].dataType = fmt.Sprintf ("Annex (%d Bytes)", len (s.fields [annexIndex].rawBytes)) } else
-				if i == cbIndex {
-					leafCountLabel := "TapLea"
-					if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
-					s.fields [cbIndex].dataType = fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel)
-				} else {
-					s.fields [i].dataType = GetStackItemType (field.AsBytes (), true)
-				}
+			// set the field types for the Taproot Segwit fields
+			if s.HasAnnex () {
+				annexIndex := len (s.fields) - 1
+				s.fields [annexIndex].dataType = fmt.Sprintf ("Annex (%d Bytes)", len (s.fields [annexIndex].rawBytes))
 			}
+
+			s.fields [s.tapScriptIndex].dataType = "<<< SERIALIZED TAP SCRIPT >>>"
+
+			leafCountLabel := "TapLea"
+			if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
+			s.fields [cbIndex].dataType = fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel)
 
 			// set the field types for the Tap Script
 			for i, field := range s.tapScript.fields {
@@ -184,6 +181,11 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string) 
 		typeFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
 
 		for f, field := range s.fields {
+
+			// set any field types that aren't already set
+			if len (s.fields [f].dataType) == 0 {
+				s.fields [f].dataType = GetStackItemType (field.AsBytes (), usingSchnorrSignatures)
+			}
 
 			// hex strings
 			entireHexField := field.AsHex (0)
@@ -209,10 +211,10 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string) 
 	settings := app.GetSettings ()
 	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
 
-	htmlData := SegwitHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl, IsNil: false }
+	htmlData := SegwitHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl, IsEmpty: s.IsEmpty () }
 
-	htmlData.WitnessScript = s.witnessScript.GetHtmlData ("Witness Script", htmlId + "-witness-script", displayTypeClassPrefix + "-witness-script", "serialized")
-	htmlData.TapScript = s.tapScript.GetHtmlData ("Tap Script", htmlId + "-tap-script", displayTypeClassPrefix + "-tap-script", "serialized")
+	htmlData.WitnessScript = s.witnessScript.GetHtmlData (htmlId + "-witness-script", displayTypeClassPrefix)
+	htmlData.TapScript = s.tapScript.GetHtmlData (htmlId + "-tap-script", displayTypeClassPrefix)
 
 	return htmlData
 }

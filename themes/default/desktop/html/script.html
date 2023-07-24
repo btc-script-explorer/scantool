@@ -1,20 +1,7 @@
 {{ define "Script" }}
 	{{ if not .IsNil }}
-		<div id="{{ .HtmlId }}">
-			<div class="field-list field-list-theme-{{ .FieldListTheme }}">
-				<div class="field-list-title-bar field-list-title-bar-theme-{{ .FieldListTheme }}">
-					<div style="display:inline-block; width:32%;"></div>
-					<div style="display:inline-block; width:32%;">{{.Title}}</div>
-					<div style="display:inline-block; width:32%; text-align:center;">
-						{{ if .DisplayViewControls }}
-							<div id="{{ .DisplayTypeClassPrefix }}-as-hex-button" class="field-list-view-toggle-button field-list-title-bar-selected-{{ .FieldListTheme }}" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', '{{ .FieldListTheme }}', 'hex');">As Hex</div>
-							<div id="{{ .DisplayTypeClassPrefix }}-as-text-button" class="field-list-view-toggle-button" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', '{{ .FieldListTheme }}', 'text');">As Text</div>
-							<div id="{{ .DisplayTypeClassPrefix }}-as-type-button" class="field-list-view-toggle-button" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', '{{ .FieldListTheme }}', 'type');">As Type</div>
-						{{ end }}
-					</div>
-				</div>
-
-				<div style="padding:12px;">
+			<div id="{{ .HtmlId }}">
+				<div style="">
 
 					<div id="{{ .HtmlId }}-hex" class="{{ .DisplayTypeClassPrefix }}-as-hex" style="display:block;">
 						{{range $index, $field := .HexFields}}
@@ -33,45 +20,42 @@
 						{{end}}
 					</div>
 
-					{{ if .DisplayViewControls }}
-						<div id="{{ .HtmlId }}-text" class="{{ .DisplayTypeClassPrefix }}-as-text" style="display:none;">
-							{{range $index, $field := .TextFields}}
-								<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
-									{{ if gt (len $field.DisplayField) 0 }}
-										<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayField }}</div>
-										{{ if $field.ShowCopyButton }}
-											<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-										{{ else }}
-											<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
-										{{ end }}
+					<div id="{{ .HtmlId }}-text" class="{{ .DisplayTypeClassPrefix }}-as-text" style="display:none;">
+						{{range $index, $field := .TextFields}}
+							<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+								{{ if gt (len $field.DisplayField) 0 }}
+									<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayField }}</div>
+									{{ if $field.ShowCopyButton }}
+										<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
 									{{ else }}
-										&nbsp;
+										<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
 									{{ end }}
-								</div>
-							{{end}}
-						</div>
+								{{ else }}
+									&nbsp;
+								{{ end }}
+							</div>
+						{{end}}
+					</div>
 
-						<div id="{{ .HtmlId }}-type" class="{{ .DisplayTypeClassPrefix }}-as-type" style="display:none;">
-							{{range $index, $field := .TypeFields}}
-								<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
-									{{ if gt (len $field.DisplayField) 0 }}
-										<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayField }}</div>
-										{{ if $field.ShowCopyButton }}
-											<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-										{{ else }}
-											<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
-										{{ end }}
+					<div id="{{ .HtmlId }}-type" class="{{ .DisplayTypeClassPrefix }}-as-type" style="display:none;">
+						{{range $index, $field := .TypeFields}}
+							<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+								{{ if gt (len $field.DisplayField) 0 }}
+									<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayField }}</div>
+									{{ if $field.ShowCopyButton }}
+										<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
 									{{ else }}
-										&nbsp;
+										<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
 									{{ end }}
-								</div>
-							{{end}}
-						</div>
-					{{end}}
+								{{ else }}
+									&nbsp;
+								{{ end }}
+							</div>
+						{{end}}
+					</div>
 
 				</div>
 			</div>
-		</div>
 	{{end}}
 {{end}}
 
