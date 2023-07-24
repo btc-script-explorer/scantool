@@ -1,7 +1,12 @@
-<tr id="input-minimized-[[INPUT-INDEX]]">
-	<td id="input-minimized-index-[[INPUT-INDEX]]" class="tx-part-minimized" style="text-align:right;">[[INPUT-INDEX]]</td>
-	<td id="input-minimized-tx-type-[[INPUT-INDEX]]" class="tx-part-minimized" style="">[[INPUT-SPEND-TYPE]]</td>
-	<td id="input-minimized-value-[[INPUT-INDEX]]" class="tx-part-minimized" style="text-align:right;">[[INPUT-VALUE]]</td>
-	<td id="input-minimized-address-[[INPUT-INDEX]]" class="tx-part-minimized" style="text-align:left;"></td>
-</tr>
+{{ define "InputMinimized" }}
+	<div id="input-minimized-{{ .InputIndex }}" style="background-color:#f0fff0; font-family:monospace; border-top:1px solid #a8c0a8;">
+		<div style="background-color:#f0fff0;">
+			<div id="input-minimized-{{ .InputIndex }}-toggle" class="tx-part-minimized" style="width:5ch; font-weight:bold; cursor:pointer;" onclick="$ ('#input-minimized-{{ .InputIndex }}').css ('display', 'none'); $ ('#input-maximized-{{ .InputIndex }}').css ('display', 'block');">+</div>
+			<div class="tx-part-minimized" style="width:7ch;">{{ .InputIndex }}</div>
+			<div class="tx-part-minimized" style="width:24ch;">{{ .SpendType }}</div>
+			<div id="input-minimized-{{ .InputIndex }}-value" class="tx-part-minimized" style="width:18ch; text-align:right;">{{ .ValueIn }}</div>
+			<div id="input-minimized-{{ .InputIndex }}-address" class="tx-part-minimized" style="width:66ch; text-align:left;"></div>
+		</div>
+	</div>
+{{ end }}
 

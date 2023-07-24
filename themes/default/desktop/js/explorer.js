@@ -1,8 +1,5 @@
 function check_query_id_format (query_id)
 {
-	if (query_id.length != 64)
-		return false;
-
 	query_id = query_id.toLowerCase ();
 	var allowed_chars = '0123456789abcdef';
 	for (var i = 0; i < query_id.length; i++)
@@ -16,13 +13,14 @@ function check_query_id_format (query_id)
 
 function get_transaction (query_id)
 {
-	if (!check_query_id_format (query_id))
+	if (typeof query_id != 'string' || query_id.length == 0 || !check_query_id_format (query_id))
 	{
+console.log (typeof query_id)
 		console.log (query_id + ' is not a valid block id, transaction id or bitcoin address.');
 		return;
 	}
 
-	var url = window.location.protocol + '//' + window.location.host + '/tx/' + query_id;
+	var url = window.location.protocol + '//' + window.location.host + '/search/' + query_id;
 	window.location.href = url;
 }
 
@@ -51,15 +49,19 @@ function handle_pending_inputs ()
 		{
 //console.log ('getpreviousoutput response:', data);
 
-			// previous output value in the minimized input window
-			$ ('#input-minimized-value-' + data.Input_index).html (get_value_html (data.Prev_out_value));
+			// previous output type
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-type').html (data.Prev_out_type);
 
-			// previous output address in the minimized input window
-			var has_address_format = data.Prev_out_type == 'Taproot' || data.Prev_out_type == 'P2WPKH' || data.Prev_out_type == 'P2WSH' || data.Prev_out_type == 'P2PKH' || data.Prev_out_type == 'P2SH';
-			$ ('#input-minimized-address-' + data.Input_index).html (has_address_format ? data.Prev_out_Address : 'No Address Format');
+			// previous output value
+			$ ('#input-minimized-' + data.Input_index + '-value').html (get_value_html (data.Prev_out_value));
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-value').html (get_value_html (data.Prev_out_value));
 
-			// previous output box in the maximized input
-			$ ('#input-' + data.Input_index + '-previous-output').html (data.Prev_out_html);
+			// previous output address
+			$ ('#input-minimized-' + data.Input_index + '-address').html (data.Prev_out_address);
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-address').html (data.Prev_out_address);
+
+			// previous output script
+			$ ('#input-maximized-' + data.Input_index + '-previous-output-script').html (data.Prev_out_script_html);
 
 			// update the tx value in
 			var value_in = parseInt ($ ('#tx-value-in').html ()) + data.Prev_out_value;
@@ -69,74 +71,6 @@ function handle_pending_inputs ()
 			var value_out = parseInt ($ ('#tx-value-out').html ());
 			if (value_in >= value_out)
 				$ ('#tx-fee').html (value_in - value_out);
-
-			var segwit_field_count = $ ('#segwit-' + data.Input_index).children ().length;
-
-			// spend type
-			var predicted_spend_type = $ ('#input-minimized-spend-type-' + data.Input_index).html ();
-			if (data.Prev_out_type == 'Taproot')
-			{
-				// tap script
-				if (predicted_spend_type == 'Taproot Script Path')
-				{
-					if (pending_inputs [0].Tap_script_index < segwit_field_count - 1)
-						$ ('#segwit-' + data.Input_index + '-field-' + pending_inputs [0].Tap_script_index).html ('&lt;&lt;&lt; SERIALIZED TAP SCRIPT &gt;&gt;&gt;');
-					else if (predicted_spend_type != 'Taproot Key Path' && predicted_spend_type != 'Taproot Script Path')
-						console.log ('Expecting ' + (pending_inputs [0].Tap_script_index + 1) + ' segwit fields, but only found ' + segwit_field_count + ' for ' + predicted_spend_type + ' input.');
-				}
-				else if (predicted_spend_type != 'Taproot Key Path' && predicted_spend_type != 'Taproot Script Path')
-					console.log ('Input ' + data.Input_index + ' has a ' + data.Prev_out_type + ' previous output type with ' + predicted_spend_type + ' spend type.');
-			}
-			else if (data.Prev_out_type == 'P2SH')
-			{
-/*
-				var input_script_field_count = $ ('#input-script-' + data.Input_index).children ().length;
-
-				// redeem script
-				if (typeof $ ('#redeem-script-' + data.Input_index) !== 'undefined' && input_script_field_count > 0)
-					$ ('#input-script-' + data.Input_index + '-field-' + (input_script_field_count - 1)).html ('&lt;&lt;&lt; SERIALIZED REDEEM SCRIPT &gt;&gt;&gt;');
-				else
-					console.log ('No redeem script for ' + predicted_spend_type + ' input.');
-*/
-
-				// witness script
-				if (predicted_spend_type == 'P2SH-P2WSH')
-				{
-					if (segwit_field_count > 0)
-						$ ('#segwit-' + data.Input_index + '-field-' + (segwit_field_count - 1)).html ('&lt;&lt;&lt; SERIALIZED WITNESS SCRIPT &gt;&gt;&gt;');
-					else
-						console.log ('No segwit fields for ' + predicted_spend_type + ' input.');
-				}
-
-				if (predicted_spend_type != 'P2SH-P2WPKH' && predicted_spend_type != 'P2SH-P2WSH' && predicted_spend_type != 'P2SH')
-					console.log (data.Prev_out_type + ' output type with ' + predicted_spend_type + ' spend type.');
-			}
-			else if (data.Prev_out_type == 'P2WSH')
-			{
-				if (segwit_field_count > 0)
-					$ ('#segwit-' + data.Input_index + '-field-' + (segwit_field_count - 1)).html ('&lt;&lt;&lt; SERIALIZED WITNESS SCRIPT &gt;&gt;&gt;');
-				else
-					console.log ('No segwit fields for ' + data.Prev_out_type + ' input.');
-			}
-			else if (data.Prev_out_type == 'P2WPKH')
-			{
-			}
-			else // P2PK, MultiSig, P2PKH, Non-Standard
-			{
-				$ ('#input-minimized-spend-type-' + data.Input_index).html (data.Prev_out_type);
-				$ ('#input-spend-type-' + data.Input_index).html (data.Prev_out_type);
-			}
-
-/*
-			if (predicted_spend_type.length == 0)
-			{
-			}
-			else
-			{
-				var p2sh_wrapped = (predicted_spend_type == 'P2SH-P2WPKH' || predicted_spend_type == 'P2SH-P2WSH') && data.Prev_out_type == 'P2SH';
-				var taproot_script_path = predicted_spend_type == 'Taproot Script Path' && data.Prev_out_type == 'Taproot';
-			}
-*/
 
 			// get the next one
 			// an interval could be used as a timer in case some of the responses are never received
@@ -207,34 +141,28 @@ function toggle_outputs (event)
 	}
 }
 
-function toggle_script_view (html_id, view_type)
+function toggle_script_view (html_id_prefix, off_class_prefix, on_class_prefix, view_type)
 {
 	var view_types = ['hex', 'text', 'type'];
 
-	// hide the old type
+	// hide all of the divs and turn off all of the buttons
 	for (var t in view_types)
 	{
-		var old_element = $ ('#' + html_id + '-' + view_types [t]);
-		if (old_element.css ('display') == 'block')
+		var element_id = html_id_prefix + view_types [t];
+		var button_id = element_id + '-button';
+		if (view_types [t] == view_type)
 		{
-			if (view_types [t] == view_type)
-				return;
-
-			old_element.css ('display', 'none');
-
-			var old_element_button = $ ('#' + html_id + '-' + view_types [t] + '-button');
-			old_element_button.css ('font-weight', 'normal');
-			old_element_button.css ('cursor', 'pointer');
-
-			break;
+			$ ('.' + element_id).css ('display', 'block');
+			$ ('#' + button_id).removeClass (off_class_prefix);
+			$ ('#' + button_id).addClass (on_class_prefix);
+		}
+		else
+		{
+			$ ('.' + element_id).css ('display', 'none');
+			$ ('#' + button_id).removeClass (on_class_prefix);
+			$ ('#' + button_id).addClass (off_class_prefix);
 		}
 	}
-
-	// show the new type
-	$ ('#' + html_id + '-' + view_type).css ('display', 'block');
-	var new_element_button = $ ('#' + html_id + '-' + view_type + '-button');
-	new_element_button.css ('font-weight', 'bold');
-	new_element_button.css ('cursor', 'normal');
 }
 
 function handle_resize ()

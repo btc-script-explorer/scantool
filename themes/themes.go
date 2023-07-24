@@ -4,9 +4,9 @@ import (
 //	"fmt"
 	"bytes"
 	"strings"
-	"strconv"
 	"html/template"
 
+	"btctx/app"
 	"btctx/btc"
 )
 
@@ -29,6 +29,7 @@ func (t *Theme) getExplorerPageHtmlData (queryText string, queryResults map [str
 	if queryResults != nil {
 		explorerPageData ["QueryResults"] = queryResults
 	}
+
 	return explorerPageData
 }
 
@@ -36,6 +37,13 @@ func (t *Theme) getLayoutHtmlData (customJavascript string, explorerPageData map
 	layoutData := make (map [string] interface {})
 	layoutData ["CustomJavascript"] = template.HTML (`<script type="text/javascript">` + customJavascript + "</script>")
 	layoutData ["ExplorerPage"] = explorerPageData
+
+	nodeClient := btc.GetNodeClient ()
+	layoutData ["NodeVersion"] = nodeClient.GetVersionString ()
+
+	settings := app.GetSettings ()
+	layoutData ["NodeUrl"] = settings.Node.GetFullUrl ()
+
 	return layoutData
 }
 
@@ -61,11 +69,33 @@ func (t *Theme) GetExplorerPageHtml () string {
 	return buff.String ()
 }
 
+func (t *Theme) GetBlockHtml (block btc.Block, customJavascript string) string {
+
+	// get the data
+	blockHtmlData := block.GetHtmlData ()
+	explorerPageHtmlData := t.getExplorerPageHtmlData (block.GetHash (), blockHtmlData)
+	layoutHtmlData := t.getLayoutHtmlData (customJavascript, explorerPageHtmlData)
+
+	// parse the files
+	layoutHtmlFiles := [] string {
+		t.GetPath () + "html/layout.html",
+		t.GetPath () + "html/page-explorer.html",
+		t.GetPath () + "html/block.html" }
+	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
+
+	// execute the templates
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+
 func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 
 	// get the data
 	txPageHtmlData := tx.GetHtmlData ()
-	explorerPageHtmlData := t.getExplorerPageHtmlData (tx.GetTxIdStr (), txPageHtmlData)
+	explorerPageHtmlData := t.getExplorerPageHtmlData (tx.GetTxId (), txPageHtmlData)
 	layoutHtmlData := t.getLayoutHtmlData (customJavascript, explorerPageHtmlData)
 
 	// parse the files
@@ -73,7 +103,7 @@ func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 		t.GetPath () + "html/layout.html",
 		t.GetPath () + "html/page-explorer.html",
 		t.GetPath () + "html/tx.html",
-		t.GetPath () + "html/inputs-minimized.html",
+		t.GetPath () + "html/input-minimized.html",
 		t.GetPath () + "html/input-maximized.html",
 		t.GetPath () + "html/outputs-minimized.html",
 		t.GetPath () + "html/output-maximized.html",
@@ -89,11 +119,12 @@ func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 	return buff.String ()
 }
 
+/*
 func (t *Theme) GetPreviousOutputHtml (inputIndex uint32, previousOutput btc.Output) string {
 
 	// get the data
 	scriptHtmlId := "input-" + strconv.FormatUint (uint64 (inputIndex), 10) + "-previous-output-script"
-	previousOutputHtmlData := previousOutput.GetHtmlData (scriptHtmlId, "Previous Output", 0, 72)
+	previousOutputHtmlData := previousOutput.GetHtmlData (scriptHtmlId, "Previous Output", 0)
 	
 	// parse the file
 	layoutHtmlFiles := [] string {
@@ -104,6 +135,25 @@ func (t *Theme) GetPreviousOutputHtml (inputIndex uint32, previousOutput btc.Out
 	// execute the template
 	var buff bytes.Buffer
 	if err := templ.ExecuteTemplate (&buff, "Output", previousOutputHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+*/
+
+func (t *Theme) GetPreviousOutputScriptHtml (script btc.Script, htmlId string, displayTypeClassPrefix string) string {
+
+	// get the data
+	previousOutputHtmlData := script.GetHtmlData (htmlId, displayTypeClassPrefix)
+	
+	// parse the file
+	layoutHtmlFiles := [] string {
+		t.GetPath () + "html/script.html" }
+	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
+
+	// execute the template
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Script", previousOutputHtmlData); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()

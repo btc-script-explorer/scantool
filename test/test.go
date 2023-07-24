@@ -3,9 +3,12 @@ package test
 import (
 	"fmt"
 	"os"
+	"strings"
 	"encoding/hex"
 	"encoding/json"
+	"bufio"
 
+	"btctx/app"
 	"btctx/btc"
 )
 
@@ -28,13 +31,13 @@ type txJson struct {
 type inputJson struct {
 	PreviousOutput *outputJson
 
-	InputScriptFields [] string
-	RedeemScriptFields [] string
+	InputScriptFields [] btc.ScriptField
+	RedeemScriptFields [] btc.ScriptField
 
-	SegwitFields [] string
-	WitnessScriptFields [] string
+	SegwitFields [] btc.SegwitField
+	WitnessScriptFields [] btc.ScriptField
 	TapScriptIndex int64
-	TapScriptFields [] string
+	TapScriptFields [] btc.ScriptField
 
 	SpendType string
 }
@@ -42,14 +45,111 @@ type inputJson struct {
 type outputJson struct {
 	Value uint64
 	OutputType string
-	OutputScriptFields [] string
+	OutputScriptFields [] btc.ScriptField
 	ParseError bool
 	Address string
 }
 
+func encodeInput (input btc.Input) inputJson {
+	inputScript := input.GetInputScript ()
+	redeemScript := input.GetRedeemScript ()
+	segwit := input.GetSegwit ()
+	witnessScript := segwit.GetWitnessScript ()
+	tapScript, tapScriptIndex := segwit.GetTapScript ()
+	return inputJson { PreviousOutput: nil,
+						InputScriptFields: inputScript.GetFields (),
+						RedeemScriptFields: redeemScript.GetFields (),
+						SegwitFields: segwit.GetFields (),
+						WitnessScriptFields: witnessScript.GetFields (),
+						TapScriptIndex: tapScriptIndex,
+						TapScriptFields: tapScript.GetFields (),
+						SpendType: input.GetSpendType () }
+}
+
 func encodeOutput (output btc.Output) outputJson {
 	outputScript := output.GetOutputScript ()
-	return outputJson { Value: output.GetSatoshis (), OutputType: output.GetOutputType (), Address: output.GetAddress (), OutputScriptFields: outputScript.GetFields (), ParseError: outputScript.HasParseError () }
+	return outputJson { Value: output.GetSatoshis (),
+						OutputType: output.GetOutputType (),
+						Address: output.GetAddress (),
+						OutputScriptFields: outputScript.GetFields (),
+						ParseError: outputScript.HasParseError () }
+}
+
+func RunTests (testParams app.TestSettings) {
+
+	nodeClient := btc.GetNodeClient ()
+
+// TODO: Create TestSettings.PrintTestingMessage ().
+//	testParams.PrintTestingMessage ()
+
+	testMode := testParams.GetTestMode ()
+	if testMode == "save" {
+
+		// read the tx ids from the source file
+		file, err := os.Open (testParams.GetSourceFile ())
+		if err != nil { fmt.Println (err.Error ()) }
+		defer file.Close ()
+
+		scanner := bufio.NewScanner (file)
+		for scanner.Scan () {
+			line := scanner.Text ()
+
+			// ignore blank lines and lines beginning with #
+			if len (line) < 64 || line [0] == '#' {
+				continue
+			}
+
+			// read only the first 64 characters, ignoring the rest of the line
+			txId := line [0:64]
+			txIdBytes, err := hex.DecodeString (txId)
+			if err != nil {
+				fmt.Println (err.Error ())
+				continue
+			}
+
+			// write the JSON files
+			tx := nodeClient.GetTx (hex.EncodeToString (txIdBytes))
+			WriteTx (tx, testParams.GetDirectory ())
+			fmt.Println (txId)
+		}
+		if err := scanner.Err (); err != nil {
+			fmt.Println (err.Error ())
+		}
+	} else if testMode == "verify" {
+
+		testDirectory := testParams.GetDirectory ()
+
+		// get the files to read from
+		files, err := os.ReadDir (testDirectory)
+		if err != nil {
+			fmt.Println (err.Error ())
+			os.Exit (1)
+		}
+
+		// iterate through the transactions, getting data from the node to compare with the JSON file data
+		for _, file := range files {
+
+			// extract the tx id from the filename
+			filePathParts := strings.Split (file.Name (), ".")
+			txId := filePathParts [0]
+
+			txIdBytes, err := hex.DecodeString (txId)
+			if err != nil {
+				fmt.Println (err.Error ())
+				os.Exit (1)
+			}
+
+			// get the transaction from the node
+			tx := nodeClient.GetTx (hex.EncodeToString (txIdBytes))
+
+			// verify it
+			if VerifyTx (tx, testDirectory) {
+				fmt.Println (txId, "OK")
+			} else {
+				fmt.Println (txId, "Failed")
+			}
+		}
+	}
 }
 
 func WriteTx (tx btc.Tx, dir string) bool {
@@ -60,9 +160,9 @@ func WriteTx (tx btc.Tx, dir string) bool {
 	txInputs := tx.GetInputs ()
 	txOutputs := tx.GetOutputs ()
 
-	txEncoded := txJson {	BlockHash: hex.EncodeToString (blockHash [:]),
+	txEncoded := txJson {	BlockHash: blockHash,
 							BlockTime: tx.GetBlockTime (),
-							TxId: hex.EncodeToString (txId [:]),
+							TxId: txId,
 							Version: tx.GetVersion (),
 							LockTime: tx.GetLockTime (),
 							Bip141: tx.SupportsBip141 (),
@@ -82,20 +182,23 @@ func WriteTx (tx btc.Tx, dir string) bool {
 	totalIn := uint64 (0)
 	for i := 0; i < len (txInputs); i++ {
 
-		inputScript := txInputs [i].GetInputScript ()
-		redeemScript := txInputs [i].GetRedeemScript ()
-		segwit := txInputs [i].GetSegwit ()
-		witnessScript := segwit.GetWitnessScript ()
-		tapScript, tapScriptIndex := segwit.GetTapScript ()
+//		inputScript := txInputs [i].GetInputScript ()
+//		redeemScript := txInputs [i].GetRedeemScript ()
+//		segwit := txInputs [i].GetSegwit ()
+//		witnessScript := segwit.GetWitnessScript ()
+//		tapScript, tapScriptIndex := segwit.GetTapScript ()
 
+		txEncoded.Inputs [i] = encodeInput (txInputs [i])
+/*
 		inputEncoded := inputJson {	PreviousOutput: nil,
 									InputScriptFields: nil,
 									SegwitFields: segwit.GetFields (),
-									RedeemScriptFields: redeemScript.GetFields (),
-									WitnessScriptFields: witnessScript.GetFields (),
+									RedeemScriptFields: redeemScript.GetFieldsAsHex (),
+									WitnessScriptFields: witnessScript.GetFieldsAsHex (),
 									TapScriptIndex: tapScriptIndex,
-									TapScriptFields: tapScript.GetFields (),
+									TapScriptFields: tapScript.GetFieldsAsHex (),
 									SpendType: txInputs [i].GetSpendType () }
+*/
 
 		if !txInputs [i].IsCoinbase () {
 			// get the previous output
@@ -104,17 +207,17 @@ func WriteTx (tx btc.Tx, dir string) bool {
 
 			totalIn += previousOutput.GetSatoshis ()
 
-			inputEncoded.PreviousOutput = &outputEncoded
-			inputEncoded.InputScriptFields = inputScript.GetFields ()
+			txEncoded.Inputs [i].PreviousOutput = &outputEncoded
+//			inputEncoded.InputScriptFields = inputScript.GetFieldsAsHex ()
 		} else {
 			totalIn += totalOut
 
-			scriptFields := make ([] string, 1)
-			scriptFields [0] = inputScript.GetHex ()
-			inputEncoded.InputScriptFields = scriptFields
+//			scriptFields := make ([] string, 1)
+//			scriptFields [0] = inputScript.GetHex ()
+//			inputEncoded.InputScriptFields = scriptFields
 		}
 
-		txEncoded.Inputs [i] = inputEncoded
+//		txEncoded.Inputs [i] = inputEncoded
 	}
 
 	txEncoded.SatsIn = totalIn
@@ -130,7 +233,7 @@ func WriteTx (tx btc.Tx, dir string) bool {
 
 	// write it to the file
 	if dir [len (dir) - 1] != '/' { dir += "/" }
-	err = os.WriteFile (dir + hex.EncodeToString (txId [:]) + ".json", jsonBytes, 0644)
+	err = os.WriteFile (dir + txId + ".json", jsonBytes, 0644)
 	if err != nil {
 		err.Error ()
 		return false
@@ -147,7 +250,7 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 	txInputs := tx.GetInputs ()
 	txOutputs := tx.GetOutputs ()
 
-	fileName := hex.EncodeToString (txId [:]) + ".json"
+	fileName := txId + ".json"
 
 	// read the json from the file
 	if dir [len (dir) - 1] != '/' { dir += "/" }
@@ -166,9 +269,9 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 	}
 
 	// verify the tx data
-	if txEncoded.BlockHash != hex.EncodeToString (blockHash [:]) { fmt.Println ("Expecting block hash ", txEncoded.BlockHash, ", found ", hex.EncodeToString (blockHash [:])); return false }
+	if txEncoded.BlockHash != blockHash { fmt.Println ("Expecting block hash ", txEncoded.BlockHash, ", found ", blockHash); return false }
 	if txEncoded.BlockTime != tx.GetBlockTime () { fmt.Println ("Expecting block time ", txEncoded.BlockTime, ", found ", tx.GetBlockTime ()); return false }
-	if txEncoded.TxId != hex.EncodeToString (txId [:]) { fmt.Println ("Expecting tx id ", txEncoded.TxId, ", found ", hex.EncodeToString (txId [:])); return false }
+	if txEncoded.TxId != txId { fmt.Println ("Expecting tx id ", txEncoded.TxId, ", found ", txId); return false }
 	if txEncoded.Version != tx.GetVersion () { fmt.Println ("Expecting version ", txEncoded.Version, ", found ", uint64 (tx.GetVersion ())); return false }
 	if txEncoded.LockTime != tx.GetLockTime () { fmt.Println ("Expecting lock time ", txEncoded.LockTime, ", found ", tx.GetLockTime ()); return false }
 	if txEncoded.Bip141 != tx.SupportsBip141 () { return false }
@@ -187,9 +290,9 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 //////////////////////////////////////////////////
 		if txEncoded.Outputs [o].Value != txOutputs [o].GetSatoshis () { fmt.Println ("Wrong number of outputs."); return false }
 		if txEncoded.Outputs [o].OutputType != txOutputs [o].GetOutputType () { fmt.Println ("Wrong output type."); return false }
-		if len (txEncoded.Outputs [o].OutputScriptFields) != len (outputScript.GetFields ()) { fmt.Println ("Wrong number of outputs script fields."); return false }
+		if len (txEncoded.Outputs [o].OutputScriptFields) != len (outputScript.GetFieldsAsHex ()) { fmt.Println ("Wrong number of outputs script fields."); return false }
 		for f := 0; f < len (txEncoded.Outputs [o].OutputScriptFields); f++ {
-			if txEncoded.Outputs [o].OutputScriptFields [f] != outputScript.GetFields () [f] { fmt.Println ("Wrong output script."); return false }
+			if txEncoded.Outputs [o].OutputScriptFields [f].AsHex (0) != outputScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong output script."); return false }
 		}
 		if txEncoded.Outputs [o].ParseError != outputScript.HasParseError () { fmt.Println ("Wrong output script status."); return false }
 		if txEncoded.Outputs [o].Address != txOutputs [o].GetAddress () { fmt.Println ("Wrong address."); return false }
@@ -207,32 +310,35 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 		witnessScript := segwit.GetWitnessScript ()
 		tapScript, tapScriptIndex := segwit.GetTapScript ()
 
+		inputEncoded := encodeInput (txInputs [i])
+/*
 		inputEncoded := inputJson {	PreviousOutput: nil,
 									InputScriptFields: nil,
 									SegwitFields: segwit.GetFields (),
-									RedeemScriptFields: redeemScript.GetFields (),
-									WitnessScriptFields: witnessScript.GetFields (),
+									RedeemScriptFields: redeemScript.GetFieldsAsHex (),
+									WitnessScriptFields: witnessScript.GetFieldsAsHex (),
 									TapScriptIndex: tapScriptIndex,
-									TapScriptFields: tapScript.GetFields (),
+									TapScriptFields: tapScript.GetFieldsAsHex (),
 									SpendType: txInputs [i].GetSpendType () }
+*/
 
 		// segwit fields
 		if len (txEncoded.Inputs [i].SegwitFields) != len (segwit.GetFields ()) { fmt.Println ("Wrong number of segwit fields."); return false }
 		for f := 0; f < len (txEncoded.Inputs [i].SegwitFields); f++ {
-			if txEncoded.Inputs [i].SegwitFields [f] != segwit.GetFields () [f] { fmt.Println ("Wrong segwit field."); return false }
+			if txEncoded.Inputs [i].SegwitFields [f].AsHex (0) != segwit.GetFields () [f].AsHex (0) { fmt.Println ("Wrong segwit field."); return false }
 		}
 
 		// witness script
-		if len (txEncoded.Inputs [i].WitnessScriptFields) != len (witnessScript.GetFields ()) { fmt.Println ("Wrong number of witness script fields."); return false }
+		if len (txEncoded.Inputs [i].WitnessScriptFields) != len (witnessScript.GetFieldsAsHex ()) { fmt.Println ("Wrong number of witness script fields."); return false }
 		for f := 0; f < len (txEncoded.Inputs [i].WitnessScriptFields); f++ {
-			if txEncoded.Inputs [i].WitnessScriptFields [f] != witnessScript.GetFields () [f] { fmt.Println ("Wrong witness script field."); return false }
+			if txEncoded.Inputs [i].WitnessScriptFields [f].AsHex (0) != witnessScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong witness script field."); return false }
 		}
 
 		// tap script
 		if txEncoded.Inputs [i].TapScriptIndex != tapScriptIndex { fmt.Println ("Wrong tap script index."); return false }
-		if len (txEncoded.Inputs [i].TapScriptFields) != len (tapScript.GetFields ()) { fmt.Println ("Wrong number of tap script fields."); return false }
+		if len (txEncoded.Inputs [i].TapScriptFields) != len (tapScript.GetFieldsAsHex ()) { fmt.Println ("Wrong number of tap script fields."); return false }
 		for f := 0; f < len (txEncoded.Inputs [i].TapScriptFields); f++ {
-			if txEncoded.Inputs [i].TapScriptFields [f] != tapScript.GetFields () [f] { fmt.Println ("Wrong tap script field."); return false }
+			if txEncoded.Inputs [i].TapScriptFields [f].AsHex (0) != tapScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong tap script field."); return false }
 		}
 
 		if txEncoded.Inputs [i].SpendType != txInputs [i].GetSpendType () { fmt.Println ("Wrong spend type."); return false }
@@ -246,25 +352,25 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 //////////////////////////////////////////////////
 			if txEncoded.Inputs [i].PreviousOutput.Value != previousOutput.GetSatoshis () { fmt.Println ("Wrong previous output value."); return false }
 			if txEncoded.Inputs [i].PreviousOutput.OutputType != previousOutput.GetOutputType () { fmt.Println ("Wrong previous output type."); return false }
-			if len (txEncoded.Inputs [i].PreviousOutput.OutputScriptFields) != len (previousOutputScript.GetFields ()) { fmt.Println ("Wrong number of previous output script fields."); return false }
+			if len (txEncoded.Inputs [i].PreviousOutput.OutputScriptFields) != len (previousOutputScript.GetFieldsAsHex ()) { fmt.Println ("Wrong number of previous output script fields."); return false }
 			for f := 0; f < len (txEncoded.Inputs [i].PreviousOutput.OutputScriptFields); f++ {
-				if txEncoded.Inputs [i].PreviousOutput.OutputScriptFields [f] != previousOutputScript.GetFields () [f] { fmt.Println ("Wrong previous output script field."); return false }
+				if txEncoded.Inputs [i].PreviousOutput.OutputScriptFields [f].AsHex (0) != previousOutputScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong previous output script field."); return false }
 			}
 			if txEncoded.Inputs [i].PreviousOutput.ParseError != previousOutputScript.HasParseError () { fmt.Println ("Wrong previous output script status."); return false }
 			if txEncoded.Inputs [i].PreviousOutput.Address != previousOutput.GetAddress () { fmt.Println ("Wrong previous output address."); return false }
 //////////////////////////////////////////////////
 
 			// input script
-			if len (txEncoded.Inputs [i].InputScriptFields) != len (inputScript.GetFields ()) { fmt.Println ("Wrong input script field count."); return false }
+			if len (txEncoded.Inputs [i].InputScriptFields) != len (inputScript.GetFieldsAsHex ()) { fmt.Println ("Wrong input script field count."); return false }
 			for f := 0; f < len (txEncoded.Inputs [i].InputScriptFields); f++ {
-				if txEncoded.Inputs [i].InputScriptFields [f] != inputScript.GetFields () [f] { fmt.Println ("Wrong input script field."); return false }
+				if txEncoded.Inputs [i].InputScriptFields [f].AsHex (0) != inputScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong input script field."); return false }
 			}
 
 			// redeem script
 //fmt.Println (len (txEncoded.Inputs [i].RedeemScriptFields), len (redeemScript.GetFields ()))
-			if len (txEncoded.Inputs [i].RedeemScriptFields) != len (redeemScript.GetFields ()) { fmt.Println ("Expected ", len (txEncoded.Inputs [i].RedeemScriptFields), " redeem script fields, found ", len (redeemScript.GetFields ())); return false }
+			if len (txEncoded.Inputs [i].RedeemScriptFields) != len (redeemScript.GetFieldsAsHex ()) { fmt.Println ("Expected ", len (txEncoded.Inputs [i].RedeemScriptFields), " redeem script fields, found ", len (redeemScript.GetFields ())); return false }
 			for f := 0; f < len (txEncoded.Inputs [i].RedeemScriptFields); f++ {
-				if txEncoded.Inputs [i].RedeemScriptFields [f] != redeemScript.GetFields () [f] { fmt.Println ("Wrong redeem script field."); return false }
+				if txEncoded.Inputs [i].RedeemScriptFields [f].AsHex (0) != redeemScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong redeem script field."); return false }
 			}
 
 			totalIn += previousOutput.GetSatoshis ()
@@ -272,7 +378,7 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 			totalIn += totalOut
 
 			if len (txEncoded.Inputs [i].InputScriptFields) != 1 { fmt.Println ("Wrong input script field count."); return false }
-			if txEncoded.Inputs [i].InputScriptFields [0] != inputScript.GetHex () { fmt.Println ("Wrong input script field."); return false }
+			if txEncoded.Inputs [i].InputScriptFields [0].AsHex (0) != inputScript.GetHex () { fmt.Println ("Wrong input script field."); return false }
 		}
 
 		txEncoded.Inputs [i] = inputEncoded

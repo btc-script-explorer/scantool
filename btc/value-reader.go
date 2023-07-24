@@ -1,7 +1,6 @@
 package btc
 
 import (
-	"encoding/hex"
 	"strconv"
 )
 
@@ -110,15 +109,19 @@ func GetValueHtml (satoshis uint64) string {
 	return satoshisStr
 }
 
-func GetStackItemType (fieldText string, bip141 bool, taproot bool) string {
+func GetStackItemType (field [] byte, schnorr bool) string {
 
-	fieldBytes, _ := hex.DecodeString (fieldText)
+	if !schnorr {
+		if IsValidECSignature (field) { return "Signature" }
+//		if IsValidUncompressedPublicKey (field) { return "Uncompressed Public Key" }
+//		if IsValidCompressedPublicKey (field) { return "Compressed Public Key" }
+		if IsValidECPublicKey (field) { return "Public Key" }
+	} else {
+		if IsValidSchnorrSignature (field) { return "Schnorr Signature" }
+		if IsValidSchnorrPublicKey (field) { return "Public Key" }
+	}
 
-	if IsValidECSignature (fieldBytes) { return "Signature (EC)" }
-	if IsValidUncompressedPublicKey (fieldBytes) { return "Uncompressed Public Key" }
-	if IsValidCompressedPublicKey (fieldBytes) { return "Compressed Public Key" }
-
-	fieldLen := len (fieldBytes)
+	fieldLen := len (field)
 	s := ""; if fieldLen != 1 { s = "s" }
 	return "Data (" + strconv.Itoa (fieldLen) + " Byte" + s + ")"
 }

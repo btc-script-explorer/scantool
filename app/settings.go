@@ -80,10 +80,15 @@ func (w *WebsiteSettings) GetPort () uint16 {
 
 type TestSettings struct {
 	testMode string
+
+	// used with save, verify modes
 	verifiedDir string
 	unverifiedDir string
+
+	// used with save mode
 	sourceFile string
 }
+
 func NewTestSettings (testMode string, verifiedDir string, unverifiedDir string, sourceFile string) TestSettings {
 	mode := strings.ToLower (testMode)
 	if mode != "" && mode != "save" && mode != "verify" {
@@ -335,10 +340,10 @@ func parseSettings () {
 	}
 
 	// make sure there aren't any conflicting command line parameters
-	if len (commandLineParameters ["test-save-dir"]) > 0 && len (commandLineParameters ["test-verify-dir"]) > 0 {
-		fmt.Println ("Parameters test-save-dir and test-verify-dir can not both be set.")
-		os.Exit (1)
-	}
+//	if len (commandLineParameters ["test-save-dir"]) > 0 && len (commandLineParameters ["test-verify-dir"]) > 0 {
+//		fmt.Println ("Parameters test-save-dir and test-verify-dir can not both be set.")
+//		os.Exit (1)
+//	}
 
 	// check for config file parameters
 	configFileParameters := make (map [string] string)

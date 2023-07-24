@@ -14,7 +14,7 @@
 						</tr>
 						<tr>
 							<td style="text-align:right; padding-right:8px;"></td>
-							<td style="text-align:left;">{{ .BlockHash }}</td>
+							<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .BlockHash }}">{{ .BlockHash }}</a></td>
 						</tr>
 						<tr>
 							<td style="text-align:right; padding-right:8px;"></td>
@@ -68,17 +68,19 @@
 		</div>
 	</div>
 
-	<div class="section-heading" style="margin-top:12px;">
-		<span id="input-toggle" style="cursor:pointer; vertical-align:middle; font-size:small; font-family:monospace; padding-right:18px;" onclick="toggle_inputs ();">Show</span>
-		{{ .InputCountLabel }}
-		<span id="input-toggle" style="vertical-align:middle; font-size:small; font-family:monospace; visibility:hidden; padding-left:18px;">Show</span>
-	</div>
-	<div id="inputs-minimized" style="display:block;">
-		{{ template "InputsMinimized" .InputData }}
-	</div>
-	<div id="inputs-maximized" style="display:none;">
+	<div class="section-heading" style="margin-top:12px;">{{ .InputCountLabel }}</div>
+	<div id="inputs" style="border: 1px solid green; margin-top:8px;">
+		<div style="background-color:#f0fff0; font-family:monospace; font-size:normal; padding:8px 0;">
+			<div class="tx-part-minimized" style="width:5ch; font-weight:bold; cursor:pointer;">+</div>
+			<div class="tx-part-minimized" style="width:7ch; font-weight:bold;">Index</div>
+			<div class="tx-part-minimized" style="width:24ch; font-weight:bold;">Spend Type</div>
+			<div class="tx-part-minimized" style="width:18ch; font-weight:bold; text-align:right;">Value</div>
+			<div class="tx-part-minimized" style="width:66ch; font-weight:bold; text-align:left;">Address</div>
+		</div>
+
 		{{ range .InputData }}
-			{{ template "Input" . }}
+			{{ template "InputMinimized" . }}
+			{{ template "InputMaximized" . }}
 		{{ end }}
 	</div>
 

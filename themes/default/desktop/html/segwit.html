@@ -1,18 +1,59 @@
 {{ define "Segwit" }}
-	{{ if not .IsNil }}
-		<div style="font-family:serif; font-weight:bold; text-decoration:underline; margin:10px 0 6px 0;">Segregated Witness</div>
-		<div id="{{ .HtmlId }}">
-			{{range $index, $field := .Fields}}
-				<div id="{{ $.HtmlId }}-field-{{ $index }}" style="font-family:monospace; text-align:center; overflow-x:hidden;">
-					{{ $field.DisplayText }}
-					{{ if $field.ShowCopyButton }}
-						<img style="height:14px; cursor:pointer;" src="{{ $field.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
-					{{ end }}
+
+	<div id="{{ .HtmlId }}">
+		<div class="field-list field-list-theme-non-serialized">
+			<div style="">
+
+				<div id="{{ .HtmlId }}-hex" class="{{ .DisplayTypeClassPrefix }}-as-hex" style="display:block;">
+					{{range $index, $field := .HexFields}}
+						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+							{{ if gt (len $field.DisplayText) 0 }}
+								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
+								{{ if $field.ShowCopyButton }}
+									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+								{{ else }}
+									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+								{{ end }}
+							{{ else }}
+								&nbsp;
+							{{ end }}
+						</div>
+					{{end}}
 				</div>
-			{{end}}
+
+				<div id="{{ .HtmlId }}-text" class="{{ .DisplayTypeClassPrefix }}-as-text" style="display:none;">
+					{{range $index, $field := .TextFields}}
+						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+							{{ if gt (len $field.DisplayText) 0 }}
+								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
+								{{ if $field.ShowCopyButton }}
+									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+								{{ else }}
+									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+								{{ end }}
+							{{ else }}
+								&nbsp;
+							{{ end }}
+						</div>
+					{{end}}
+				</div>
+
+				<div id="{{ .HtmlId }}-type" class="{{ .DisplayTypeClassPrefix }}-as-type" style="display:none;">
+					{{range $index, $field := .TypeFields}}
+						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
+								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
+								{{ if $field.ShowCopyButton }}
+									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+								{{ else }}
+									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+								{{ end }}
+						</div>
+					{{end}}
+				</div>
+
+			</div>
 		</div>
-		{{ template "Script" .WitnessScript }}
-		{{ template "Script" .TapScript }}
-	{{end}}
+	</div>
+
 {{end}}
 

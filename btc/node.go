@@ -10,9 +10,12 @@ import (
 
 type NodeClient interface {
 	GetType () string
-	GetVersion () string
-	GetTx (txId [32] byte) Tx
-	GetPreviousOutput (txId [32] byte, outputIndex uint32) Output
+	GetVersionString () string
+	GetBlock (blockHash string) Block
+	GetBlockHash (blockHeight int) string
+	GetCurrentBlockHash () string
+	GetTx (txId string) Tx
+	GetPreviousOutput (txId string, outputIndex uint32) Output
 }
 
 // singleton, only one node connection currently supported

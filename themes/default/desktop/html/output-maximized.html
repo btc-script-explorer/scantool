@@ -1,7 +1,5 @@
 {{ define "Output" }}
 	<div style="text-align:center; margin-top:8px;">
-		<div style="display:inline-block; font-size:normal; padding:4px 8px; background-color:#fff0f0; border:1px solid red; width:{{ .WidthCh }}ch;">
-			<div style="font-weight:bold; margin-bottom:6px;">{{ .BoxTitle }}</div>
 			<table>
 				<tbody>
 					<tr>
@@ -19,7 +17,6 @@
 				</tbody>
 			</table>
 			{{ template "Script" .OutputScript }}
-		</div>
 	</div>
 {{ end }}
 
