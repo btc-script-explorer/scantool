@@ -1,0 +1,22 @@
+{{ define "OutputMinimized" }}
+	<div id="output-minimized-{{ .OutputIndex }}" style="background-color:#fff0f0; font-family:monospace; cursor:pointer; padding:2px 0;"
+				onmouseover="$ (this).css ('background-color', '#cfc0c0');"
+				onmouseout="$ (this).css ('background-color', '#fff0f0');"
+				onclick="
+for (var i = 0; i < $ ('#outputs').children ().length; i++)
+{
+	$ ('#output-maximized-' + i).css ('display', 'none');
+	$ ('#output-minimized-' + i).css ('display', 'block');
+}
+
+$ (this).css ('display', 'none');
+$ ('#output-maximized-{{ .OutputIndex }}').css ('display', 'block');
+">
+		<div class="tx-part-minimized" style="width:7ch;">{{ .OutputIndex }}</div>
+		<div class="tx-part-minimized" style="width:25ch;">{{ .OutputType }}</div>
+		<div id="input-minimized-{{ .OutputIndex }}-value" class="tx-part-minimized" style="width:18ch; text-align:right;">{{ .Value }}</div>
+		<div class="tx-part-minimized" style="width:2ch;" ></div>
+		<div id="input-minimized-{{ .OutputIndex }}-address" class="tx-part-minimized" style="width:68ch; text-align:left;">{{ .Address }}</div>
+	</div>
+{{ end }}
+

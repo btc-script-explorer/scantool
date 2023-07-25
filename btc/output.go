@@ -115,6 +115,7 @@ func (o *Output) GetAddress () string {
 
 type OutputHtmlData struct {
 	OutputIndex uint32
+	DisplayTypeClassPrefix string
 	OutputType string
 	Value template.HTML
 	Address string
@@ -124,9 +125,9 @@ type OutputHtmlData struct {
 func (o *Output) GetHtmlData (scriptHtmlId string, displayTypeClassPrefix string, outputIndex uint32) OutputHtmlData {
 
 	if len (displayTypeClassPrefix) == 0 {
-		displayTypeClassPrefix = fmt.Sprintf ("output-%d-output-script", outputIndex)
+		displayTypeClassPrefix = fmt.Sprintf ("output-%d", outputIndex)
 	}
 	outputScriptHtml := o.outputScript.GetHtmlData (scriptHtmlId, displayTypeClassPrefix)
-	return OutputHtmlData { OutputIndex: outputIndex, OutputType: o.outputType, Value: template.HTML (GetValueHtml (o.value)), Address: o.GetAddress (), OutputScript: outputScriptHtml }
+	return OutputHtmlData { OutputIndex: outputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, OutputType: o.outputType, Value: template.HTML (GetValueHtml (o.value)), Address: o.GetAddress (), OutputScript: outputScriptHtml }
 }
 

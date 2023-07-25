@@ -196,14 +196,24 @@ type ScriptFieldHtmlData struct {
 	CopyText string
 }
 
-type ScriptHtmlData struct {
+type FieldHtmlData struct {
+	DisplayText string
+	ShowCopyButton bool
+	CopyText string
+}
+
+type FieldSetHtmlData struct {
 	HtmlId string
 	DisplayTypeClassPrefix string
 	CharWidth uint
-	HexFields [] ScriptFieldHtmlData
-	TextFields [] ScriptFieldHtmlData
-	TypeFields [] ScriptFieldHtmlData
+	HexFields [] FieldHtmlData
+	TextFields [] FieldHtmlData
+	TypeFields [] FieldHtmlData
 	CopyImageUrl string
+}
+
+type ScriptHtmlData struct {
+	FieldSet FieldSetHtmlData
 	IsNil bool
 }
 
@@ -215,66 +225,58 @@ func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) Scri
 
 	const maxCharWidth = uint (89)
 
-//	var hexFieldsHtml [] ScriptFieldHtmlData
-//	var textFieldsHtml [] ScriptFieldHtmlData
-//	var typeFieldsHtml [] ScriptFieldHtmlData
-
-	scriptHtmlData := ScriptHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, IsNil: false }
+	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth }, IsNil: false }
 
 	if s.IsEmpty () {
-//		hexFieldsHtml = make ([] ScriptFieldHtmlData, 1)
-//		hexFieldsHtml [0] = ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false }
-		scriptHtmlData.HexFields = [] ScriptFieldHtmlData { ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false } }
-		scriptHtmlData.TextFields = [] ScriptFieldHtmlData { ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false } }
-		scriptHtmlData.TypeFields = [] ScriptFieldHtmlData { ScriptFieldHtmlData { DisplayField: "Empty", ShowCopyButton: false } }
-
-//		scriptHtmlData.HexFields = hexFieldsHtml
+		scriptHtmlData.FieldSet.HexFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
+		scriptHtmlData.FieldSet.TextFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
+		scriptHtmlData.FieldSet.TypeFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
 		return scriptHtmlData
 	}
 
 	fieldCount := len (s.fields);
 	if s.parseError { fieldCount++ }
 
-	hexFieldsHtml := make ([] ScriptFieldHtmlData, fieldCount)
-	textFieldsHtml := make ([] ScriptFieldHtmlData, fieldCount)
-	typeFieldsHtml := make ([] ScriptFieldHtmlData, fieldCount)
+	hexFieldsHtml := make ([] FieldHtmlData, fieldCount)
+	textFieldsHtml := make ([] FieldHtmlData, fieldCount)
+	typeFieldsHtml := make ([] FieldHtmlData, fieldCount)
 
 	for f, field := range s.fields {
 
 		// hex strings
 		entireHexField := field.AsHex (0)
-		hexFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: field.AsHex (maxCharWidth), ShowCopyButton: false }
-		if hexFieldsHtml [f].DisplayField != entireHexField {
+		hexFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsHex (maxCharWidth), ShowCopyButton: false }
+		if hexFieldsHtml [f].DisplayText != entireHexField {
 			hexFieldsHtml [f].ShowCopyButton = true
 			hexFieldsHtml [f].CopyText = entireHexField
 		}
 
 		// text strings
 		entireTextField := field.AsText (0)
-		textFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: field.AsText (maxCharWidth), ShowCopyButton: false }
-		if textFieldsHtml [f].DisplayField != entireTextField {
+		textFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsText (maxCharWidth), ShowCopyButton: false }
+		if textFieldsHtml [f].DisplayText != entireTextField {
 			textFieldsHtml [f].ShowCopyButton = true
 			textFieldsHtml [f].CopyText = entireTextField
 		}
 
 		// field types
-		typeFieldsHtml [f] = ScriptFieldHtmlData { DisplayField: s.fields [f].dataType, ShowCopyButton: false }
+		typeFieldsHtml [f] = FieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
 		}
 
 	if s.parseError {
 		parseErrorStr := "<<< PARSE ERROR >>>"
-		hexFieldsHtml [fieldCount - 1] = ScriptFieldHtmlData { DisplayField: parseErrorStr, ShowCopyButton: false }
-		textFieldsHtml [fieldCount - 1] = ScriptFieldHtmlData { DisplayField: parseErrorStr, ShowCopyButton: false }
-		typeFieldsHtml [fieldCount - 1] = ScriptFieldHtmlData { DisplayField: parseErrorStr, ShowCopyButton: false }
+		hexFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
+		textFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
+		typeFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
 	}
 
 	settings := app.GetSettings ()
 	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
 
-	scriptHtmlData.HexFields = hexFieldsHtml
-	scriptHtmlData.TextFields = textFieldsHtml
-	scriptHtmlData.TypeFields = typeFieldsHtml
-	scriptHtmlData.CopyImageUrl = copyImageUrl
+	scriptHtmlData.FieldSet.HexFields = hexFieldsHtml
+	scriptHtmlData.FieldSet.TextFields = textFieldsHtml
+	scriptHtmlData.FieldSet.TypeFields = typeFieldsHtml
+	scriptHtmlData.FieldSet.CopyImageUrl = copyImageUrl
 
 	return scriptHtmlData
 }

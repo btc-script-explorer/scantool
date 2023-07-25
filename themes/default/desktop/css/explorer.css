@@ -104,7 +104,7 @@ td
 	text-align: center;
 }
 
-.input-maximized-section-name
+.maximized-section-name
 {
 	vertical-align: middle;
 
@@ -113,12 +113,12 @@ td
 	font-weight: bold;
 }
 
-.input-maximized-section-data
+.maximized-section-data
 {
 	vertical-align: top;
 }
 
-.input-maximized-section
+.maximized-section
 {
 	padding: 10px 10px 14px;
 
@@ -128,13 +128,13 @@ td
 	background-color: #f0f0f0;
 }
 
-.input-view-toggle-button-off
+.view-toggle-button-off
 {
 	background-color: #f0f0f0;
 	color: black;
 }
 
-.input-view-toggle-button-on
+.view-toggle-button-on
 {
 	background-color: black;
 	color: white;

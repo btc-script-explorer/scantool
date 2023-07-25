@@ -105,10 +105,9 @@ func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 		t.GetPath () + "html/tx.html",
 		t.GetPath () + "html/input-minimized.html",
 		t.GetPath () + "html/input-maximized.html",
-		t.GetPath () + "html/outputs-minimized.html",
+		t.GetPath () + "html/output-minimized.html",
 		t.GetPath () + "html/output-maximized.html",
-		t.GetPath () + "html/script.html",
-		t.GetPath () + "html/segwit.html" }
+		t.GetPath () + "html/field-set.html" }
 	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
 
 	// execute the templates
@@ -119,28 +118,6 @@ func (t *Theme) GetTxHtml (tx btc.Tx, customJavascript string) string {
 	return buff.String ()
 }
 
-/*
-func (t *Theme) GetPreviousOutputHtml (inputIndex uint32, previousOutput btc.Output) string {
-
-	// get the data
-	scriptHtmlId := "input-" + strconv.FormatUint (uint64 (inputIndex), 10) + "-previous-output-script"
-	previousOutputHtmlData := previousOutput.GetHtmlData (scriptHtmlId, "Previous Output", 0)
-	
-	// parse the file
-	layoutHtmlFiles := [] string {
-		t.GetPath () + "html/output-maximized.html",
-		t.GetPath () + "html/script.html" }
-	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
-
-	// execute the template
-	var buff bytes.Buffer
-	if err := templ.ExecuteTemplate (&buff, "Output", previousOutputHtmlData); err != nil { panic (err) }
-
-	// return the html
-	return buff.String ()
-}
-*/
-
 func (t *Theme) GetPreviousOutputScriptHtml (script btc.Script, htmlId string, displayTypeClassPrefix string) string {
 
 	// get the data
@@ -148,12 +125,12 @@ func (t *Theme) GetPreviousOutputScriptHtml (script btc.Script, htmlId string, d
 	
 	// parse the file
 	layoutHtmlFiles := [] string {
-		t.GetPath () + "html/script.html" }
+		t.GetPath () + "html/field-set.html" }
 	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
 
 	// execute the template
 	var buff bytes.Buffer
-	if err := templ.ExecuteTemplate (&buff, "Script", previousOutputHtmlData); err != nil { panic (err) }
+	if err := templ.ExecuteTemplate (&buff, "FieldSet", previousOutputHtmlData.FieldSet); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()
@@ -162,42 +139,4 @@ func (t *Theme) GetPreviousOutputScriptHtml (script btc.Script, htmlId string, d
 func (t *Theme) GetPath () string {
 	return "themes/" + t.themeName + "/" + t.layoutName + "/"
 }
-
-/*
-func (t *Theme) getHtml (fileName string) string {
-	fileBytes, err := os.ReadFile (t.GetPath () + "html/" + fileName)
-	if err != nil {
-		fmt.Println (err.Error ())
-		return ""
-	}
-
-	return string (fileBytes)
-}
-
-func (t *Theme) GetTxHtmlTemplate () string {
-	return t.getHtml ("html/tx.html")
-}
-
-func (t *Theme) GetInputHtmlTemplate (minimized bool) string {
-	if minimized { return t.getHtml ("html/input-minimized.html") }
-	return t.getHtml ("html/input-maximized.html")
-}
-
-func (t *Theme) GetMinimizedInputsTableHtmlTemplate () string {
-	return t.getHtml ("html/inputs-minimized-table.html")
-}
-
-func (t *Theme) GetOutputHtmlTemplate (minimized bool) string {
-	if minimized { return t.getHtml ("html/output-minimized.html") }
-	return t.getHtml ("html/output-maximized.html")
-}
-
-func (t *Theme) GetMinimizedOutputsTableHtmlTemplate () string {
-	return t.getHtml ("html/outputs-minimized-table.html")
-}
-
-func (t *Theme) GetScriptHtmlTemplate () string {
-	return t.getHtml ("html/script.html")
-}
-*/
 
