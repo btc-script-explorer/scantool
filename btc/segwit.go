@@ -106,24 +106,10 @@ func (s *Segwit) IsEmpty () bool {
 	return s.IsNil () || len (s.fields) == 0
 }
 
-type SegwitFieldHtmlData struct {
-	DisplayText string
-	ShowCopyButton bool
-	CopyText string
-}
-
 type SegwitHtmlData struct {
-	HtmlId string
-	DisplayTypeClassPrefix string
-	CharWidth uint
-	Fields [] SegwitFieldHtmlData
-	HexFields [] SegwitFieldHtmlData
-	TextFields [] SegwitFieldHtmlData
-	TypeFields [] SegwitFieldHtmlData
+	FieldSet FieldSetHtmlData
 	WitnessScript ScriptHtmlData
 	TapScript ScriptHtmlData
-	CopyImageUrl string
-//	IsNil bool
 	IsEmpty bool
 }
 
@@ -136,9 +122,9 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, 
 	htmlId := fmt.Sprintf ("input-%d-segwit", inputIndex)
 	const maxCharWidth = uint (89)
 
-	var hexFieldsHtml [] SegwitFieldHtmlData
-	var textFieldsHtml [] SegwitFieldHtmlData
-	var typeFieldsHtml [] SegwitFieldHtmlData
+	var hexFieldsHtml [] FieldHtmlData
+	var textFieldsHtml [] FieldHtmlData
+	var typeFieldsHtml [] FieldHtmlData
 
 	if !s.IsEmpty () {
 
@@ -176,9 +162,9 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, 
 			}
 		}
 
-		hexFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
-		textFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
-		typeFieldsHtml = make ([] SegwitFieldHtmlData, fieldCount)
+		hexFieldsHtml = make ([] FieldHtmlData, fieldCount)
+		textFieldsHtml = make ([] FieldHtmlData, fieldCount)
+		typeFieldsHtml = make ([] FieldHtmlData, fieldCount)
 
 		for f, field := range s.fields {
 
@@ -189,7 +175,7 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, 
 
 			// hex strings
 			entireHexField := field.AsHex (0)
-			hexFieldsHtml [f] = SegwitFieldHtmlData { DisplayText: field.AsHex (maxCharWidth), ShowCopyButton: false }
+			hexFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsHex (maxCharWidth), ShowCopyButton: false }
 			if hexFieldsHtml [f].DisplayText != entireHexField {
 				hexFieldsHtml [f].ShowCopyButton = true
 				hexFieldsHtml [f].CopyText = entireHexField
@@ -197,21 +183,22 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, 
 
 			// text strings
 			entireTextField := field.AsText (0)
-			textFieldsHtml [f] = SegwitFieldHtmlData { DisplayText: field.AsText (maxCharWidth), ShowCopyButton: false }
+			textFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsText (maxCharWidth), ShowCopyButton: false }
 			if textFieldsHtml [f].DisplayText != entireTextField {
 				textFieldsHtml [f].ShowCopyButton = true
 				textFieldsHtml [f].CopyText = entireTextField
 			}
 
 			// field types
-			typeFieldsHtml [f] = SegwitFieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
+			typeFieldsHtml [f] = FieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
 		}
 	}
 
 	settings := app.GetSettings ()
 	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
 
-	htmlData := SegwitHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl, IsEmpty: s.IsEmpty () }
+	fieldSet := FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl }
+	htmlData := SegwitHtmlData { FieldSet: fieldSet, IsEmpty: s.IsEmpty () }
 
 	htmlData.WitnessScript = s.witnessScript.GetHtmlData (htmlId + "-witness-script", displayTypeClassPrefix)
 	htmlData.TapScript = s.tapScript.GetHtmlData (htmlId + "-tap-script", displayTypeClassPrefix)

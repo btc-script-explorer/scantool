@@ -119,7 +119,7 @@ if input.GetSpendType () == "Non-Standard" {
 
 	// gather data for the spend type and output type charts
 
-	spendTypeNames := [] string { SPEND_TYPE_P2PK, SPEND_TYPE_MultiSig, SPEND_TYPE_P2PKH, SPEND_TYPE_P2SH, SPEND_TYPE_P2SH_P2WPKH, SPEND_TYPE_P2SH_P2WSH, SPEND_TYPE_P2WPKH, SPEND_TYPE_P2WSH, SPEND_TYPE_P2TR_Key, SPEND_TYPE_P2TR_Script, SPEND_TYPE_NonStandard }
+	spendTypeNames := [] string { OUTPUT_TYPE_P2PK, OUTPUT_TYPE_MultiSig, OUTPUT_TYPE_P2PKH, OUTPUT_TYPE_P2SH, SPEND_TYPE_P2SH_P2WPKH, SPEND_TYPE_P2SH_P2WSH, OUTPUT_TYPE_P2WPKH, OUTPUT_TYPE_P2WSH, SPEND_TYPE_P2TR_Key, SPEND_TYPE_P2TR_Script, SPEND_TYPE_NonStandard }
 
 	var spendTypesHTML [] ElementTypeHTML
 	for _, typeName := range spendTypeNames {

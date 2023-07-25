@@ -160,7 +160,6 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 				}
 
 				previousOutput := nodeClient.GetPreviousOutput (hex.EncodeToString (txIdBytes), uint32 (outputIndex))
-//				previousOutputHtml := theme.GetPreviousOutputHtml (uint32 (inputIndex), previousOutput)
 				idPrefix := fmt.Sprintf ("previous-output-%d", inputIndex)
 				classPrefix := fmt.Sprintf ("input-%d", inputIndex)
 				previousOutputScriptHtml := theme.GetPreviousOutputScriptHtml (previousOutput.GetOutputScript (), idPrefix, classPrefix)
@@ -181,7 +180,6 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 																Prev_out_value: satoshis,
 																Prev_out_type: previousOutput.GetOutputType (),
 																Prev_out_address: previousOutput.GetAddress (),
-//																Prev_out_html: previousOutput.GetHtmlData (outputIndex, false, 68)
 																Prev_out_script_html: previousOutputScriptHtml }
 
 				jsonBytes, err := json.Marshal (previousOutputResponse)

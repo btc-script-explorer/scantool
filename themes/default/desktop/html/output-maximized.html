@@ -1,22 +1,58 @@
-{{ define "Output" }}
-	<div style="text-align:center; margin-top:8px;">
-			<table>
+{{ define "OutputMaximized" }}
+	<div id="output-maximized-{{ .OutputIndex }}" style="border-top:1px solid black; border-bottom:1px solid black; font-family:monospace; background-color:#ffe0e0; padding:0 6px 12px 0; display:none;">
+
+		<div style="padding-top:6px; margin-left:4px;">
+
+			<table style="">
 				<tbody>
+
 					<tr>
-						<td style="text-align:right; padding-right:8px; font-weight:bold;">Value:</td>
-						<td style="text-align:left;">{{ .Value }}</td>
+						<td class="maximized-section maximized-section-name">
+							<div style="font-size:x-large; font-weight:bold; margin-bottom:8px;">Output {{ .OutputIndex }}</div>
+							<div style="display:inline-block; padding:3px 6px; border-radius:5px; border:1px solid; font-weight:bold; cursor:pointer; background-color:#b00000; color:white;"
+									onclick="$ ('#output-maximized-{{ .OutputIndex }}').css ('display', 'none'); $ ('#output-minimized-{{ .OutputIndex }}').css ('display', 'block');">Close</div>
+						</td>
+
+						<td class="maximized-section maximized-section-data">
+							<div style="font-family:sans-serif; font-size:x-large; font-weight:bold; margin-bottom:8px;">{{ .OutputType }}</div>
+							<div style="">
+								<table>
+									<tbody>
+										<tr>
+											<td style="text-align:right; padding-right:8px; font-weight:bold;">Value:</td>
+											<td style="text-align:left;">{{ .Value }}</td>
+										</tr>
+										<tr>
+											<td style="text-align:right; padding-right:8px; font-weight:bold;">Address:</td>
+											<td style="text-align:left;">{{ .Address }}</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</td>
 					</tr>
+
+
 					<tr>
-						<td style="text-align:right; padding-right:8px; font-weight:bold;">Output Type:</td>
-						<td style="text-align:left;">{{ .OutputType }}</td>
+						<td class="maximized-section maximized-section-name" style="border:none; background-color: #ffe0e0;"></td>
+						<td class="maximized-section maximized-section-data" style="border:none; background-color: #ffe0e0; padding:16px 0 6px;">
+							<div id="output-{{ .OutputIndex }}-as-hex-button" class="view-toggle-button view-toggle-button-on" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', 'view-toggle-button-off', 'view-toggle-button-on', 'hex');">View Hex</div>
+							<div id="output-{{ .OutputIndex }}-as-type-button" class="view-toggle-button view-toggle-button-off" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', 'view-toggle-button-off', 'view-toggle-button-on', 'type');">View Types</div>
+							<div id="output-{{ .OutputIndex }}-as-text-button" class="view-toggle-button view-toggle-button-off" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', 'view-toggle-button-off', 'view-toggle-button-on', 'text');">View Text</div>
+						</td>
 					</tr>
+
 					<tr>
-						<td style="text-align:right; padding-right:8px; font-weight:bold;">Address:</td>
-						<td style="text-align:left;">{{ .Address }}</td>
+						<td class="maximized-section maximized-section-name">Output Script</td>
+						<td class="maximized-section maximized-section-data">{{ template "FieldSet" .OutputScript.FieldSet }}</td>
 					</tr>
+
+
 				</tbody>
 			</table>
-			{{ template "Script" .OutputScript }}
+
+		</div>
 	</div>
+
 {{ end }}
 
