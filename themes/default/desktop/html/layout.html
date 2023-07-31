@@ -7,16 +7,18 @@
 		<script type="text/javascript" src="/js/jquery-3.7.0.min.js"></script>
 		{{ .CustomJavascript }}
 		<script type="text/javascript" src="/js/explorer.js"></script>
+		<script src="https://go-echarts.github.io/go-echarts-assets/assets/echarts.min.js"></script>
 	</head>
 	<body>
 		<div id="page">
-			<div id="page-header" style="position:relative; height:40px;">
-				<div style="height:40px; line-height:40px; vertical-align:middle;">
+			<div id="page-header" style="position:relative; height:60px;">
+				<div style="height:60px; line-height:60px; vertical-align:middle;">
 					<a class="menu-item" href="/">Home</a>
 				</div>
-				<div style="position:absolute; top:0; right:0; font-size:12px; border-left:1px solid black; height:40px; line-height:20px; padding:0 8px;">
+				<div style="position:absolute; top:0; right:0; font-size:12px; border-left:1px solid black; height:60px; line-height:20px; padding:0 8px;">
 					<div style="margin-top:2px; height:12px; vertical-align:middle;">{{ .NodeVersion }}</div>
 					<div style="margin-top:4px; height:12px; vertical-align:middle;">{{ .NodeUrl }}</div>
+					<div id="current-block" style="margin-top:6px; height:16px; font-size:16px; vertical-align:middle;"></div>
 				</div>
 			</div>
 			<div class="page-content">{{ template "LayoutContent" .ExplorerPage }}</div>

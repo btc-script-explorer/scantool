@@ -1,74 +1,82 @@
 {{ define "QueryResults" }}
 
 <div style="margin-bottom:48px;">
-	<div class="section-heading">Transaction</div>
+	<div>
+		<div style="display:inline-block; border:1px solid black; background-color:#f0f0f0; text-align:center;">
+			<div style="font-size:20px; color:white; background-color:black;">Transaction Info</div>
+			<div style="padding:12px;">
 
-	<div style="display:inline-block; background-color:#f0f0f0;">
-		<div>
-			<div style="display:inline-block; padding:8px;">
-				<table>
-					<tbody>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">Block:</td>
-							<td style="text-align:left;">{{ .BlockHeight }}</td>
-						</tr>
-						<tr>
-							<td style="text-align:right; padding-right:8px;"></td>
-							<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .BlockHash }}">{{ .BlockHash }}</a></td>
-						</tr>
-						<tr>
-							<td style="text-align:right; padding-right:8px;"></td>
-							<td style="text-align:left;">{{ .BlockTime }}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
+				<div>
+					<div style="display:inline-block; padding:8px;">
+						<table>
+							<tbody>
 
-		<div>
-			<div style="display:inline-block; padding:8px;">
-				<table>
-					<tbody>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">Coinbase:</td>
-							<td style="text-align:left;">{{ if .IsCoinbase }}Yes{{ else }}No{{ end }}</td>
-						</tr>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">BIP 141:</td>
-							<td style="text-align:left;">{{ if .SupportsBip141 }}Yes{{ else }}No{{ end }}</td>
-						</tr>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">Lock Time:</td>
-							<td style="text-align:left;">{{ .LockTime }}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
+								<tr>
+									<td class="info-window-label">Block:</td>
+									<td style="text-align:left;">{{ .BlockHeight }}</td>
+								</tr>
+								<tr>
+									<td class="info-window-label"></td>
+									<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .BlockHash }}">{{ .BlockHash }}</a></td>
+								</tr>
+								<tr>
+									<td class="info-window-label"></td>
+									<td style="text-align:left;">{{ .BlockTime }}</td>
+								</tr>
 
-		<div>
-			<div style="display:inline-block; padding:8px;">
-				<table>
-					<tbody>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">Value In:</td>
-							<td style="text-align:right;" id="tx-value-in">{{ .ValueIn }}</td>
-						</tr>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">Value Out:</td>
-							<td style="text-align:right;" id="tx-value-out">{{ .ValueOut }}</td>
-						</tr>
-						<tr>
-							<td style="text-align:right; padding-right:8px;">Fee:</td>
-							<td style="text-align:right;" id="tx-fee">{{ .Fee }}</td>
-						</tr>
-					</tbody>
-				</table>
+
+								<tr>
+									<td class="info-window-label">&nbsp;</td>
+									<td style="text-align:left;">&nbsp;</td>
+								</tr>
+
+
+								<tr>
+									<td class="info-window-label">Coinbase:</td>
+									<td style="text-align:left;">{{ if .IsCoinbase }}Yes{{ else }}No{{ end }}</td>
+								</tr>
+								<tr>
+									<td class="info-window-label">BIP 141:</td>
+									<td style="text-align:left;">{{ if .SupportsBip141 }}Yes{{ else }}No{{ end }}</td>
+								</tr>
+								<tr>
+									<td class="info-window-label">Lock Time:</td>
+									<td style="text-align:left;">{{ .LockTime }}</td>
+								</tr>
+
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+
+				<div style="text-align:left;">
+					<div style="display:inline-block; padding:8px;">
+						<table>
+							<tbody>
+
+								<tr>
+									<td class="info-window-label">Value In:</td>
+									<td id="tx-value-in" style="text-align:right;">{{ .ValueIn }}</td>
+								</tr>
+								<tr>
+									<td class="info-window-label">Value Out:</td>
+									<td id="tx-value-out" style="text-align:right;">{{ .ValueOut }}</td>
+								</tr>
+								<tr>
+									<td class="info-window-label">Fee:</td>
+									<td id="tx-fee" style="text-align:right;">{{ .Fee }}</td>
+								</tr>
+
+							</tbody>
+						</table>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
 
-	<div class="section-heading" style="margin-top:12px;">{{ .InputCountLabel }}</div>
+	<div class="section-heading" style="margin-top:20px;">{{ .InputCountLabel }}</div>
 	<div id="inputs" style="background-color:#f0fff0; border:1px solid green; margin-top:8px; width:130ch; padding:6px 0 0;">
 		<div style="font-family:monospace; font-size:normal; margin-bottom:4px;">
 			<div class="tx-part-minimized" style="width:7ch; font-weight:bold;">Index</div>
@@ -84,7 +92,7 @@
 		{{ end }}
 	</div>
 
-	<div class="section-heading" style="margin-top:12px;">{{ .OutputCountLabel }}</div>
+	<div class="section-heading" style="margin-top:20px;">{{ .OutputCountLabel }}</div>
 	<div id="outputs" style="background-color:#fff0f0; border:1px solid red; margin-top:8px; width:130ch; padding:6px 0 0;">
 		<div style="font-family:monospace; font-size:normal; margin-bottom:4px;">
 			<div class="tx-part-minimized" style="width:7ch; font-weight:bold;">Index</div>

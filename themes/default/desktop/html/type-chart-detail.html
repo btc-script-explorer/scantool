@@ -1,0 +1,9 @@
+{{ define "TypeChartDetail" }}
+	{{ range $I, $Type := .Types }}
+		<div id="{{ $.HtmlIdPrefix }}-{{ $Type.Label }}" style="height:22px;">
+			<div style="display:inline-block; font-family:monospace; width:20ch; text-align:left; padding-right:2ch;">{{ $Type.Label }}</div>
+			<div id="{{ $.HtmlIdPrefix }}-{{ $Type.Label }}-count" style="display:inline-block; font-family:monospace;padding:2px 0; width:15ch; text-align:right; padding-right:2ch;">{{ $Type.Count }}</div>
+		</div>
+	{{ end }}
+{{ end }}
+

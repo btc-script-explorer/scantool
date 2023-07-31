@@ -98,6 +98,13 @@ td
 	margin: 8px 0 6px;
 }
 
+.info-window-label
+{
+	text-align: right;
+	font-weight: bold;
+	padding: 2px 8px 2px 0;
+}
+
 .field-list
 {
 	display: inline-block;
@@ -106,7 +113,7 @@ td
 
 .maximized-section-name
 {
-	vertical-align: middle;
+	vertical-align: top;
 
 	font-family: sans-serif;
 	font-size: normal;

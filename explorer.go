@@ -98,9 +98,24 @@ func homeController (response http.ResponseWriter, request *http.Request) {
 				}
 
 				if len (blockHash) > 0 {
-					block := nodeClient.GetBlock (blockHash)
+					block := nodeClient.GetBlock (blockHash, true)
 					if !block.IsNil () {
-						html = theme.GetBlockHtml (block, "")
+
+						pendingPreviousOutputs, nonCoinbaseInputCount := block.GetPendingPreviousOutputs ()
+						customJavascript := fmt.Sprintf ("var noncoinbase_input_count = %d;\n", nonCoinbaseInputCount)
+						_, knownSpendTypeCount := block.GetKnownSpendTypes ()
+						customJavascript += fmt.Sprintf ("var known_spend_type_count = %d;\n", knownSpendTypeCount)
+						customJavascript += fmt.Sprintf ("var output_count = %d;\n", block.GetOutputCount ())
+
+						if len (pendingPreviousOutputs) > 0 {
+							pendingPrevOutBytes, err := json.Marshal (pendingPreviousOutputs)
+							if err != nil { fmt.Println (err.Error ()) }
+
+							pendingPrevOutJson := string (pendingPrevOutBytes)
+							customJavascript += "var pending_previous_outputs = JSON.parse ('" + pendingPrevOutJson + "');"
+						}
+
+						html = theme.GetBlockHtml (block, customJavascript)
 					}
 				}
 
@@ -146,9 +161,62 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 
 	if request.Method == "POST" {
 		switch request.FormValue ("method") {
-			case "getpreviousoutput":
-				txIdBytes, err := hex.DecodeString (request.FormValue ("Prev_out_tx_id"))
+
+			case "get_block_charts":
+				request.ParseForm ()
+
+				nonCoinbaseInputCount, _ := strconv.Atoi (request.Form ["NonCoinbaseInputCount"] [0])
+				outputCount, _ := strconv.Atoi (request.Form ["OutputCount"] [0])
+
+				var spendTypes map [string] int
+				err := json.Unmarshal ([] byte (request.Form ["SpendTypes"] [0]), &spendTypes)
 				if err != nil { fmt.Println (err.Error ()) }
+
+				var outputTypes map [string] int
+				err = json.Unmarshal ([] byte (request.Form ["OutputTypes"] [0]), &outputTypes)
+				if err != nil { fmt.Println (err.Error ()) }
+
+				blockCharts := btc.GetBlockCharts (nonCoinbaseInputCount, outputCount, spendTypes, outputTypes)
+				chartsBytes, err := json.Marshal (blockCharts)
+				if err != nil { fmt.Println (err.Error ()) }
+
+				fmt.Fprint (response, string (chartsBytes))
+
+
+			case "get_pending_previous_outputs":
+				request.ParseForm ()
+				txIds := [] string {}
+				for key, _ := range request.Form {
+					if key == "method" { continue }
+					txIds = append (txIds, key)
+				}
+
+				prevOutMap := make (map [string] int)
+				for _, txId := range txIds {
+//fmt.Println (i, txId)
+
+					tx := nodeClient.GetTx (txId)
+					outputs := tx.GetOutputs ()
+
+					var outputIndexes [] uint32
+					err := json.Unmarshal ([] byte (request.Form [txId] [0]), &outputIndexes)
+					if err != nil { fmt.Println (err.Error ()) }
+
+					for _, prevOutIndex := range outputIndexes {
+						previousOutput := outputs [prevOutIndex]
+						prevOutMap [previousOutput.GetOutputType ()]++
+					}
+				}
+
+				prevOutsBytes, err := json.Marshal (prevOutMap)
+				if err != nil { fmt.Println (err.Error ()) }
+
+				fmt.Fprint (response, string (prevOutsBytes))
+
+			case "get_previous_output":
+//				txIdBytes, err := hex.DecodeString (request.FormValue ("Prev_out_tx_id"))
+//				if err != nil { fmt.Println (err.Error ()) }
+				txId := request.FormValue ("Prev_out_tx_id")
 
 				outputIndex, err := strconv.ParseUint (request.FormValue ("Prev_out_index"), 10, 32)
 				if err != nil { fmt.Println (err.Error ()) }
@@ -159,7 +227,8 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 					return
 				}
 
-				previousOutput := nodeClient.GetPreviousOutput (hex.EncodeToString (txIdBytes), uint32 (outputIndex))
+//				previousOutput := nodeClient.GetPreviousOutput (hex.EncodeToString (txIdBytes), uint32 (outputIndex))
+				previousOutput := nodeClient.GetPreviousOutput (txId, uint32 (outputIndex))
 				idPrefix := fmt.Sprintf ("previous-output-%d", inputIndex)
 				classPrefix := fmt.Sprintf ("input-%d", inputIndex)
 				previousOutputScriptHtml := theme.GetPreviousOutputScriptHtml (previousOutput.GetOutputScript (), idPrefix, classPrefix)
@@ -187,6 +256,16 @@ func ajaxController (response http.ResponseWriter, request *http.Request) {
 
 				fmt.Fprint (response, string (jsonBytes))
 				break
+
+			case "get_current_block":
+				blockHash := nodeClient.GetCurrentBlockHash ()
+				block := nodeClient.GetBlock (blockHash, false)
+
+				blockJsonData := struct { Current_block_height uint32 } { Current_block_height: block.GetHeight () }
+				jsonBytes, err := json.Marshal (blockJsonData)
+				if err != nil { fmt.Println (err) }
+
+				fmt.Fprint (response, string (jsonBytes))
 		}
 	}
 }
