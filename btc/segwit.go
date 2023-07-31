@@ -207,21 +207,55 @@ func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, 
 }
 
 func (s *Segwit) IsValidP2wpkh () bool {
-	if len (s.fields) != 2 { return false }
+	if len (s.fields) < 2 { return false }
 
-	signatureBytes := s.fields [0].AsBytes ()
-	publicKeyBytes := s.fields [1].AsBytes ()
-	return IsValidECPublicKey (publicKeyBytes) && IsValidECSignature (signatureBytes)
+	// we must count only non-empty fields
+	nonEmptyFieldCount := 0
+	for f := 0; f < len (s.fields); f++ {
+		fieldBytes := s.fields [f].AsBytes ()
+		if len (fieldBytes) > 0 {
+			if nonEmptyFieldCount == 0 {
+				// the first non-empty field must be a Signature
+				if !IsValidECSignature (fieldBytes) {
+					return false
+				}
+			} else if nonEmptyFieldCount == 1 {
+				// the first non-empty field must be a public key
+				if !IsValidECPublicKey (fieldBytes) {
+					return false
+				}
+			}
+
+			nonEmptyFieldCount++
+		}
+	}
+	if nonEmptyFieldCount != 2 { return false }
+
+	return true
 }
 
 func (s *Segwit) IsValidTaprootKeyPath () bool {
 	exactFieldCount := 1
 	if s.HasAnnex () { exactFieldCount++ }
 
-	if len (s.fields) != exactFieldCount { return false }
+	// we must count only non-empty fields
+	nonEmptyFieldCount := 0
+	for f := 0; f < len (s.fields); f++ {
+		fieldBytes := s.fields [f].AsBytes ()
+		if len (fieldBytes) > 0 {
+			if nonEmptyFieldCount == 0 {
+				// the first non-empty field must be a Schnorr Signature
+				if !IsValidSchnorrSignature (fieldBytes) {
+					return false
+				}
+			}
 
-	signatureBytes := s.fields [0].AsBytes ()
-	return IsValidSchnorrSignature (signatureBytes)
+			nonEmptyFieldCount++
+		}
+	}
+	if nonEmptyFieldCount != exactFieldCount { return false }
+
+	return true
 }
 
 /*

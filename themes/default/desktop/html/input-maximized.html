@@ -15,14 +15,14 @@
 						</td>
 
 						<td class="maximized-section maximized-section-data">
-							<div style="font-family:sans-serif; font-size:x-large; font-weight:bold; margin-bottom:8px;">{{ .SpendType }}</div>
+							<div id="input-maximized-{{ .InputIndex }}-spend-type" style="font-family:sans-serif; font-size:x-large; font-weight:bold; margin-bottom:8px;">{{ .SpendType }}</div>
 							<div style="">
 								<table>
 									<tbody>
 										{{ if .IsCoinbase }}
 											<tr>
 												<td style="text-align:right; padding-right:8px; font-weight:bold;">Value In:</td>
-												<td id="input-spend-type-{{ .InputIndex }}" style="text-align:left;">{{ .ValueIn }}</td>
+												<td style="text-align:left;">{{ .ValueIn }}</td>
 											</tr>
 										{{ end }}
 										<tr>
@@ -75,14 +75,21 @@
 					</tr>
 
 					{{ if not .InputScript.IsNil }}
-						<tr>
-							<td class="maximized-section maximized-section-name">Input Script</td>
+						<tr id="input-maximized-{{ .InputIndex }}-input-script">
+							<td class="maximized-section maximized-section-name">{{ if .IsCoinbase }}Coinbase{{ else }}Input{{ end }} Script</td>
 							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .InputScript.FieldSet }}</td>
 						</tr>
 					{{ end }}
 
+					{{ if .IncludeAlternateInputScript }}
+						<tr id="input-maximized-{{ .InputIndex }}-input-script-alternate" style="display:none;">
+							<td class="maximized-section maximized-section-name">Input Script</td>
+							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .InputScriptAlternate.FieldSet }}</td>
+						</tr>
+					{{ end }}
+
 					{{ if not .RedeemScript.IsNil }}
-						<tr>
+						<tr{{ if .IncludeAlternateInputScript }} id="input-maximized-{{ .InputIndex }}-redeem-script" style="display:none;"{{ end }}>
 							<td class="maximized-section maximized-section-name">Redeem Script</td>
 							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .RedeemScript.FieldSet }}</td>
 						</tr>
@@ -103,7 +110,12 @@
 
 						{{ if not .Segwit.TapScript.IsNil }}
 							<tr>
-								<td class="maximized-section maximized-section-name">Tap Script</td>
+								<td class="maximized-section maximized-section-name">
+									<div>Tap Script</div>
+									{{ if .Segwit.TapScript.IsOrdinal }}
+										<div style="margin-top:8px; color:red;">[&nbsp;ORDINAL&nbsp;]</div>
+									{{ end }}
+								</td>
 								<td class="maximized-section maximized-section-data">{{ template "FieldSet" .Segwit.TapScript.FieldSet }}</td>
 							</tr>
 						{{ end }}

@@ -13,7 +13,7 @@ $ (this).css ('display', 'none');
 $ ('#input-maximized-{{ .InputIndex }}').css ('display', 'block');
 ">
 		<div class="tx-part-minimized" style="width:7ch;">{{ .InputIndex }}</div>
-		<div class="tx-part-minimized" style="width:25ch;">{{ .SpendType }}</div>
+		<div id="input-minimized-{{ .InputIndex }}-spend-type" class="tx-part-minimized" style="width:25ch;">{{ .SpendType }}</div>
 		<div id="input-minimized-{{ .InputIndex }}-value" class="tx-part-minimized" style="width:18ch; text-align:right;">{{ .ValueIn }}</div>
 		<div class="tx-part-minimized" style="width:2ch;" ></div>
 		<div id="input-minimized-{{ .InputIndex }}-address" class="tx-part-minimized" style="width:68ch; text-align:left;"></div>

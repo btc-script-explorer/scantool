@@ -10,50 +10,73 @@
 							<table>
 								<tbody>
 									<tr>
-										<td style="text-align:right; padding-right:8px;">Height:</td>
+										<td class="info-window-label">Height:</td>
 										<td style="text-align:left;">{{ .Height }}</td>
 									</tr>
 									<tr>
-										<td style="text-align:right; padding-right:8px;">Hash:</td>
+										<td class="info-window-label">Hash:</td>
 										<td style="text-align:left;">{{ .Hash }}</td>
 									</tr>
 									{{ if ne .PreviousHash nil }}
 										<tr>
-											<td style="text-align:right; padding-right:8px;">Previous:</td>
+											<td class="info-window-label">Previous:</td>
 											<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .PreviousHash }}">{{ .PreviousHash }}</a></td>
 										</tr>
 									{{ end }}
 									{{ if ne .NextHash nil }}
 										<tr>
-											<td style="text-align:right; padding-right:8px;">Next:</td>
+											<td class="info-window-label">Next:</td>
 											<td style="text-align:left;"><a href="{{ $.BaseUrl }}/block/{{ .NextHash }}">{{ .NextHash }}</a></td>
 										</tr>
 									{{ end }}
 									<tr>
-										<td style="text-align:right; padding-right:8px;">Time:</td>
+										<td class="info-window-label">Time:</td>
 										<td style="text-align:left;">{{ .Time }}</td>
 									</tr>
-								</tbody>
-							</table>
-						</div>
-					</div>
 
-					<div style="margin-top:16px;">
-						<div style="display:inline-block;">
-							<table>
-								<tbody>
+
 									<tr>
-										<td style="text-align:right; padding-right:8px;">Transactions:</td>
+										<td class="info-window-label">&nbsp;</td>
+										<td style="text-align:left;">&nbsp;</td>
+									</tr>
+
+
+									<tr>
+										<td class="info-window-label">Transactions:</td>
 										<td style="text-align:left;">{{ .TxCount }}</td>
 									</tr>
 									<tr>
-										<td style="text-align:right; padding-right:8px;">Inputs:</td>
+										<td class="info-window-label">BIP 141:</td>
+										<td style="text-align:left;">{{ .Bip141Percent }}</td>
+									</tr>
+									<tr>
+										<td class="info-window-label">Inputs:</td>
 										<td style="text-align:left;">{{ .InputCount }}</td>
 									</tr>
 									<tr>
-										<td style="text-align:right; padding-right:8px;">Outputs:</td>
+										<td class="info-window-label">Outputs:</td>
 										<td style="text-align:left;">{{ .OutputCount }}</td>
 									</tr>
+
+									{{ if or (ne .WitnessScriptMultiSigMessage nil) (ne .TapScriptOrdinalsMessage nil) }}
+										<tr>
+											<td class="info-window-label">&nbsp;</td>
+											<td style="text-align:left;">&nbsp;</td>
+										</tr>
+										{{ if ne .WitnessScriptMultiSigMessage nil }}
+											<tr>
+												<td class="info-window-label">Witness Scripts:</td>
+												<td style="text-align:left;">{{ .WitnessScriptMultiSigMessage }}</td>
+											</tr>
+										{{ end }}
+										{{ if ne .TapScriptOrdinalsMessage nil }}
+											<tr>
+												<td class="info-window-label">Tap Scripts:</td>
+												<td style="text-align:left;">{{ .TapScriptOrdinalsMessage }}</td>
+											</tr>
+										{{ end }}
+									{{ end }}
+
 								</tbody>
 							</table>
 						</div>
@@ -63,19 +86,23 @@
 		</div>
 
 		<div style="margin-top:20px;">
-			{{ if ne .SpendTypeChart nil }}
-				<div style="display:inline-block; border:1px solid black;">
-					<div style="font-size:20px; color:white; background-color:black;">Spend Types</div>
+			{{ if and (gt .InputCount 1) (ne .SpendTypeChart nil) }}
+				<div style="display:inline-block; border:1px solid black; vertical-align:top;">
+					<div style="font-size:20px; color:white; background-color:black;">
+						<div class="spend-type-percent-loaded" style="display:inline-block; visibility:hidden;"></div>
+						<div style="display:inline-block; margin:0 8px;">Spend Types</div>
+						<div class="spend-type-percent-loaded" style="display:inline-block;"></div>
+					</div>
 					<div style="padding:8px; background-color:#f0f0f0;">
-						<div style="display:inline-block;">{{ .SpendTypeChart }}</div>
+						<div id="spend-types" style="display:inline-block;">{{ template "TypeChartDetail" .SpendTypeChart }}</div>
 					</div>
 				</div>
 			{{ end }}
 
-			<div style="display:inline-block; border:1px solid black;">
+			<div style="display:inline-block; border:1px solid black; vertical-align:top;">
 				<div style="font-size:20px; color:white; background-color:black;">Output Types</div>
 				<div style="padding:8px; background-color:#f0f0f0;">
-					<div style="display:inline-block;">{{ .OutputTypeChart }}</div>
+					<div id="output-types" style="display:inline-block;">{{ template "TypeChartDetail" .OutputTypeChart }}</div>
 				</div>
 			</div>
 		</div>
@@ -90,15 +117,17 @@
 								<tr style="font-family:monospace;">
 									<th style="text-align:center; padding:0 8px 6px;">Index</th>
 									<th style="text-align:center; padding:0 8px 6px;">Tx ID</th>
+									<th style="text-align:center; padding:0 8px 6px;">BIP 141</th>
 									<th style="text-align:center; padding:0 8px 6px;">Inputs</th>
 									<th style="text-align:center; padding:0 8px 6px;">Outputs</th>
 								</tr>
 							</thead>
 							<tbody>
 								{{ range $I, $Tx := .TxDetail }}
-									<tr>
+									<tr onmouseover="$ (this).css ('background-color', '#e0e0e0');" onmouseout="$ (this).css ('background-color', '#f0f0f0');">
 										<td style="text-align:center; padding:0 8px;">{{ $Tx.Index }}</td>
 										<td style="text-align:center; padding:0 8px;"><a href="{{ $.BaseUrl }}/tx/{{ $Tx.TxId }}">{{ $Tx.TxId }}</a></td>
+										<td style="text-align:center; padding:0 8px;">{{ if $Tx.Bip141 }}&#x2713;{{ end }}</td>
 										<td style="text-align:center; padding:0 8px;">{{ $Tx.InputCount }}</td>
 										<td style="text-align:center; padding:0 8px;">{{ $Tx.OutputCount }}</td>
 									</tr>

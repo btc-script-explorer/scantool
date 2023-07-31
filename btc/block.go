@@ -2,11 +2,12 @@ package btc
 
 import (
 	"fmt"
-	"strconv"
 	"time"
-	"bytes"
 	"sort"
-	"html/template"
+	"strconv"
+	"strings"
+	"bytes"
+"html/template"
 
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
@@ -61,6 +62,83 @@ type ElementTypeHTML struct {
 	Percent string
 }
 
+func (b *Block) GetOutputCount () int {
+
+	outputCount := 0
+	for _, tx := range b.txs {
+		outputCount += tx.GetOutputCount ()
+	}
+	return outputCount
+}
+
+func (b *Block) GetPendingPreviousOutputs () (map [string] [] uint32, int) {
+
+	nonCoinbaseInputCount := 0
+	unknownOutputTypes := make (map [string] [] uint32)
+	for _, tx := range b.txs {
+		for _, input := range tx.GetInputs () {
+			if input.IsCoinbase () { continue }
+
+			nonCoinbaseInputCount++
+			spendType := input.GetSpendType ()
+			if len (spendType) == 0 {
+				unknownOutputTypes [input.previousOutputTxId] = append (unknownOutputTypes [input.previousOutputTxId], input.GetPreviousOutputIndex ())
+			}
+		}
+	}
+
+	return unknownOutputTypes, nonCoinbaseInputCount
+}
+
+func (b *Block) GetKnownSpendTypes () ([] ElementTypeHTML, int) {
+
+	nonCoinbaseInputCount := 0
+	knownSpendTypeCount := 1 // starting at 1 because the coinbase input always has a known spend type
+	spendTypeMap := make (map [string] int)
+	for _, tx := range b.txs {
+		for _, input := range tx.GetInputs () {
+			if input.IsCoinbase () { continue }
+
+			nonCoinbaseInputCount++
+			spendType := input.GetSpendType ()
+			if len (spendType) > 0 {
+				spendTypeMap [spendType]++
+				knownSpendTypeCount++
+			}
+		}
+	}
+
+	var knownSpendTypes [] ElementTypeHTML
+	for spendType, num := range spendTypeMap {
+		knownSpendTypes = append (knownSpendTypes, ElementTypeHTML { Label: spendType, Count: num, Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (nonCoinbaseInputCount)) })
+	}
+
+	return knownSpendTypes, knownSpendTypeCount
+}
+
+func (b *Block) GetOutputTypes () [] ElementTypeHTML {
+
+	outputCount := 0
+	outputTypeMap := make (map [string] int)
+	for _, tx := range b.txs {
+		for _, output := range tx.GetOutputs () {
+
+			outputCount++
+			outputType := output.GetOutputType ()
+			if len (outputType) > 0 {
+				outputTypeMap [outputType]++
+			}
+		}
+	}
+
+	var outputTypes [] ElementTypeHTML
+	for outputType, num := range outputTypeMap {
+		outputTypes = append (outputTypes, ElementTypeHTML { Label: outputType, Count: num, Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (outputCount)) })
+	}
+
+	return outputTypes
+}
+
 type TxHTML struct {
 	Index int
 	TxId string
@@ -82,19 +160,35 @@ func (b *Block) GetHtmlData () map [string] interface {} {
 
 	// get the numbers of inputs and outputs and their types, and the tx detail
 	var txDetail [] TxHTML
+	bip141Count := 0
 	inputCount := 0
 	outputCount := float32 (0)
+
+	witnessScriptMultisigCount := float32 (0)
+	witnessScriptCount := float32 (0)
+
+	tapScriptOrdinalCount := float32 (0)
+	tapScriptCount := float32 (0)
+
 	spendTypeMap := make (map [string] int)
 	outputTypeMap := make (map [string] int)
 	for i, tx := range b.txs {
 
 		txDetail = append (txDetail, TxHTML { Index: i, TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
+		if tx.SupportsBip141 () { bip141Count++ }
 
 		for _, input := range tx.GetInputs () {
+
+			st := input.spendType
+			if st == OUTPUT_TYPE_P2WSH || st == SPEND_TYPE_P2SH_P2WSH {
+				witnessScriptCount++
+				if input.multisigWitnessScript { witnessScriptMultisigCount++ }
+			} else if st == SPEND_TYPE_P2TR_Script {
+				tapScriptCount++
+				if input.ordinalTapScript { tapScriptOrdinalCount++ }
+			}
+
 			inputCount++
-if input.GetSpendType () == "Non-Standard" {
-	fmt.Println (tx.GetTxId ())
-}
 			spendTypeMap [input.GetSpendType ()]++
 		}
 
@@ -104,15 +198,89 @@ if input.GetSpendType () == "Non-Standard" {
 		}
 	}
 
+	if witnessScriptCount > 0 || tapScriptCount > 0 {
+		countStrLen := 0
+		totalStrLen := 0
+
+		wsCountStr := ""
+		wsTotalStr := ""
+
+		tsCountStr := ""
+		tsTotalStr := ""
+
+		// measuring the lengths of strings so the numbers line up on the UI
+		if witnessScriptCount > 0 {
+			wsCountStr = fmt.Sprintf ("%d", uint (witnessScriptMultisigCount))
+			if len (wsCountStr) > countStrLen { countStrLen = len (wsCountStr) }
+
+			wsTotalStr = fmt.Sprintf ("%d", uint (witnessScriptCount))
+			if len (wsTotalStr) > totalStrLen { totalStrLen = len (wsTotalStr) }
+		}
+
+		if tapScriptCount > 0 {
+			tsCountStr = fmt.Sprintf ("%d", uint (tapScriptOrdinalCount))
+			if len (tsCountStr) > countStrLen { countStrLen = len (tsCountStr) }
+
+			tsTotalStr = fmt.Sprintf ("%d", uint (tapScriptCount))
+			if len (tsTotalStr) > totalStrLen { totalStrLen = len (tsTotalStr) }
+		}
+
+		// creating the messages
+		if witnessScriptCount > 0 {
+			wsMessage:= fmt.Sprintf ("%*s/%*s MultiSig (%6.2f%%)", countStrLen, wsCountStr, totalStrLen, wsTotalStr, witnessScriptMultisigCount * 100 / witnessScriptCount)
+			htmlData ["WitnessScriptMultiSigMessage"] = template.HTML (strings.Replace (wsMessage, " ", "&nbsp;", -1))
+		}
+
+		if tapScriptCount > 0 {
+			tsMessage := fmt.Sprintf ("%*s/%*s Ordinals (%6.2f%%)", countStrLen, tsCountStr, totalStrLen, tsTotalStr, float32 (tapScriptOrdinalCount * 100) / float32 (tapScriptCount))
+			htmlData ["TapScriptOrdinalsMessage"] = template.HTML (strings.Replace (tsMessage, " ", "&nbsp;", -1))
+		}
+	}
+
+	htmlData ["Bip141Percent"] = fmt.Sprintf ("%9.2f%%", float32 (bip141Count * 100) / float32 (len (b.txs)))
+
 	settings := app.GetSettings ()
 	htmlData ["BaseUrl"] = "http://" + settings.Website.GetFullUrl ()
 	htmlData ["TxDetail"] = txDetail
 
 	htmlData ["InputCount"] = inputCount
 	htmlData ["OutputCount"] = outputCount
-	nonCoinbaseInputCount := float32 (inputCount - 1)
 
-	// for the pie charts
+	// spend types
+	spendTypeHtmlData := make (map [string] interface {})
+	spendTypeHtmlData ["HtmlIdPrefix"] = "spend-type"
+	sortedSpendTypes, _ := b.GetKnownSpendTypes ()
+	sort.SliceStable (sortedSpendTypes, func (i, j int) bool { return sortedSpendTypes [i].Count > sortedSpendTypes [j].Count })
+	spendTypeHtmlData ["Types"] = sortedSpendTypes
+	htmlData ["SpendTypeChart"] = spendTypeHtmlData
+
+
+	// output types
+	outputTypeHtmlData := make (map [string] interface {})
+	outputTypeHtmlData ["HtmlIdPrefix"] = "output-type"
+	sortedOutputTypes := b.GetOutputTypes ()
+	sort.SliceStable (sortedOutputTypes, func (i, j int) bool { return sortedOutputTypes [i].Count > sortedOutputTypes [j].Count })
+	outputTypeHtmlData ["Types"] = sortedOutputTypes
+
+	htmlData ["OutputTypeChart"] = outputTypeHtmlData
+
+	return htmlData
+}
+
+func extractBodyFromHTML (html string) string {
+
+	bodyBegin := strings.Index (html, "<body>")
+	if bodyBegin > -1 { bodyBegin += 6 } else { fmt.Println ("Body not found in chart HTML.") }
+
+	bodyEnd := strings.Index (html, "</body>")
+	if bodyEnd == -1 { fmt.Println ("Body not found in chart HTML.") }
+
+	body := html [: bodyEnd]
+	return body [bodyBegin :]
+}
+
+func GetBlockCharts (nonCoinbaseInputCount int, outputCount int, spendTypes map [string] int, outputTypes map [string] int) map [string] string {
+
 	const pieRadius = 90
 	const verticalPadding = 10
 	longestLabel := 0
@@ -123,9 +291,9 @@ if input.GetSpendType () == "Non-Standard" {
 
 	var spendTypesHTML [] ElementTypeHTML
 	for _, typeName := range spendTypeNames {
-		if spendTypeMap [typeName] > 0 {
+		if spendTypes [typeName] > 0 {
 			if len (typeName) > longestLabel { longestLabel = len (typeName) }
-			spendTypesHTML = append (spendTypesHTML, ElementTypeHTML { Label: typeName, Count: spendTypeMap [typeName], Percent: fmt.Sprintf ("%9.2f%%", float32 (spendTypeMap [typeName] * 100) / nonCoinbaseInputCount) })
+			spendTypesHTML = append (spendTypesHTML, ElementTypeHTML { Label: typeName, Count: spendTypes [typeName], Percent: fmt.Sprintf ("%9.2f%%", float32 (spendTypes [typeName] * 100) / float32 (nonCoinbaseInputCount)) })
 		}
 	}
 
@@ -133,9 +301,9 @@ if input.GetSpendType () == "Non-Standard" {
 
 	var outputTypesHTML [] ElementTypeHTML
 	for _, typeName := range outputTypeNames {
-		if outputTypeMap [typeName] > 0 {
+		if outputTypes [typeName] > 0 {
 			if len (typeName) > longestLabel { longestLabel = len (typeName) }
-			outputTypesHTML = append (outputTypesHTML, ElementTypeHTML { Label: typeName, Count: outputTypeMap [typeName], Percent: fmt.Sprintf ("%9.2f%%", float32 (outputTypeMap [typeName] * 100) / outputCount) })
+			outputTypesHTML = append (outputTypesHTML, ElementTypeHTML { Label: typeName, Count: outputTypes [typeName], Percent: fmt.Sprintf ("%9.2f%%", float32 (outputTypes [typeName] * 100) / float32 (outputCount)) })
 		}
 	}
 
@@ -146,6 +314,7 @@ if input.GetSpendType () == "Non-Standard" {
 	boxDimension := ((pieRadius + verticalPadding) * 2) + legendHeight
 	boxDimensionStr := strconv.Itoa (boxDimension)
 
+	htmlData := make (map [string] string)
 
 	if len (spendTypeNames) > 0 {
 
@@ -154,7 +323,7 @@ if input.GetSpendType () == "Non-Standard" {
 		// spend type values
 		var spendTypeValues [] opts.PieData
 		for _, elementData := range spendTypesHTML {
-			if spendTypeMap [elementData.Label] > 0 {
+			if spendTypes [elementData.Label] > 0 {
 				fmtStr := fmt.Sprintf ("%%-%ds %%6d %%7s", longestLabel + 3)
 				elementLabel := fmt.Sprintf (fmtStr, elementData.Label, elementData.Count, elementData.Percent)
 				spendTypeValues = append (spendTypeValues, opts.PieData { Name: elementLabel, Value: elementData.Count })
@@ -192,7 +361,7 @@ if input.GetSpendType () == "Non-Standard" {
 
 		var buff bytes.Buffer
 		pie.Render (&buff)
-		htmlData ["SpendTypeChart"] = template.HTML (buff.String ())
+		htmlData ["SpendTypeChart"] = extractBodyFromHTML (buff.String ())
 	}
 
 	sort.SliceStable (outputTypesHTML, func (i, j int) bool { return outputTypesHTML [i].Count > outputTypesHTML [j].Count })
@@ -200,7 +369,7 @@ if input.GetSpendType () == "Non-Standard" {
 	// output type values
 	var outputTypeValues [] opts.PieData
 	for _, elementData := range outputTypesHTML {
-		if outputTypeMap [elementData.Label] > 0 {
+		if outputTypes [elementData.Label] > 0 {
 			fmtStr := fmt.Sprintf ("%%-%ds %%6d %%7s", longestLabel + 3)
 			elementLabel := fmt.Sprintf (fmtStr, elementData.Label, elementData.Count, elementData.Percent)
 			outputTypeValues = append (outputTypeValues, opts.PieData { Name: elementLabel, Value: elementData.Count })
@@ -231,7 +400,9 @@ if input.GetSpendType () == "Non-Standard" {
 
 	var buff bytes.Buffer
 	pie.Render (&buff)
-	htmlData ["OutputTypeChart"] = template.HTML (buff.String ())
+	htmlData ["OutputTypeChart"] = extractBodyFromHTML (buff.String ())
+
+//fmt.Println (htmlData)
 
 	return htmlData
 }

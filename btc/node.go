@@ -11,7 +11,7 @@ import (
 type NodeClient interface {
 	GetType () string
 	GetVersionString () string
-	GetBlock (blockHash string) Block
+	GetBlock (blockHash string, verbose bool) Block
 	GetBlockHash (blockHeight int) string
 	GetCurrentBlockHash () string
 	GetTx (txId string) Tx

@@ -80,6 +80,7 @@ func (t *Theme) GetBlockHtml (block btc.Block, customJavascript string) string {
 	layoutHtmlFiles := [] string {
 		t.GetPath () + "html/layout.html",
 		t.GetPath () + "html/page-explorer.html",
+		t.GetPath () + "html/type-chart-detail.html",
 		t.GetPath () + "html/block.html" }
 	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
 

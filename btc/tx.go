@@ -36,6 +36,10 @@ func (tx *Tx) GetBlockHash () string {
 	return tx.blockHash
 }
 
+func (tx *Tx) GetBlockHeight () uint32 {
+	return tx.blockHeight
+}
+
 func (tx *Tx) GetBlockTime () int64 {
 	return tx.blockTime
 }

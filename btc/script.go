@@ -63,6 +63,7 @@ type Script struct {
 	rawBytes [] byte
 	fields [] ScriptField
 	parseError bool
+	appearsValid bool
 }
 
 func NewScript (rawBytes [] byte) Script {
@@ -101,21 +102,25 @@ func NewScript (rawBytes [] byte) Script {
 				// it is a push data opcode
 				pushDataSize := 0
 				switch nextByte {
-					case 0x4c: pushDataSize = 1; break
-					case 0x4d: pushDataSize = 2; break
-					case 0x4e: pushDataSize = 4; break
-					default: return Script {} // this is not a parsable script
+					case 0x4c: pushDataSize = 1
+					case 0x4d: pushDataSize = 2
+					case 0x4e: pushDataSize = 4
+					default:
+						fieldSizeLen = 0
+						fieldLen = bytesRemaining + 1
 				}
 
-				// read the size of the field
-				fieldSizeBegin := pos + fieldSizeLen
-				fieldSizeEnd := fieldSizeBegin + pushDataSize
-				if fieldSizeEnd <= scriptLen {
-					fieldLen = int (ReadNumeric (rawBytes [fieldSizeBegin : fieldSizeEnd]))
-				} else {
-					fieldLen = 0 // there are not enough bytes left in the script to read the field size
+				if pushDataSize > 0 {
+					// read the size of the field
+					fieldSizeBegin := pos + fieldSizeLen
+					fieldSizeEnd := fieldSizeBegin + pushDataSize
+					if fieldSizeEnd <= scriptLen {
+						fieldLen = int (ReadNumeric (rawBytes [fieldSizeBegin : fieldSizeEnd]))
+					} else {
+						fieldLen = 0 // there are not enough bytes left in the script to read the field size
+					}
+					fieldSizeLen += pushDataSize
 				}
-				fieldSizeLen += pushDataSize
 			}
 		}
 
@@ -134,8 +139,6 @@ func NewScript (rawBytes [] byte) Script {
 				fieldLen = bytesRemaining - fieldSizeLen
 				fieldMap [fieldCount] = ScriptField { rawBytes: rawBytes [startPos : startPos + fieldLen], isOpcode: isOpcode }
 				fieldCount++
-			} else {
-				// there are not enough bytes left for any data at all
 			}
 			pos = scriptLen
 			bytesRemaining = 0
@@ -143,20 +146,25 @@ func NewScript (rawBytes [] byte) Script {
 	}
 
 	// build the human readable script item list, checking for invalid scripts
+	appearsValid := true
 	fields := make ([] ScriptField, fieldCount)
 	if fieldCount > 0 {
 		ifCount := 0
+		elseCount := 0
 		endIfCount := 0
+		opReturnCount := 0
 		for f, field := range fieldMap {
 			fieldText := field.AsHex (0)
 			if fieldText == "OP_IF" || fieldText == "OP_NOTIF" { ifCount++ }
+			if fieldText == "OP_ELSE" { elseCount++ }
 			if fieldText == "OP_ENDIF" { endIfCount++ }
+			if fieldText == "OP_RETURN" { opReturnCount++ }
 			fields [f] = field
 		}
-		if ifCount != endIfCount {
-			// the script turned out to be invalid after all
-			return Script {}
-		}
+		looksLikeOpReturn := opReturnCount > 0 && ifCount == 0
+		mismatchedElse := elseCount > 0 && ifCount == 0
+		mismatchedIf := ifCount != endIfCount
+		appearsValid = !(looksLikeOpReturn || mismatchedElse || mismatchedIf)
 	}
 
 	// finally, determine the data type of each script item
@@ -168,14 +176,17 @@ func NewScript (rawBytes [] byte) Script {
 		}
 	}
 
-	return Script { rawBytes: rawBytes, fields: fields, parseError: parseError }
+	return Script { rawBytes: rawBytes, fields: fields, parseError: parseError, appearsValid: appearsValid }
 }
 
+// used only for testing
 func (s *Script) PrintToScreen () {
+	fmt.Println ("\n**************************************")
 	fmt.Println (len (s.fields), " fields in script")
 	for _, f := range s.fields {
 		fmt.Println (f.AsHex (0))
 	}
+	fmt.Println ("**************************************\n")
 }
 
 func (s *Script) GetParsedFieldCount () int {
@@ -215,6 +226,7 @@ type FieldSetHtmlData struct {
 type ScriptHtmlData struct {
 	FieldSet FieldSetHtmlData
 	IsNil bool
+	IsOrdinal bool
 }
 
 func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) ScriptHtmlData {
@@ -225,7 +237,7 @@ func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) Scri
 
 	const maxCharWidth = uint (89)
 
-	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth }, IsNil: false }
+	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth }, IsNil: false, IsOrdinal: s.IsOrdinal () }
 
 	if s.IsEmpty () {
 		scriptHtmlData.FieldSet.HexFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
@@ -261,7 +273,7 @@ func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) Scri
 
 		// field types
 		typeFieldsHtml [f] = FieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
-		}
+	}
 
 	if s.parseError {
 		parseErrorStr := "<<< PARSE ERROR >>>"
@@ -283,6 +295,10 @@ func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) Scri
 
 func (s *Script) HasParseError () bool {
 	return s.parseError
+}
+
+func (s *Script) AppearsValid () bool {
+	return s.appearsValid
 }
 
 func (s *Script) GetFields () [] ScriptField {
@@ -443,6 +459,25 @@ func (s *Script) IsWitnessUnknownOutput () bool {
 
 	validVersion1 := s.IsTaprootOutput ()
 	if validVersion1 { return false }
+
+	return true
+}
+
+func (s *Script) IsOrdinal () bool {
+	fieldCount := len (s.fields)
+	if fieldCount < 5 { return false }
+
+	standardBRC20 := IsValidSchnorrPublicKey (s.fields [0].AsBytes ()) && s.fields [1].AsHex (0) == "OP_CHECKSIG"
+	nonStandard := s.fields [0].AsHex (0) == "OP_1" && s.fields [1].AsHex (0) == "OP_VERIFY"
+	if !standardBRC20 && !nonStandard { return false }
+
+	ordBegin := 2
+	if s.fields [3].AsHex (0) == "OP_DROP" { ordBegin = 4 }
+
+	if s.fields [ordBegin].AsHex (0) != "OP_0" { return false }
+	if s.fields [ordBegin + 1].AsHex (0) != "OP_IF" { return false }
+//	if standardBRC20 && s.fields [ordBegin + 2].AsText (0) != "ord" { return false }
+	if s.fields [fieldCount - 1].AsHex (0) != "OP_ENDIF" { return false }
 
 	return true
 }

@@ -29,6 +29,10 @@ type Input struct {
 	redeemScript Script
 	segwit Segwit
 	sequence uint32
+
+	multisigWitnessScript bool
+	multisigTapScript bool
+	ordinalTapScript bool
 }
 
 func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uint32, inputScript Script, segwit Segwit, sequence uint32) Input {
@@ -38,16 +42,19 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 	if i.coinbase {
 		i.spendType = "COINBASE"
 	} else {
-		i.spendType = SPEND_TYPE_NonStandard
+		i.spendType = ""
 
 		inputScriptHasFields := !inputScript.IsEmpty ()
 
 		isP2shWrappedType := !i.segwit.IsEmpty () && inputScriptHasFields
 		isWitnessType := !i.segwit.IsNil () && !inputScriptHasFields
-		isLegacyType := !isP2shWrappedType && !isWitnessType
 
 		// a form of duck typing is used here in order to identify the spend type with no knowledge of the previous output type
 		// messages are printed to the screen when there are potential misidentifications
+
+		// it is impossible to know for sure that a redemption is not non-standard without seeing the output script
+		// however, spend types for legacy output types use the same name as the output type, so there is no reason to identify them at this point
+		// therefore, we defer identification of these until the previous output is retrieved by the client
 
 		if isP2shWrappedType {
 
@@ -72,23 +79,26 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 
 			possibleSpendTypeCount := 0
 
+st := ""
 			possibleP2wpkh := segwit.IsValidP2wpkh ()
-			if possibleP2wpkh { possibleSpendTypeCount++ }
+			if possibleP2wpkh { st += OUTPUT_TYPE_P2WPKH + ", "; possibleSpendTypeCount++ }
 
 			possibleTaprootKeyPath := segwit.IsValidTaprootKeyPath ()
-			if possibleTaprootKeyPath { possibleSpendTypeCount++ }
+			if possibleTaprootKeyPath { st += SPEND_TYPE_P2TR_Key + ", "; possibleSpendTypeCount++ }
 
-			possibleP2wsh := !possibleWitnessScript.IsNil ()
-			if possibleP2wsh { possibleSpendTypeCount++ }
+			possibleP2wsh := !possibleWitnessScript.IsNil () && !possibleWitnessScript.HasParseError () && possibleWitnessScript.AppearsValid ()
+			if possibleP2wsh { st += OUTPUT_TYPE_P2WSH + ", "; possibleSpendTypeCount++ }
 
-			possibleTaprootScriptPath := possibleTapScriptIndex != -1
-			if possibleTaprootScriptPath { possibleSpendTypeCount++ }
+			possibleTaprootScriptPath := !possibleTapScript.IsNil () && !possibleTapScript.HasParseError () && possibleTapScript.AppearsValid ()
+			if possibleTaprootScriptPath { st += SPEND_TYPE_P2TR_Script + ", "; possibleSpendTypeCount++ }
 
 			// set the spend type
 			if possibleSpendTypeCount > 1 {
 
 				// duck typing of the input data has resulted in an ambiguous identification of the spend type
 				// we must get the previous output for exact identification
+
+				i.spendType = SPEND_TYPE_NonStandard
 
 				nodeClient := GetNodeClient ()
 				previousOutput := nodeClient.GetPreviousOutput (i.GetPreviousOutputTxId (), i.GetPreviousOutputIndex ())
@@ -100,7 +110,6 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 							i.spendType = SPEND_TYPE_P2TR_Key
 						} else if possibleTaprootScriptPath {
 							i.spendType = SPEND_TYPE_P2TR_Script
-							if possibleTapScript.IsEmpty () { fmt.Printf ("Input that redeems %s:%d has %s spend type with empty tap script.\n", previousOutputTxId, previousOutputIndex, i.spendType) }
 							i.segwit.tapScript = possibleTapScript
 							i.segwit.tapScriptIndex = possibleTapScriptIndex
 						}
@@ -113,60 +122,37 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 						i.segwit.witnessScript = possibleWitnessScript
 						break
 					default:
-						// it must be one of the legacy types
-						isLegacyType = true
-						fmt.Println ("Unknown previous output type \"" + correctOutputType + "\" for witness spend type.")
+						// the output type did not turn out to be a witness type at all, it must be one of the legacy types
+						i.spendType = ""
+						fmt.Println ("previous output type \"" + correctOutputType + "\" incorrectly paired with witness spend type.")
 						break
 				}
+if i.spendType == SPEND_TYPE_P2TR_Script || i.spendType == OUTPUT_TYPE_P2WSH {
+	fmt.Println (previousOutputTxId, previousOutputIndex, st, i.spendType)
+}
+//if possibleP2wsh { possibleWitnessScript.PrintToScreen () }
+//if possibleTaprootScriptPath { possibleTapScript.PrintToScreen () }
 			} else {
 
-				// there was only one possible spend type, no need to check the previous output
+				// there was no more than one possible spend type, no need to check the previous output
 				if possibleP2wpkh {
 					i.spendType = OUTPUT_TYPE_P2WPKH
 				} else if possibleTaprootKeyPath {
 					i.spendType = SPEND_TYPE_P2TR_Key
 				} else if possibleP2wsh {
 					i.spendType = OUTPUT_TYPE_P2WSH
+					if possibleWitnessScript.IsEmpty () { fmt.Printf ("Input that redeems %s:%d has %s spend type with empty witness script.\n", previousOutputTxId, previousOutputIndex, i.spendType) }
 					i.segwit.witnessScript = possibleWitnessScript
 				} else if possibleTaprootScriptPath {
 					i.spendType = SPEND_TYPE_P2TR_Script
 					if possibleTapScript.IsEmpty () { fmt.Printf ("Input that redeems %s:%d has %s spend type with empty tap script.\n", previousOutputTxId, previousOutputIndex, i.spendType) }
 					i.segwit.tapScript = possibleTapScript
 					i.segwit.tapScriptIndex = possibleTapScriptIndex
-				} else {
-					// it must be one of the legacy types
-					isLegacyType = true
-				}
-			}
-		}
-
-		if isLegacyType {
-
-			// duck typing of the input data has resulted in an ambiguous identification of the spend type
-			// we must get the previous output for exact identification
-
-			nodeClient := GetNodeClient ()
-			previousOutput := nodeClient.GetPreviousOutput (i.GetPreviousOutputTxId (), i.GetPreviousOutputIndex ())
-			previousOutputType := previousOutput.GetOutputType ()
-			if previousOutputType == OUTPUT_TYPE_P2SH || previousOutputType == OUTPUT_TYPE_P2PKH || previousOutputType == OUTPUT_TYPE_MultiSig || previousOutputType == OUTPUT_TYPE_P2PK {
-				i.spendType = previousOutputType
-			}
-
-			// include the redeem script if there is one
-			if i.spendType == OUTPUT_TYPE_P2SH {
-				i.redeemScript = i.inputScript.GetSerializedScript ()
-
-				// check for a zero-length serialized script
-				serializedScriptIndex := len (i.inputScript.fields) - 1
-				serializedScriptBytes := i.inputScript.fields [serializedScriptIndex].AsBytes ()
-				if len (serializedScriptBytes) == 1 && serializedScriptBytes [0] == 0x00 {
-					i.inputScript.fields [serializedScriptIndex].isOpcode = false
-					i.inputScript.fields [serializedScriptIndex].rawBytes = [] byte {}
-					i.redeemScript = NewScript (make ([] byte, 0))
 				}
 			}
 		}
 	}
+
 
 	i.setFieldTypes ()
 
@@ -174,6 +160,10 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 }
 
 func (i *Input) setFieldTypes () {
+
+	i.multisigWitnessScript = (i.spendType == OUTPUT_TYPE_P2WSH || i.spendType == SPEND_TYPE_P2SH_P2WSH) && i.segwit.witnessScript.IsMultiSigOutput ()
+	i.multisigTapScript = i.spendType == SPEND_TYPE_P2TR_Script && i.segwit.tapScript.IsMultiSigOutput ()
+	i.ordinalTapScript = i.spendType == SPEND_TYPE_P2TR_Script && i.segwit.tapScript.IsOrdinal ()
 
 	// P2SH-wrapped types
 	if i.spendType == SPEND_TYPE_P2SH_P2WPKH || i.spendType == SPEND_TYPE_P2SH_P2WSH {
@@ -267,11 +257,13 @@ type InputHtmlData struct {
 	PreviousOutputIndex uint32
 	Sequence uint32
 	InputScript ScriptHtmlData
+	InputScriptAlternate ScriptHtmlData
 	RedeemScript ScriptHtmlData
 	WitnessScript ScriptHtmlData
 	TapScript ScriptHtmlData
 	Bip141 bool
 	Segwit SegwitHtmlData
+	IncludeAlternateInputScript bool
 }
 
 func (i *Input) GetHtmlData (inputIndex uint32, satoshis uint64, bip141 bool) InputHtmlData {
@@ -290,6 +282,31 @@ func (i *Input) GetHtmlData (inputIndex uint32, satoshis uint64, bip141 bool) In
 		htmlData.PreviousOutputTxId = i.previousOutputTxId
 		htmlData.PreviousOutputIndex = i.previousOutputIndex
 		htmlData.InputScript = i.inputScript.GetHtmlData (htmlId, displayTypeClassPrefix)
+	}
+
+	// if the spend type is empty, it redeems a legacy output type
+	// therefore, we must include an alternate input script to account for the possibility of a P2SH output
+	if len (i.spendType) == 0 {
+		redeemScript := i.inputScript.GetSerializedScript ()
+		if !redeemScript.HasParseError () {
+			i.redeemScript = redeemScript
+			inputScriptAlternate := NewScript (i.inputScript.rawBytes)
+			if !inputScriptAlternate.IsEmpty () {
+				inputScriptAlternate.SetFieldType (inputScriptAlternate.GetParsedFieldCount () - 1, "<<< SERIALIZED REDEEM SCRIPT >>>")
+
+				// check for a zero-length redeem script
+				serializedScriptIndex := len (inputScriptAlternate.fields) - 1
+				serializedScriptBytes := inputScriptAlternate.fields [serializedScriptIndex].AsBytes ()
+				if len (serializedScriptBytes) == 1 && serializedScriptBytes [0] == 0x00 {
+					inputScriptAlternate.fields [serializedScriptIndex].isOpcode = false
+					inputScriptAlternate.fields [serializedScriptIndex].rawBytes = [] byte {}
+					i.redeemScript = NewScript ([] byte {})
+				}
+
+				htmlData.InputScriptAlternate = inputScriptAlternate.GetHtmlData (htmlId, displayTypeClassPrefix)
+				htmlData.IncludeAlternateInputScript = true
+			}
+		}
 	}
 
 	// redeem script and segwit
