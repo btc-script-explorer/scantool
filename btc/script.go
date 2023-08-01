@@ -464,19 +464,23 @@ func (s *Script) IsWitnessUnknownOutput () bool {
 }
 
 func (s *Script) IsOrdinal () bool {
-	fieldCount := len (s.fields)
-	if fieldCount < 5 { return false }
 
-	standardBRC20 := IsValidSchnorrPublicKey (s.fields [0].AsBytes ()) && s.fields [1].AsHex (0) == "OP_CHECKSIG"
-	nonStandard := s.fields [0].AsHex (0) == "OP_1" && s.fields [1].AsHex (0) == "OP_VERIFY"
-	if !standardBRC20 && !nonStandard { return false }
+	fieldCount := len (s.fields)
+	if fieldCount < 10 { return false }
+
+	if !IsValidSchnorrPublicKey (s.fields [0].AsBytes ()) { return false }
+	if s.fields [1].AsHex (0) != "OP_CHECKSIG" { return false }
 
 	ordBegin := 2
 	if s.fields [3].AsHex (0) == "OP_DROP" { ordBegin = 4 }
 
 	if s.fields [ordBegin].AsHex (0) != "OP_0" { return false }
 	if s.fields [ordBegin + 1].AsHex (0) != "OP_IF" { return false }
-//	if standardBRC20 && s.fields [ordBegin + 2].AsText (0) != "ord" { return false }
+	if s.fields [ordBegin + 2].AsText (0) != "ord" { return false }
+	if s.fields [ordBegin + 3].AsBytes () [0] != 0x01 { return false }
+
+	if s.fields [ordBegin + 5].AsHex (0) != "OP_0" { return false }
+
 	if s.fields [fieldCount - 1].AsHex (0) != "OP_ENDIF" { return false }
 
 	return true

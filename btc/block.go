@@ -172,9 +172,9 @@ func (b *Block) GetHtmlData () map [string] interface {} {
 
 	spendTypeMap := make (map [string] int)
 	outputTypeMap := make (map [string] int)
-	for i, tx := range b.txs {
+	for t, tx := range b.txs {
 
-		txDetail = append (txDetail, TxHTML { Index: i, TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
+		txDetail = append (txDetail, TxHTML { Index: t, TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
 		if tx.SupportsBip141 () { bip141Count++ }
 
 		for _, input := range tx.GetInputs () {
@@ -185,7 +185,9 @@ func (b *Block) GetHtmlData () map [string] interface {} {
 				if input.multisigWitnessScript { witnessScriptMultisigCount++ }
 			} else if st == SPEND_TYPE_P2TR_Script {
 				tapScriptCount++
-				if input.ordinalTapScript { tapScriptOrdinalCount++ }
+				if input.ordinalTapScript {
+					tapScriptOrdinalCount++
+				}
 			}
 
 			inputCount++
@@ -396,13 +398,9 @@ func GetBlockCharts (nonCoinbaseInputCount int, outputCount int, spendTypes map 
 	pie.Initialization.Width = boxDimensionStr + "px"
 	pie.Initialization.Height = boxDimensionStr + "px"
 
-//fmt.Printf ("%+v\n", pie)
-
 	var buff bytes.Buffer
 	pie.Render (&buff)
 	htmlData ["OutputTypeChart"] = extractBodyFromHTML (buff.String ())
-
-//fmt.Println (htmlData)
 
 	return htmlData
 }
