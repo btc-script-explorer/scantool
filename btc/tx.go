@@ -131,25 +131,17 @@ type PendingInput struct {
 }
 
 func (tx *Tx) GetPendingInputs () [] PendingInput {
-	inputCount := len (tx.inputs)
+
 	if tx.coinbase {
-		inputCount = 0
+		return [] PendingInput {}
 	}
+
+	inputCount := len (tx.inputs)
 
 	pendingInputs := make ([] PendingInput, inputCount)
 	for i := uint32 (0); i < uint32 (inputCount); i++ {
 		previousOutputTxId := tx.inputs [i].GetPreviousOutputTxId ()
 		pendingInputs [i] = PendingInput { Tx_id: tx.GetTxId (), Input_index: i, Prev_out_tx_id: previousOutputTxId, Prev_out_index: tx.inputs [i].GetPreviousOutputIndex () }
-
-/*
-		segwit := tx.inputs [i].GetSegwit ()
-		if !segwit.IsNil () {
-			tapScript, tapScriptIndex := segwit.GetTapScript ()
-			if !tapScript.IsNil () {
-				pendingInputs [i].Tap_script_index = tapScriptIndex
-			}
-		}
-*/
 	}
 
 	return pendingInputs

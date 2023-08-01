@@ -31,7 +31,6 @@ type Input struct {
 	sequence uint32
 
 	multisigWitnessScript bool
-	multisigTapScript bool
 	ordinalTapScript bool
 }
 
@@ -162,7 +161,6 @@ if i.spendType == SPEND_TYPE_P2TR_Script || i.spendType == OUTPUT_TYPE_P2WSH {
 func (i *Input) setFieldTypes () {
 
 	i.multisigWitnessScript = (i.spendType == OUTPUT_TYPE_P2WSH || i.spendType == SPEND_TYPE_P2SH_P2WSH) && i.segwit.witnessScript.IsMultiSigOutput ()
-	i.multisigTapScript = i.spendType == SPEND_TYPE_P2TR_Script && i.segwit.tapScript.IsMultiSigOutput ()
 	i.ordinalTapScript = i.spendType == SPEND_TYPE_P2TR_Script && i.segwit.tapScript.IsOrdinal ()
 
 	// P2SH-wrapped types
