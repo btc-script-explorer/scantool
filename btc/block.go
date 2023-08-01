@@ -229,12 +229,12 @@ func (b *Block) GetHtmlData () map [string] interface {} {
 
 		// creating the messages
 		if witnessScriptCount > 0 {
-			wsMessage:= fmt.Sprintf ("%*s/%*s MultiSig (%6.2f%%)", countStrLen, wsCountStr, totalStrLen, wsTotalStr, witnessScriptMultisigCount * 100 / witnessScriptCount)
+			wsMessage:= fmt.Sprintf ("%6.2f%% MultiSig (%*s/%*s)", (witnessScriptMultisigCount * 100) / witnessScriptCount, countStrLen, wsCountStr, totalStrLen, wsTotalStr)
 			htmlData ["WitnessScriptMultiSigMessage"] = template.HTML (strings.Replace (wsMessage, " ", "&nbsp;", -1))
 		}
 
 		if tapScriptCount > 0 {
-			tsMessage := fmt.Sprintf ("%*s/%*s Ordinals (%6.2f%%)", countStrLen, tsCountStr, totalStrLen, tsTotalStr, float32 (tapScriptOrdinalCount * 100) / float32 (tapScriptCount))
+			tsMessage := fmt.Sprintf ("%6.2f%% Ordinals (%*s/%*s)", (tapScriptOrdinalCount * 100) / tapScriptCount, countStrLen, tsCountStr, totalStrLen, tsTotalStr)
 			htmlData ["TapScriptOrdinalsMessage"] = template.HTML (strings.Replace (tsMessage, " ", "&nbsp;", -1))
 		}
 	}
