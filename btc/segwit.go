@@ -1,10 +1,8 @@
 package btc
 
 import (
-	"fmt"
+//	"fmt"
 	"encoding/hex"
-
-	"btctx/app"
 )
 
 func ShortenField (fieldText string, length uint, dotCount uint) string {
@@ -46,6 +44,10 @@ func (swf *SegwitField) AsHex (maxLength uint) string {
 	}
 
 	return ShortenField (hexField, maxLength, 5)
+}
+
+func (swf *SegwitField) SetType (dataType string) {
+	swf.dataType = dataType
 }
 
 func (swf *SegwitField) AsType () string {
@@ -94,6 +96,10 @@ func (s *Segwit) GetTapScript () (Script, int64) {
 	return s.tapScript, s.tapScriptIndex
 }
 
+func (s *Segwit) GetFieldCount () uint16 {
+	return uint16 (len (s.fields))
+}
+
 func (s *Segwit) GetFields () [] SegwitField {
 	return s.fields
 }
@@ -104,106 +110,6 @@ func (s *Segwit) IsNil () bool {
 
 func (s *Segwit) IsEmpty () bool {
 	return s.IsNil () || len (s.fields) == 0
-}
-
-type SegwitHtmlData struct {
-	FieldSet FieldSetHtmlData
-	WitnessScript ScriptHtmlData
-	TapScript ScriptHtmlData
-	IsEmpty bool
-}
-
-func (s *Segwit) GetHtmlData (inputIndex uint32, displayTypeClassPrefix string, usingSchnorrSignatures bool) SegwitHtmlData {
-
-	if s.IsNil () {
-		return SegwitHtmlData { IsEmpty: true}
-	}
-
-	htmlId := fmt.Sprintf ("input-%d-segwit", inputIndex)
-	const maxCharWidth = uint (89)
-
-	var hexFieldsHtml [] FieldHtmlData
-	var textFieldsHtml [] FieldHtmlData
-	var typeFieldsHtml [] FieldHtmlData
-
-	if !s.IsEmpty () {
-
-		fieldCount := len (s.fields);
-
-		// segwit does not know what some of its types are, so it identifies data types when the HTML is rendered
-		if !s.witnessScript.IsNil () { s.fields [fieldCount - 1].dataType = "<<< SERIALIZED WITNESS SCRIPT >>>" }
-		if !s.tapScript.IsNil () {
-
-			cbIndex := s.getControlBlockIndex ()
-			cbLeafCount := 0
-			if cbIndex != -1 {
-				cbLeafCount = (len (s.fields [cbIndex].rawBytes) - 1) / 32
-			} else {
-				fmt.Println ("Segwit has tap script but no control block.")
-			}
-
-			// set the field types for the Taproot Segwit fields
-			if s.HasAnnex () {
-				annexIndex := len (s.fields) - 1
-				s.fields [annexIndex].dataType = fmt.Sprintf ("Annex (%d Bytes)", len (s.fields [annexIndex].rawBytes))
-			}
-
-			s.fields [s.tapScriptIndex].dataType = "<<< SERIALIZED TAP SCRIPT >>>"
-
-			leafCountLabel := "TapLea"
-			if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
-			s.fields [cbIndex].dataType = fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel)
-
-			// set the field types for the Tap Script
-			for i, field := range s.tapScript.fields {
-				if !field.IsOpcode () {
-					s.tapScript.fields [i].dataType = GetStackItemType (field.AsBytes (), true)
-				}
-			}
-		}
-
-		hexFieldsHtml = make ([] FieldHtmlData, fieldCount)
-		textFieldsHtml = make ([] FieldHtmlData, fieldCount)
-		typeFieldsHtml = make ([] FieldHtmlData, fieldCount)
-
-		for f, field := range s.fields {
-
-			// set any field types that aren't already set
-			if len (s.fields [f].dataType) == 0 {
-				s.fields [f].dataType = GetStackItemType (field.AsBytes (), usingSchnorrSignatures)
-			}
-
-			// hex strings
-			entireHexField := field.AsHex (0)
-			hexFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsHex (maxCharWidth), ShowCopyButton: false }
-			if hexFieldsHtml [f].DisplayText != entireHexField {
-				hexFieldsHtml [f].ShowCopyButton = true
-				hexFieldsHtml [f].CopyText = entireHexField
-			}
-
-			// text strings
-			entireTextField := field.AsText (0)
-			textFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsText (maxCharWidth), ShowCopyButton: false }
-			if textFieldsHtml [f].DisplayText != entireTextField {
-				textFieldsHtml [f].ShowCopyButton = true
-				textFieldsHtml [f].CopyText = entireTextField
-			}
-
-			// field types
-			typeFieldsHtml [f] = FieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
-		}
-	}
-
-	settings := app.GetSettings ()
-	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
-
-	fieldSet := FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl }
-	htmlData := SegwitHtmlData { FieldSet: fieldSet, IsEmpty: s.IsEmpty () }
-
-	htmlData.WitnessScript = s.witnessScript.GetHtmlData (htmlId + "-witness-script", displayTypeClassPrefix)
-	htmlData.TapScript = s.tapScript.GetHtmlData (htmlId + "-tap-script", displayTypeClassPrefix)
-
-	return htmlData
 }
 
 func (s *Segwit) IsValidP2wpkh () bool {
@@ -303,7 +209,7 @@ func (s *Segwit) IsValidTaprootScriptPath (setTapScript bool) bool {
 
 func (s *Segwit) parseTapScript () (Script, int64) {
 
-	controlBlockIndex := s.getControlBlockIndex ()
+	controlBlockIndex := s.GetControlBlockIndex ()
 	if controlBlockIndex == -1 { return Script {}, -1 }
 
 	// now we read the tap script
@@ -322,7 +228,7 @@ func (s *Segwit) HasAnnex () bool {
 	return fieldCount > 1 && s.fields [fieldCount - 1].AsBytes () [0] == 0x50;
 }
 
-func (s *Segwit) getControlBlockIndex () int {
+func (s *Segwit) GetControlBlockIndex () int {
 
 	minimumFieldCount := 2
 	actualFieldCount := len (s.fields)

@@ -3,14 +3,16 @@ package btc
 import (
 	"fmt"
 	"encoding/hex"
-
-	"btctx/app"
 )
 
 type ScriptField struct {
 	rawBytes [] byte
 	isOpcode bool
 	dataType string
+}
+
+func (sf *ScriptField) SetIsOpcode (isOpcode bool) {
+	sf.isOpcode = isOpcode
 }
 
 func (sf *ScriptField) IsOpcode () bool {
@@ -20,6 +22,10 @@ func (sf *ScriptField) IsOpcode () bool {
 //func (sf *ScriptField) HexLen () uint32 {
 //	return uint32 (len (sf.rawBytes) * 2)
 //}
+
+func (sf *ScriptField) SetBytes (bytes [] byte) {
+	sf.rawBytes = bytes
+}
 
 func (sf *ScriptField) AsBytes () [] byte {
 	return sf.rawBytes
@@ -36,6 +42,10 @@ func (sf *ScriptField) AsHex (maxLength uint) string {
 	}
 
 	return ShortenField (hexField, maxLength, 5)
+}
+
+func (sf *ScriptField) SetType (dataType string) {
+	sf.dataType = dataType
 }
 
 func (sf *ScriptField) AsType () string {
@@ -189,6 +199,10 @@ func (s *Script) PrintToScreen () {
 	fmt.Println ("**************************************\n")
 }
 
+func (s *Script) AsBytes () [] byte {
+	return s.rawBytes
+}
+
 func (s *Script) GetParsedFieldCount () int {
 	return len (s.fields)
 }
@@ -201,104 +215,16 @@ func (s *Script) SetFieldType (fieldIndex int, fieldType string) {
 	s.fields [fieldIndex].dataType = fieldType
 }
 
-type ScriptFieldHtmlData struct {
-	DisplayField string
-	ShowCopyButton bool
-	CopyText string
-}
-
-type FieldHtmlData struct {
-	DisplayText string
-	ShowCopyButton bool
-	CopyText string
-}
-
-type FieldSetHtmlData struct {
-	HtmlId string
-	DisplayTypeClassPrefix string
-	CharWidth uint
-	HexFields [] FieldHtmlData
-	TextFields [] FieldHtmlData
-	TypeFields [] FieldHtmlData
-	CopyImageUrl string
-}
-
-type ScriptHtmlData struct {
-	FieldSet FieldSetHtmlData
-	IsNil bool
-	IsOrdinal bool
-}
-
-func (s *Script) GetHtmlData (htmlId string, displayTypeClassPrefix string) ScriptHtmlData {
-
-	if s.IsNil () {
-		return ScriptHtmlData { IsNil: true}
-	}
-
-	const maxCharWidth = uint (89)
-
-	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: maxCharWidth }, IsNil: false, IsOrdinal: s.IsOrdinal () }
-
-	if s.IsEmpty () {
-		scriptHtmlData.FieldSet.HexFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
-		scriptHtmlData.FieldSet.TextFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
-		scriptHtmlData.FieldSet.TypeFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
-		return scriptHtmlData
-	}
-
-	fieldCount := len (s.fields);
-	if s.parseError { fieldCount++ }
-
-	hexFieldsHtml := make ([] FieldHtmlData, fieldCount)
-	textFieldsHtml := make ([] FieldHtmlData, fieldCount)
-	typeFieldsHtml := make ([] FieldHtmlData, fieldCount)
-
-	for f, field := range s.fields {
-
-		// hex strings
-		entireHexField := field.AsHex (0)
-		hexFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsHex (maxCharWidth), ShowCopyButton: false }
-		if hexFieldsHtml [f].DisplayText != entireHexField {
-			hexFieldsHtml [f].ShowCopyButton = true
-			hexFieldsHtml [f].CopyText = entireHexField
-		}
-
-		// text strings
-		entireTextField := field.AsText (0)
-		textFieldsHtml [f] = FieldHtmlData { DisplayText: field.AsText (maxCharWidth), ShowCopyButton: false }
-		if textFieldsHtml [f].DisplayText != entireTextField {
-			textFieldsHtml [f].ShowCopyButton = true
-			textFieldsHtml [f].CopyText = entireTextField
-		}
-
-		// field types
-		typeFieldsHtml [f] = FieldHtmlData { DisplayText: s.fields [f].dataType, ShowCopyButton: false }
-	}
-
-	if s.parseError {
-		parseErrorStr := "<<< PARSE ERROR >>>"
-		hexFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
-		textFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
-		typeFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
-	}
-
-	settings := app.GetSettings ()
-	copyImageUrl := "http://" + settings.Website.GetFullUrl () + "/image/clipboard-copy.png"
-
-	scriptHtmlData.FieldSet.HexFields = hexFieldsHtml
-	scriptHtmlData.FieldSet.TextFields = textFieldsHtml
-	scriptHtmlData.FieldSet.TypeFields = typeFieldsHtml
-	scriptHtmlData.FieldSet.CopyImageUrl = copyImageUrl
-
-	return scriptHtmlData
-}
-
 func (s *Script) HasParseError () bool {
 	return s.parseError
 }
 
 func (s *Script) AppearsValid () bool {
 	return s.appearsValid
+}
+
+func (s *Script) GetFieldCount () uint16 {
+	return uint16 (len (s.fields))
 }
 
 func (s *Script) GetFields () [] ScriptField {

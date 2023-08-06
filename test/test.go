@@ -68,25 +68,25 @@ func encodeInput (input btc.Input) inputJson {
 
 func encodeOutput (output btc.Output) outputJson {
 	outputScript := output.GetOutputScript ()
-	return outputJson { Value: output.GetSatoshis (),
+	return outputJson { Value: output.GetValue (),
 						OutputType: output.GetOutputType (),
 						Address: output.GetAddress (),
 						OutputScriptFields: outputScript.GetFields (),
 						ParseError: outputScript.HasParseError () }
 }
 
-func RunTests (testParams app.TestSettings) {
+func RunTests () {
 
 	nodeClient := btc.GetNodeClient ()
 
 // TODO: Create TestSettings.PrintTestingMessage ().
 //	testParams.PrintTestingMessage ()
 
-	testMode := testParams.GetTestMode ()
+	testMode := app.Settings.GetTestMode ()
 	if testMode == "save" {
 
 		// read the tx ids from the source file
-		file, err := os.Open (testParams.GetSourceFile ())
+		file, err := os.Open (app.Settings.GetTestSourceFile ())
 		if err != nil { fmt.Println (err.Error ()) }
 		defer file.Close ()
 
@@ -109,7 +109,7 @@ func RunTests (testParams app.TestSettings) {
 
 			// write the JSON files
 			tx := nodeClient.GetTx (hex.EncodeToString (txIdBytes))
-			WriteTx (tx, testParams.GetDirectory ())
+			WriteTx (tx, app.Settings.GetTestDirectory ())
 			fmt.Println (txId)
 		}
 		if err := scanner.Err (); err != nil {
@@ -117,7 +117,7 @@ func RunTests (testParams app.TestSettings) {
 		}
 	} else if testMode == "verify" {
 
-		testDirectory := testParams.GetDirectory ()
+		testDirectory := app.Settings.GetTestDirectory ()
 
 		// get the files to read from
 		files, err := os.ReadDir (testDirectory)
@@ -175,7 +175,7 @@ func WriteTx (tx btc.Tx, dir string) bool {
 
 	totalOut := uint64 (0)
 	for o := 0; o < len (txOutputs); o++ {
-		totalOut += txOutputs [o].GetSatoshis ()
+		totalOut += txOutputs [o].GetValue ()
 		txEncoded.Outputs [o] = encodeOutput (txOutputs [o])
 	}
 
@@ -205,7 +205,7 @@ func WriteTx (tx btc.Tx, dir string) bool {
 			previousOutput := nodeClient.GetPreviousOutput (txInputs [i].GetPreviousOutputTxId (), txInputs [i].GetPreviousOutputIndex ())
 			outputEncoded := encodeOutput (previousOutput)
 
-			totalIn += previousOutput.GetSatoshis ()
+			totalIn += previousOutput.GetValue ()
 
 			txEncoded.Inputs [i].PreviousOutput = &outputEncoded
 //			inputEncoded.InputScriptFields = inputScript.GetFieldsAsHex ()
@@ -284,11 +284,11 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 	// outputs
 	totalOut := uint64 (0)
 	for o := 0; o < len (txOutputs); o++ {
-		totalOut += txOutputs [o].GetSatoshis ()
+		totalOut += txOutputs [o].GetValue ()
 		outputScript := txOutputs [o].GetOutputScript ()
 
 //////////////////////////////////////////////////
-		if txEncoded.Outputs [o].Value != txOutputs [o].GetSatoshis () { fmt.Println ("Wrong number of outputs."); return false }
+		if txEncoded.Outputs [o].Value != txOutputs [o].GetValue () { fmt.Println ("Wrong number of outputs."); return false }
 		if txEncoded.Outputs [o].OutputType != txOutputs [o].GetOutputType () { fmt.Println ("Wrong output type."); return false }
 		if len (txEncoded.Outputs [o].OutputScriptFields) != len (outputScript.GetFieldsAsHex ()) { fmt.Println ("Wrong number of outputs script fields."); return false }
 		for f := 0; f < len (txEncoded.Outputs [o].OutputScriptFields); f++ {
@@ -350,7 +350,7 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 
 // same as above, could be a function
 //////////////////////////////////////////////////
-			if txEncoded.Inputs [i].PreviousOutput.Value != previousOutput.GetSatoshis () { fmt.Println ("Wrong previous output value."); return false }
+			if txEncoded.Inputs [i].PreviousOutput.Value != previousOutput.GetValue () { fmt.Println ("Wrong previous output value."); return false }
 			if txEncoded.Inputs [i].PreviousOutput.OutputType != previousOutput.GetOutputType () { fmt.Println ("Wrong previous output type."); return false }
 			if len (txEncoded.Inputs [i].PreviousOutput.OutputScriptFields) != len (previousOutputScript.GetFieldsAsHex ()) { fmt.Println ("Wrong number of previous output script fields."); return false }
 			for f := 0; f < len (txEncoded.Inputs [i].PreviousOutput.OutputScriptFields); f++ {
@@ -373,7 +373,7 @@ func VerifyTx (tx btc.Tx, dir string) bool {
 				if txEncoded.Inputs [i].RedeemScriptFields [f].AsHex (0) != redeemScript.GetFieldsAsHex () [f] { fmt.Println ("Wrong redeem script field."); return false }
 			}
 
-			totalIn += previousOutput.GetSatoshis ()
+			totalIn += previousOutput.GetValue ()
 		} else {
 			totalIn += totalOut
 

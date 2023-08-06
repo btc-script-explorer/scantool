@@ -1,10 +1,6 @@
 package btc
 
 import (
-	"time"
-	"strconv"
-
-	"btctx/app"
 )
 
 type Tx struct {
@@ -72,13 +68,13 @@ func (tx *Tx) GetLockTime () uint32 {
 	return tx.lockTime
 }
 
+/*
 func (tx *Tx) GetHtmlData () map [string] interface {} {
 
 	htmlData := make (map [string] interface {})
 
 	// transaction data
-	settings := app.GetSettings ()
-	htmlData ["BaseUrl"] = "http://" + settings.Website.GetFullUrl ()
+	htmlData ["BaseUrl"] = app.Settings.GetFullUrl ()
 	htmlData ["BlockHeight"] = tx.blockHeight
 	htmlData ["BlockTime"] = time.Unix (tx.blockTime, 0).UTC ()
 	htmlData ["BlockHash"] = tx.blockHash
@@ -90,7 +86,8 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 	totalOut := uint64 (0)
 	outputCount := len (tx.outputs)
 
-	outputCountLabel := strconv.Itoa (outputCount) + " Output"; if outputCount > 1 { outputCountLabel += "s" }
+	outputCountLabel := strconv.Itoa (outputCount) + " Output"
+	if outputCount > 1 { outputCountLabel += "s" }
 	htmlData ["OutputCountLabel"] = outputCountLabel
 
 	outputHtmlData := make ([] OutputHtmlData, outputCount)
@@ -109,7 +106,8 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 	// inputs
 	inputCount := len (tx.inputs)
 
-	inputCountLabel := strconv.Itoa (inputCount) + " Input"; if inputCount > 1 { inputCountLabel += "s" }
+	inputCountLabel := strconv.Itoa (inputCount) + " Input"
+	if inputCount > 1 { inputCountLabel += "s" }
 	htmlData ["InputCountLabel"] = inputCountLabel
 
 	inputHtmlData := make ([] InputHtmlData, inputCount)
@@ -121,29 +119,26 @@ func (tx *Tx) GetHtmlData () map [string] interface {} {
 
 	return htmlData
 }
+*/
 
-type PendingInput struct {
-	Tx_id string
-	Input_index uint32
-
-	Prev_out_tx_id string
-	Prev_out_index uint32
+type PendingPreviousOutput struct {
+	InputTxId string
+	InputIndex uint32
+	PrevOutTxId string
+	PrevOutIndex uint32
 }
 
-func (tx *Tx) GetPendingInputs () [] PendingInput {
+func (tx *Tx) GetPendingPreviousOutputs () [] PendingPreviousOutput {
 
-	if tx.coinbase {
-		return [] PendingInput {}
-	}
+	if tx.coinbase { return [] PendingPreviousOutput {} }
 
 	inputCount := len (tx.inputs)
-
-	pendingInputs := make ([] PendingInput, inputCount)
+	pendingPreviousOutputs := make ([] PendingPreviousOutput, inputCount)
 	for i := uint32 (0); i < uint32 (inputCount); i++ {
 		previousOutputTxId := tx.inputs [i].GetPreviousOutputTxId ()
-		pendingInputs [i] = PendingInput { Tx_id: tx.GetTxId (), Input_index: i, Prev_out_tx_id: previousOutputTxId, Prev_out_index: tx.inputs [i].GetPreviousOutputIndex () }
+		pendingPreviousOutputs [i] = PendingPreviousOutput { InputTxId: tx.GetTxId (), InputIndex: i, PrevOutTxId: previousOutputTxId, PrevOutIndex: tx.inputs [i].GetPreviousOutputIndex () }
 	}
 
-	return pendingInputs
+	return pendingPreviousOutputs
 }
 

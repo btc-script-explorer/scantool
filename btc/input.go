@@ -2,10 +2,6 @@ package btc
 
 import (
 	"fmt"
-	"strconv"
-	"html/template"
-
-	"btctx/app"
 )
 
 //const SPEND_TYPE_P2PK = "P2PK"
@@ -204,6 +200,10 @@ func (i *Input) setFieldTypes () {
 	}
 }
 
+func (i *Input) SetRedeemScript (redeemScript Script) {
+	i.redeemScript = redeemScript
+}
+
 func (i *Input) GetInputScript () Script {
 	return i.inputScript
 }
@@ -242,75 +242,5 @@ func (i *Input) GetSpendType () string {
 
 func (i *Input) GetSequence () uint32 {
 	return i.sequence
-}
-
-type InputHtmlData struct {
-	InputIndex uint32
-	DisplayTypeClassPrefix string
-	IsCoinbase bool
-	SpendType string
-	ValueIn template.HTML
-	BaseUrl string
-	PreviousOutputTxId string
-	PreviousOutputIndex uint32
-	Sequence uint32
-	InputScript ScriptHtmlData
-	InputScriptAlternate ScriptHtmlData
-	RedeemScript ScriptHtmlData
-	WitnessScript ScriptHtmlData
-	TapScript ScriptHtmlData
-	Bip141 bool
-	Segwit SegwitHtmlData
-	IncludeAlternateInputScript bool
-}
-
-func (i *Input) GetHtmlData (inputIndex uint32, satoshis uint64, bip141 bool) InputHtmlData {
-
-	displayTypeClassPrefix := fmt.Sprintf ("input-%d", inputIndex)
-	htmlData := InputHtmlData { InputIndex: inputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, SpendType: i.spendType, Sequence: i.sequence, Bip141: bip141 }
-	htmlId := "input-script-" + strconv.FormatUint (uint64 (inputIndex), 10)
-
-	if i.IsCoinbase () {
-		htmlData.IsCoinbase = true
-		htmlData.ValueIn = template.HTML (GetValueHtml (satoshis))
-		htmlData.InputScript = i.inputScript.GetHtmlData (htmlId, displayTypeClassPrefix)
-	} else {
-		settings := app.GetSettings ()
-		htmlData.BaseUrl = "http://" + settings.Website.GetFullUrl ()
-		htmlData.PreviousOutputTxId = i.previousOutputTxId
-		htmlData.PreviousOutputIndex = i.previousOutputIndex
-		htmlData.InputScript = i.inputScript.GetHtmlData (htmlId, displayTypeClassPrefix)
-	}
-
-	// if the spend type is empty, it redeems a legacy output type
-	// therefore, we must include an alternate input script to account for the possibility of a P2SH output
-	if len (i.spendType) == 0 {
-		redeemScript := i.inputScript.GetSerializedScript ()
-		if !redeemScript.HasParseError () {
-			i.redeemScript = redeemScript
-			inputScriptAlternate := NewScript (i.inputScript.rawBytes)
-			if !inputScriptAlternate.IsEmpty () {
-				inputScriptAlternate.SetFieldType (inputScriptAlternate.GetParsedFieldCount () - 1, "<<< SERIALIZED REDEEM SCRIPT >>>")
-
-				// check for a zero-length redeem script
-				serializedScriptIndex := len (inputScriptAlternate.fields) - 1
-				serializedScriptBytes := inputScriptAlternate.fields [serializedScriptIndex].AsBytes ()
-				if len (serializedScriptBytes) == 1 && serializedScriptBytes [0] == 0x00 {
-					inputScriptAlternate.fields [serializedScriptIndex].isOpcode = false
-					inputScriptAlternate.fields [serializedScriptIndex].rawBytes = [] byte {}
-					i.redeemScript = NewScript ([] byte {})
-				}
-
-				htmlData.InputScriptAlternate = inputScriptAlternate.GetHtmlData (htmlId, displayTypeClassPrefix)
-				htmlData.IncludeAlternateInputScript = true
-			}
-		}
-	}
-
-	// redeem script and segwit
-	htmlData.RedeemScript = i.redeemScript.GetHtmlData ("redeem-script-" + strconv.FormatUint (uint64 (inputIndex), 10), displayTypeClassPrefix)
-	htmlData.Segwit = i.segwit.GetHtmlData (inputIndex, displayTypeClassPrefix, i.spendType == SPEND_TYPE_P2TR_Key || i.spendType == SPEND_TYPE_P2TR_Script)
-
-	return htmlData
 }
 

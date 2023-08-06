@@ -51,7 +51,7 @@
 									</tr>
 									<tr>
 										<td class="info-window-label">Inputs:</td>
-										<td style="text-align:left;">{{ .InputCount }}</td>
+										<td id="input-count" style="text-align:left;">{{ .InputCount }}</td>
 									</tr>
 									<tr>
 										<td class="info-window-label">Outputs:</td>
@@ -85,16 +85,19 @@
 			</div>
 		</div>
 
-		<div style="margin-top:20px;">
-			{{ if and (gt .InputCount 1) (ne .SpendTypeChart nil) }}
+		<div id="toggle-charts-link" style="margin-top:20px; cursor:pointer; color:blue;" onclick="handle_pending_block_spend_types ();">Get Charts</div>
+
+		<div id="spend-type-status" style="margin-top:20px; position:relative; height:20px; background-color:#e0e0e0; border:1px solid black; display:none;">
+			<div id="spend-type-status-bar" style="height:20px; position:absolute; background-color:#b0b0b0; width:0;"></div>
+			<div id="spend-type-status-percent" style="height:20px; position:absolute; width:100%;"></div>
+		</div>
+
+		<div id="type-charts" style="margin-top:20px; display:none;">
+			{{ if gt .InputCount 1 }}
 				<div style="display:inline-block; border:1px solid black; vertical-align:top;">
-					<div style="font-size:20px; color:white; background-color:black;">
-						<div class="spend-type-percent-loaded" style="display:inline-block; visibility:hidden;"></div>
-						<div style="display:inline-block; margin:0 8px;">Spend Types</div>
-						<div class="spend-type-percent-loaded" style="display:inline-block;"></div>
-					</div>
+					<div style="font-size:20px; color:white; background-color:black;">Spend Types</div>
 					<div style="padding:8px; background-color:#f0f0f0;">
-						<div id="spend-types" style="display:inline-block;">{{ template "TypeChartDetail" .SpendTypeChart }}</div>
+						<div id="spend-types" style="display:inline-block;">{{ if ne .SpendTypeChart nil }}{{ template "TypeChartDetail" .SpendTypeChart }}{{ end }}</div>
 					</div>
 				</div>
 			{{ end }}
@@ -102,7 +105,7 @@
 			<div style="display:inline-block; border:1px solid black; vertical-align:top;">
 				<div style="font-size:20px; color:white; background-color:black;">Output Types</div>
 				<div style="padding:8px; background-color:#f0f0f0;">
-					<div id="output-types" style="display:inline-block;">{{ template "TypeChartDetail" .OutputTypeChart }}</div>
+					<div id="output-types" style="display:inline-block;">{{ if ne .OutputTypeChart nil }}{{ template "TypeChartDetail" .OutputTypeChart }}{{ end }}</div>
 				</div>
 			</div>
 		</div>

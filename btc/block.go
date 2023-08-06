@@ -58,36 +58,37 @@ func (b *Block) GetTx (index int) Tx {
 
 type ElementTypeHTML struct {
 	Label string
-	Count int
+	Count uint32
 	Percent string
 }
 
-func (b *Block) GetOutputCount () int {
+// returns inputs, outputs
+func (b *Block) GetInputOutputCounts () (int, int) {
 
+	inputCount := 0
 	outputCount := 0
 	for _, tx := range b.txs {
+		inputCount += tx.GetInputCount ()
 		outputCount += tx.GetOutputCount ()
 	}
-	return outputCount
+	return inputCount, outputCount
 }
 
-func (b *Block) GetPendingPreviousOutputs () (map [string] [] uint32, int) {
+func (b *Block) GetPendingPreviousOutputs () map [string] [] uint32 {
 
-	nonCoinbaseInputCount := 0
-	unknownOutputTypes := make (map [string] [] uint32)
+	unknownPreviousOutputTypes := make (map [string] [] uint32)
 	for _, tx := range b.txs {
 		for _, input := range tx.GetInputs () {
 			if input.IsCoinbase () { continue }
 
-			nonCoinbaseInputCount++
 			spendType := input.GetSpendType ()
 			if len (spendType) == 0 {
-				unknownOutputTypes [input.previousOutputTxId] = append (unknownOutputTypes [input.previousOutputTxId], input.GetPreviousOutputIndex ())
+				unknownPreviousOutputTypes [input.previousOutputTxId] = append (unknownPreviousOutputTypes [input.previousOutputTxId], input.GetPreviousOutputIndex ())
 			}
 		}
 	}
 
-	return unknownOutputTypes, nonCoinbaseInputCount
+	return unknownPreviousOutputTypes
 }
 
 func (b *Block) GetKnownSpendTypes () ([] ElementTypeHTML, int) {
@@ -110,7 +111,7 @@ func (b *Block) GetKnownSpendTypes () ([] ElementTypeHTML, int) {
 
 	var knownSpendTypes [] ElementTypeHTML
 	for spendType, num := range spendTypeMap {
-		knownSpendTypes = append (knownSpendTypes, ElementTypeHTML { Label: spendType, Count: num, Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (nonCoinbaseInputCount)) })
+		knownSpendTypes = append (knownSpendTypes, ElementTypeHTML { Label: spendType, Count: uint32 (num), Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (nonCoinbaseInputCount)) })
 	}
 
 	return knownSpendTypes, knownSpendTypeCount
@@ -133,7 +134,7 @@ func (b *Block) GetOutputTypes () [] ElementTypeHTML {
 
 	var outputTypes [] ElementTypeHTML
 	for outputType, num := range outputTypeMap {
-		outputTypes = append (outputTypes, ElementTypeHTML { Label: outputType, Count: num, Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (outputCount)) })
+		outputTypes = append (outputTypes, ElementTypeHTML { Label: outputType, Count: uint32 (num), Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (outputCount)) })
 	}
 
 	return outputTypes
@@ -187,7 +188,7 @@ func (b *Block) GetHtmlData () map [string] interface {} {
 				tapScriptCount++
 				if input.ordinalTapScript {
 					tapScriptOrdinalCount++
-				}
+				} //else { fmt.Println (fmt.Sprintf ("Non-Ordinal Tap Script in tx %s, input %d.", tx.GetTxId (), i)) }
 			}
 
 			inputCount++
@@ -241,30 +242,11 @@ func (b *Block) GetHtmlData () map [string] interface {} {
 
 	htmlData ["Bip141Percent"] = fmt.Sprintf ("%9.2f%%", float32 (bip141Count * 100) / float32 (len (b.txs)))
 
-	settings := app.GetSettings ()
-	htmlData ["BaseUrl"] = "http://" + settings.Website.GetFullUrl ()
+	htmlData ["BaseUrl"] = app.Settings.GetFullUrl ()
 	htmlData ["TxDetail"] = txDetail
 
 	htmlData ["InputCount"] = inputCount
 	htmlData ["OutputCount"] = outputCount
-
-	// spend types
-	spendTypeHtmlData := make (map [string] interface {})
-	spendTypeHtmlData ["HtmlIdPrefix"] = "spend-type"
-	sortedSpendTypes, _ := b.GetKnownSpendTypes ()
-	sort.SliceStable (sortedSpendTypes, func (i, j int) bool { return sortedSpendTypes [i].Count > sortedSpendTypes [j].Count })
-	spendTypeHtmlData ["Types"] = sortedSpendTypes
-	htmlData ["SpendTypeChart"] = spendTypeHtmlData
-
-
-	// output types
-	outputTypeHtmlData := make (map [string] interface {})
-	outputTypeHtmlData ["HtmlIdPrefix"] = "output-type"
-	sortedOutputTypes := b.GetOutputTypes ()
-	sort.SliceStable (sortedOutputTypes, func (i, j int) bool { return sortedOutputTypes [i].Count > sortedOutputTypes [j].Count })
-	outputTypeHtmlData ["Types"] = sortedOutputTypes
-
-	htmlData ["OutputTypeChart"] = outputTypeHtmlData
 
 	return htmlData
 }
@@ -281,7 +263,7 @@ func extractBodyFromHTML (html string) string {
 	return body [bodyBegin :]
 }
 
-func GetBlockCharts (nonCoinbaseInputCount int, outputCount int, spendTypes map [string] int, outputTypes map [string] int) map [string] string {
+func GetBlockCharts (nonCoinbaseInputCount uint32, outputCount uint32, spendTypes map [string] uint32, outputTypes map [string] uint32) map [string] string {
 
 	const pieRadius = 90
 	const verticalPadding = 10

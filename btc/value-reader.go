@@ -1,6 +1,7 @@
 package btc
 
 import (
+//	"fmt"
 	"strconv"
 )
 
@@ -97,16 +98,6 @@ func IsValidSchnorrSignature (field [] byte) bool {
 
 	lastByte := field [fieldLen - 1]
 	return lastByte == 0x01 || lastByte == 0x02 || lastByte == 0x03 || lastByte == 0x81 || lastByte == 0x82 || lastByte == 0x83
-}
-
-func GetValueHtml (satoshis uint64) string {
-	satoshisStr := strconv.FormatUint (satoshis, 10)
-	digitCount := len (satoshisStr)
-	if digitCount > 8 {
-		btcDigits := digitCount - 8
-		satoshisStr = "<span style=\"font-weight:bold;\">" + satoshisStr [0 : btcDigits] + "</span>" + satoshisStr [btcDigits :]
-	}
-	return satoshisStr
 }
 
 func GetStackItemType (field [] byte, schnorr bool) string {

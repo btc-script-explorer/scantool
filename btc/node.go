@@ -8,6 +8,17 @@ import (
 	"btctx/app"
 )
 
+/*
+Electrum Servers
+
+https://github.com/spesmilo/electrumx (Python)
+https://electrumx-spesmilo.readthedocs.io/en/latest/
+https://electrum.readthedocs.io/en/latest/
+
+https://github.com/romanz/electrs (Rust)
+
+*/
+
 type NodeClient interface {
 	GetType () string
 	GetVersionString () string
@@ -28,11 +39,10 @@ func GetNodeClient () NodeClient {
 }
 
 func getNode () {
-	settings := app.GetSettings ()
-	nodeType := settings.Node.GetNodeType ()
+	nodeType := app.Settings.GetNodeType ()
 
 	switch nodeType {
-		case "BitcoinCore":
+		case "Bitcoin Core":
 			bitcoinCore := NewBitcoinCore ()
 			node = &bitcoinCore
 			break

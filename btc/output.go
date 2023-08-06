@@ -2,7 +2,6 @@ package btc
 
 import (
 	"fmt"
-	"html/template"
 )
 
 const OUTPUT_TYPE_P2PK = "P2PK"
@@ -96,7 +95,7 @@ func (o *Output) setFieldTypes () {
 	}
 }
 
-func (o *Output) GetSatoshis () uint64 {
+func (o *Output) GetValue () uint64 {
 	return o.value
 }
 
@@ -111,23 +110,5 @@ func (o *Output) GetOutputType () string {
 func (o *Output) GetAddress () string {
 	if len (o.address) == 0 { return "No Address Format" }
 	return o.address
-}
-
-type OutputHtmlData struct {
-	OutputIndex uint32
-	DisplayTypeClassPrefix string
-	OutputType string
-	Value template.HTML
-	Address string
-	OutputScript ScriptHtmlData
-}
-
-func (o *Output) GetHtmlData (scriptHtmlId string, displayTypeClassPrefix string, outputIndex uint32) OutputHtmlData {
-
-	if len (displayTypeClassPrefix) == 0 {
-		displayTypeClassPrefix = fmt.Sprintf ("output-%d", outputIndex)
-	}
-	outputScriptHtml := o.outputScript.GetHtmlData (scriptHtmlId, displayTypeClassPrefix)
-	return OutputHtmlData { OutputIndex: outputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, OutputType: o.outputType, Value: template.HTML (GetValueHtml (o.value)), Address: o.GetAddress (), OutputScript: outputScriptHtml }
 }
 

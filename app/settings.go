@@ -7,86 +7,9 @@ import (
 	"bufio"
 	"strings"
 	"strconv"
-	"sync"
-
-//	"btctx/btc"
 )
 
-type NodeSettings struct {
-	nodeType string
-	url string
-	port uint16
-	username string
-	password string
-}
-func NewNodeSettings (nodeType string, url string, port uint16, username string, password string) NodeSettings {
-	return NodeSettings { nodeType: nodeType, url: url, port: port, username: username, password: password }
-}
-
-func (n *NodeSettings) GetNodeType () string {
-	return n.nodeType
-}
-
-func (n *NodeSettings) GetUrl () string {
-	return n.url
-}
-
-func (n *NodeSettings) GetFullUrl () string {
-	return n.url + ":" + strconv.FormatUint (uint64 (n.port), 10)
-}
-
-func (n *NodeSettings) GetPort () uint16 {
-	return n.port
-}
-
-func (n *NodeSettings) GetUsername () string {
-	return n.username
-}
-
-func (n *NodeSettings) GetPassword () string {
-	return n.password
-}
-
-////////////////////////////////////////////////////////
-
-type WebsiteSettings struct {
-	url string
-	port uint16
-}
-func NewWebsiteSettings (url string, port uint16) WebsiteSettings {
-	return WebsiteSettings { url: url, port: port }
-}
-
-func (w *WebsiteSettings) ExitOnError () {
-
-	// TODO: make sure the url is a valid interface and the port is not already open
-	// if not implemented these errors will show up when http.ListenAndServe is called
-
-}
-
-func (w *WebsiteSettings) GetUrl () string {
-	return w.url
-}
-
-func (w *WebsiteSettings) GetFullUrl () string {
-	return w.url + ":" + strconv.FormatUint (uint64 (w.port), 10)
-}
-
-func (w *WebsiteSettings) GetPort () uint16 {
-	return w.port
-}
-
-////////////////////////////////////////////////////////
-
 type TestSettings struct {
-	testMode string
-
-	// used with save, verify modes
-	verifiedDir string
-	unverifiedDir string
-
-	// used with save mode
-	sourceFile string
 }
 
 func NewTestSettings (testMode string, verifiedDir string, unverifiedDir string, sourceFile string) TestSettings {
@@ -95,78 +18,264 @@ func NewTestSettings (testMode string, verifiedDir string, unverifiedDir string,
 		fmt.Println (mode + " is not a valid test mode.")
 		os.Exit (1)
 	}
-	return TestSettings { testMode: mode, verifiedDir: verifiedDir, unverifiedDir: unverifiedDir, sourceFile: sourceFile }
-}
-
-func (t *TestSettings) ExitOnError () {
-
-	// make sure the user has the correct permissions
-	if t.testMode == "save" {
-		if !checkFile (t.sourceFile, PERM_READ) {
-			fmt.Println ("Can not access " + t.sourceFile + ".")
-			os.Exit (1)
-		}
-		if !checkFile (t.unverifiedDir, PERM_WRITE) {
-			fmt.Println ("Can not access " + t.unverifiedDir + ".")
-			os.Exit (1)
-		}
-	} else if t.testMode == "verify" {
-		if !checkFile (t.verifiedDir, PERM_READ) {
-			fmt.Println ("Can not access " + t.verifiedDir + ".")
-			os.Exit (1)
-		}
-	}
-}
-
-func (t *TestSettings) GetTestMode () string {
-	return t.testMode
-}
-
-func (t *TestSettings) GetDirectory () string {
-	if t.testMode == "" {
-		return ""
-	} else if t.testMode == "save" {
-		return t.unverifiedDir
-	}
-	return t.verifiedDir
-}
-
-func (t *TestSettings) GetSourceFile () string {
-	return t.sourceFile
+	return TestSettings {}
 }
 
 ////////////////////////////////////////////////////////
 
 type AppSettings struct {
-	configFile string
 }
-func NewAppSettings (configFile string, themeName string, layoutName string) AppSettings {
-	return AppSettings { configFile: configFile }
-}
-
-func (a *AppSettings) GetConfigFileLocation () string {
-	return a.configFile
+func NewAppSettings (configFile string) AppSettings {
+	return AppSettings {}
 }
 
 ////////////////////////////////////////////////////////
 
 type settingsManager struct {
-	Node NodeSettings
-	Website WebsiteSettings
-	App AppSettings
-	Test TestSettings
+
+	alreadyParsed bool
+
+	configFile string
+
+	bitcoinCoreUrl string
+	bitcoinCorePort uint16
+	bitcoinCoreUsername string
+	bitcoinCorePassword string
+
+	nodeType string
+
+	url string
+	port uint16
+
+	noWeb bool
+
+	testMode string
+	testVerifiedDir string
+	testUnverifiedDir string
+	testSourceFile string
 }
 
-// singleton
-var settings *settingsManager = nil
-var once sync.Once
+func (s *settingsManager) ExitOnError () {
 
-func GetSettings () *settingsManager {
-	once.Do (parseSettings)
-	return settings
+	// verify the web settings
+	if s.noWeb && (len (s.url) == 0 || s.port == 0) { panic ("Web parameters are not valid.") }
+
+	// make sure the user has the correct test file permissions
+	if s.testMode == "save" {
+		if !checkFile (s.testSourceFile, PERM_READ) { panic ("Can not access test souce file " + s.testSourceFile + ".") }
+		if !checkFile (s.testUnverifiedDir, PERM_WRITE) { panic ("Can not access unverified test directory " + s.testUnverifiedDir + ".") }
+	} else if s.testMode == "verify" {
+		if !checkFile (s.testVerifiedDir, PERM_READ) { panic ("Can not access verified test directory " + s.testVerifiedDir + ".") }
+	}
 }
 
-////////////////////////////////////////////////////////
+func (s *settingsManager) GetConfigFileLocation () string {
+	return s.configFile
+}
+
+func (s *settingsManager) GetNodeType () string {
+	return s.nodeType
+}
+
+func (s *settingsManager) GetNodeFullUrl () string {
+	return s.bitcoinCoreUrl + ":" + strconv.FormatUint (uint64 (s.bitcoinCorePort), 10)
+}
+
+func (s *settingsManager) GetNodeUsername () string {
+	return s.bitcoinCoreUsername
+}
+
+func (s *settingsManager) GetNodePassword () string {
+	return s.bitcoinCorePassword
+}
+
+func (s *settingsManager) GetBaseUrl () string {
+	return fmt.Sprintf ("%s:%d", s.url, s.port)
+}
+
+func (s *settingsManager) GetFullUrl () string {
+	return fmt.Sprintf ("http://%s/web", s.GetBaseUrl ())
+}
+
+func (s *settingsManager) GetUrl () string {
+	return s.url
+}
+
+func (s *settingsManager) GetPort () uint16 {
+	return s.port
+}
+
+func (s *settingsManager) GetTestMode () string {
+	return s.testMode
+}
+
+func (s *settingsManager) GetTestDirectory () string {
+	if s.testMode == "save" {
+		return s.testUnverifiedDir
+	} else if s.testMode == "verify" {
+		return s.testVerifiedDir
+	}
+	return ""
+}
+
+func (s *settingsManager) GetTestSourceFile () string {
+	return s.testSourceFile
+}
+
+func (s *settingsManager) IsWebOn () bool {
+	return !s.noWeb
+}
+
+func (s *settingsManager) setSettings (settings map [string] string) {
+	for k, v := range settings {
+		switch k {
+			case "config-file": s.configFile = v
+
+			// bitcoin core
+			case "bitcoin-core-url": s.bitcoinCoreUrl = v
+			case "bitcoin-core-port":
+				port, err := strconv.Atoi (v)
+				if err != nil { panic (err.Error ()) }
+				s.bitcoinCorePort = uint16 (port)
+			case "bitcoin-core-username": s.bitcoinCoreUsername = v
+			case "bitcoin-core-password": s.bitcoinCorePassword = v
+
+			// web
+			case "url": s.url = v
+			case "port":
+				port, err := strconv.Atoi (v)
+				if err != nil { panic (err.Error ()) }
+				s.port = uint16 (port)
+			case "no-web": s.noWeb = true
+
+			// test
+			case "test-mode": s.testMode = v
+			case "test-verified-dir": s.testVerifiedDir = v
+			case "test-unverified-dir": s.testUnverifiedDir = v
+			case "test-source-file": s.testSourceFile = v
+		}
+	}
+}
+
+var Settings settingsManager
+
+func getDefaultSettings () settingsManager {
+	return settingsManager {
+//								configFile: "",
+
+//								bitcoinCoreUrl: "",
+//								bitcoinCorePort: 0,
+//								bitcoinCoreUsername: "",
+//								bitcoinCorePassword: "",
+
+//								nodeType: "",
+
+								url: "127.0.0.1",
+								port: 8080,
+//								noWeb: false,
+
+//								testMode: "",
+//								testVerifiedDir: "",
+//								testUnverifiedDir: "",
+//								testSourceFile: ""
+							}
+}
+
+func ParseSettings () {
+	if Settings.alreadyParsed { return }
+
+	Settings = getDefaultSettings ()
+
+	// command line parameters
+	commandLineParameters := make (map [string] string)
+	commandLineParamCount := len (os.Args)
+	for a := 1; a < commandLineParamCount; a++ {
+
+		// remove the -- from the front of the parameter
+		parameter := os.Args [a]
+		if len (parameter) < 2 || parameter [0:2] != "--" { panic (parameter + " is improperly formatted.") }
+
+		// add the parameter to the map
+		parts := strings.Split (parameter [2:], "=")
+		if len (parts) != 2 { panic (parameter + " is improperly formatted.") }
+
+		commandLineParameters [parts [0]] = parts [1]
+	}
+
+	Settings.setSettings (commandLineParameters)
+
+	// config file parameters
+	if len (Settings.configFile) > 0 {
+		configFileLines := readConfigFile (Settings.configFile)
+
+		configFileParameters := make (map [string] string)
+		for _, line := range configFileLines {
+
+			// get the parameter and its string value
+			parts := strings.Split (line, "=")
+			key := parts [0]
+			value := ""; if len (parts) >= 2 { value = parts [1] }
+
+			// warn the user if a parameter appears more than once
+			if configFileParameters [key] != "" { fmt.Println (key + " setting was provided more than once. Last provided value will be used.") }
+
+			configFileParameters [key] = value
+		}
+
+		Settings.setSettings (configFileParameters)
+	}
+
+	if len (Settings.bitcoinCoreUrl) > 0 && Settings.bitcoinCorePort != 0 && len (Settings.bitcoinCoreUsername) > 0 && len (Settings.bitcoinCorePassword) > 0 {
+		Settings.nodeType = "Bitcoin Core"
+	}
+
+	Settings.ExitOnError ()
+	Settings.alreadyParsed = true
+}
+
+func readConfigFile (configFileLocation string) [] string {
+
+	configFile, err := os.Open (configFileLocation)
+	if err != nil { panic (err.Error ()) }
+
+	var configFileLines [] string
+
+	fileScanner := bufio.NewScanner (configFile)
+	for fileScanner.Scan () {
+		parameterStr := strings.TrimSpace (fileScanner.Text ())
+
+		// skip comments and blank lines
+		if len (parameterStr) == 0 || parameterStr [0] == '#' { continue }
+
+		// if there are any spaces on the line, only use the first string of text and make sure the rest is a comment
+		separateStrings := strings.Split (parameterStr, " ")
+		separateStringCount := len (separateStrings)
+		if separateStringCount > 1 {
+			// get the next bit of contiguous text from this line
+			// this is done in a loop because consecutive spaces can return empty strings
+			nextString := ""
+			for s := 1; s < separateStringCount; s++ {
+				if len (separateStrings [s]) > 0 {
+					nextString = separateStrings [s]
+					break
+				}
+			}
+
+			// if it is a comment, the line of text is okay
+			// it is not a comment, we assume the line is an error
+			if nextString [0] == '#' {
+				parameterStr = separateStrings [0]
+			} else {
+				panic ("Improperly-formatted line in config file: " + parameterStr)
+			}
+		}
+
+		configFileLines = append (configFileLines, parameterStr)
+	}
+
+	configFile.Close ()
+	return configFileLines
+}
 
 const PERM_READ  = byte (0b00000100)
 const PERM_WRITE = byte (0b00000010)
@@ -198,8 +307,8 @@ func (s *settingsManager) PrintListeningMessage () {
 
 	// create the data lines of the message
 	lines := make ([] string, 2)
-	lines [0] = "*    Node: " + s.Node.GetFullUrl () + " (" + s.Node.nodeType + ")  "
-	lines [1] = "*     Web: " + s.Website.GetFullUrl () + "  "
+	lines [0] = "*    Node: " + s.GetNodeFullUrl () + " (" + s.nodeType + ")  "
+	lines [1] = "*  Server: " + s.GetBaseUrl () + "  "
 
 	// calculate the width of the message and add padding as necessary
 	bannerWidth := len (lines [0]) + 1
@@ -234,177 +343,5 @@ func (s *settingsManager) PrintListeningMessage () {
 	}
 	fmt.Println (topAndBottom)
 	fmt.Println ()
-}
-
-func (s *settingsManager) parseParamList (paramList map [string] string, fromCommandLine bool) {
-
-	// create the map of string type parameters
-	stringParams := map [string] *string {
-		// node
-		"node-type": &settings.Node.nodeType,
-		"node-url": &settings.Node.url,
-		"node-user": &settings.Node.username,
-		"node-pw": &settings.Node.password,
-
-		// test
-		"test-save-dir": &settings.Test.unverifiedDir,
-		"test-tx-file": &settings.Test.sourceFile,
-		"test-verify-dir": &settings.Test.verifiedDir,
-
-		// website
-		"web-url": &settings.Website.url }
-
-	// create the map of parameters that are only allowed on the command line
-	stringParamsCommandLineOnly := map [string] *string {
-		// app
-		"app-config-file": &settings.App.configFile,
-
-		// test
-		"test-mode": &settings.Test.testMode }
-
-	if fromCommandLine {
-		// add the command line only string type settings
-		for paramName, strPointer := range stringParamsCommandLineOnly {
-			stringParams [paramName] = strPointer
-		}
-	}
-
-	// handle parameters that can be determined by other settings
-	if paramList ["test-save-dir"] != "" {
-		settings.Test.testMode = "save"
-	} else if paramList ["test-verify-dir"] != "" {
-		settings.Test.testMode = "verify"
-	}
-
-	// create the map of uint16 type parameters
-	uint16Params := map [string] *uint16 {
-		// node
-		"node-port": &settings.Node.port,
-
-		// website
-		"web-port": &settings.Website.port }
-
-	for paramName, valueStr := range paramList {
-		if stringParams [paramName] != nil {
-			*stringParams [paramName] = valueStr
-		} else if uint16Params [paramName] != nil {
-			v, err := strconv.Atoi (valueStr)
-			if err != nil {
-				fmt.Println ("Error parsing " + paramName + ": " + err.Error ())
-				os.Exit (1)
-			}
-			*uint16Params [paramName] = uint16 (v)
-		} else if stringParamsCommandLineOnly [paramName] != nil && !fromCommandLine {
-			fmt.Println (paramName + " is ignored in the config file, only supported from the command line.")
-		} else {
-			fmt.Println (paramName + " is not a recognized setting.")
-		}
-	}
-}
-
-func parseSettings () {
-
-	if os.Args [0] == "--help" {
-		// TODO: print help message
-		os.Exit (0)
-	}
-
-	// default settings
-	app := NewAppSettings ("", "Default", "Desktop")
-	node := NewNodeSettings ("BitcoinCore", "127.0.0.1", uint16 (8332), "", "")
-	website := NewWebsiteSettings ("127.0.0.1", uint16 (8080))
-	test := NewTestSettings ("", "./tests/verified-transactions/", "./tests/unverified-transactions/", "./tests/transactions.txt")
-
-	settings = &settingsManager { Node: node, Website: website, App: app, Test: test }
-
-	// create the map of command line parameters
-	commandLineParameters := make (map [string] string)
-	commandLineParamCount := len (os.Args)
-	for a := 1; a < commandLineParamCount; a++ {
-
-		// remove the -- from the front of the parameter
-		parameter := os.Args [a]
-		if len (parameter) < 2 || parameter [0:2] != "--" {
-			fmt.Println (parameter + " is improperly formatted.")
-			continue
-		}
-
-		// add the parameter to the map
-		parts := strings.Split (parameter [2:], "=")
-		if len (parts) != 2 {
-			fmt.Println (parameter + " is improperly formatted.")
-			continue
-		}
-
-		commandLineParameters [parts [0]] = parts [1]
-	}
-
-	// make sure there aren't any conflicting command line parameters
-//	if len (commandLineParameters ["test-save-dir"]) > 0 && len (commandLineParameters ["test-verify-dir"]) > 0 {
-//		fmt.Println ("Parameters test-save-dir and test-verify-dir can not both be set.")
-//		os.Exit (1)
-//	}
-
-	// check for config file parameters
-	configFileParameters := make (map [string] string)
-	configFileLocation, configFileProvided := commandLineParameters ["app-config-file"]
-	if configFileProvided {
-		configFile, err := os.Open (configFileLocation)
-		if err != nil {
-			fmt.Println (err.Error ())
-		}
-		fileScanner := bufio.NewScanner (configFile)
-		for fileScanner.Scan () {
-			parameterStr := strings.TrimSpace (fileScanner.Text ())
-
-			// skip comments and blank lines
-			if parameterStr == "" || parameterStr [0] == '#' {
-				continue
-			}
-
-			// if there are any spaces on the line, only use the first string of text and make sure the rest is a comment
-			separateStrings := strings.Split (parameterStr, " ")
-			separateStringCount := len (separateStrings)
-			if separateStringCount > 1 {
-				// get the next bit of contiguous text from this line
-				nextString := ""
-				for s := 1; s < separateStringCount; s++ {
-					if len (separateStrings [s]) > 0 {
-						nextString = separateStrings [s]
-						break
-					}
-				}
-
-				if nextString [0] == '#' {
-					// it's a comment, so the line of text is okay so far
-					parameterStr = separateStrings [0]
-				} else {
-					// it is not a comment, we assume the line is an error
-					fmt.Println ("Improperly-formatted line in config file: " + parameterStr)
-					continue
-				}
-			}
-
-			// get the parameter and its string value
-			parts := strings.Split (parameterStr, "=")
-			if len (parts) != 2 {
-				fmt.Println (parameterStr + " is not a properly-formatted setting.")
-				continue
-			}
-
-			// the command line takes precedence over the config file
-			if commandLineParameters [parts [0]] == "" {
-				configFileParameters [parts [0]] = parts [1]
-			} else {
-				fmt.Println (parts [0] + " setting was provided more than once. Command line value of " + commandLineParameters [parts [0]] + " will be used.")
-			}
-		}
-	}
-
-	// update the settings from the command line and config file
-	settings.parseParamList (commandLineParameters, true)
-	if len (configFileParameters) > 0 {
-		settings.parseParamList (configFileParameters, false)
-	}
 }
 

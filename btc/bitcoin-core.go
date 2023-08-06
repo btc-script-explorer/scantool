@@ -224,8 +224,6 @@ func (bc *BitcoinCore) getVersionStr () string {
 
 // API functions
 
-//getnetworkinfo
-
 func (bc *BitcoinCore) getBlock (blockHash string, withTxData bool) map [string] interface {} {
 
 	verbosityLevel := 1
@@ -352,8 +350,6 @@ func (bc *BitcoinCore) getNetworkInfo () map [string] interface {} {
 
 func (bc *BitcoinCore) getJson (function string, params [] interface {}) [] byte {
 
-	settings := app.GetSettings ()
-
 	type jsonRequestObject struct {
 		Jsonrpc string `json:"jsonrpc"`
 		Method string `json:"method"`
@@ -366,9 +362,9 @@ func (bc *BitcoinCore) getJson (function string, params [] interface {}) [] byte
 	if err != nil { fmt.Println (err.Error ()) }
 
 	// create the HTTP request
-	requestUrl := "http://" + settings.Node.GetFullUrl () + "/"
+	requestUrl := "http://" + app.Settings.GetNodeFullUrl () + "/"
 	req, err := http.NewRequest (http.MethodPost, requestUrl, bytes.NewBuffer (requestJsonBytes))
-	req.SetBasicAuth (settings.Node.GetUsername (), settings.Node.GetPassword ())
+	req.SetBasicAuth (app.Settings.GetNodeUsername (), app.Settings.GetNodePassword ())
 
 	// get the HTTP response
 	client := &http.Client {}
