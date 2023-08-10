@@ -1,31 +1,9 @@
 package btc
 
 import (
-//	"fmt"
+	"fmt"
 	"encoding/hex"
 )
-
-func ShortenField (fieldText string, length uint, dotCount uint) string {
-
-	fieldLength := uint (len (fieldText))
-	if fieldLength <= length { return fieldText }
-
-	if dotCount >= length { return fieldText }
-
-	charsToInclude := length - dotCount
-	if charsToInclude < 2 { return fieldText }
-
-	charsInEachPart := charsToInclude / 2
-	part1End := charsInEachPart + (charsToInclude % 2)
-	part2Begin := fieldLength - charsInEachPart
-
-	// build the final result
-	shortenedField := fieldText [0 : part1End]
-	for i := uint (0); i < dotCount; i++ { shortenedField += "." }
-	shortenedField += fieldText [part2Begin :]
-
-	return shortenedField
-}
 
 type SegwitField struct {
 	rawBytes [] byte
@@ -37,13 +15,8 @@ func (swf *SegwitField) AsBytes () [] byte {
 }
 
 // if maxLength is 0, it will be ignored
-func (swf *SegwitField) AsHex (maxLength uint) string {
-	hexField := hex.EncodeToString (swf.rawBytes)
-	if maxLength == 0 || uint (len (hexField)) <= maxLength {
-		return hexField
-	}
-
-	return ShortenField (hexField, maxLength, 5)
+func (swf *SegwitField) AsHex () string {
+	return hex.EncodeToString (swf.rawBytes)
 }
 
 func (swf *SegwitField) SetType (dataType string) {
@@ -54,13 +27,8 @@ func (swf *SegwitField) AsType () string {
 	return swf.dataType
 }
 
-func (swf *SegwitField) AsText (maxLength uint) string {
-	textField := string (swf.rawBytes)
-	if maxLength == 0 || uint (len (textField)) <= maxLength {
-		return textField
-	}
-
-	return ShortenField (textField, maxLength, 5)
+func (swf *SegwitField) AsText () string {
+	return string (swf.rawBytes)
 }
 
 
@@ -68,7 +36,7 @@ type Segwit struct {
 	fields [] SegwitField
 	witnessScript Script
 	tapScript Script
-	tapScriptIndex int64
+	tapScriptIndex uint32
 }
 
 func NewSegwit (rawFields [] [] byte) Segwit {
@@ -78,21 +46,21 @@ func NewSegwit (rawFields [] [] byte) Segwit {
 		fields [f] = SegwitField { rawBytes: field }
 	}
 
-	// segwit is not aware of the types of all of its fields, so identification will be deferred until the HTML is rendered
+	// segwit is not aware of the types of all of its fields
 	for f, field := range fields {
 		if len (field.rawBytes) == 0 {
 			fields [f].dataType = "<<< ZERO-LENGTH FIELD >>>"
 		}
 	}
 
-	return Segwit { fields: fields, tapScriptIndex: -1 }
+	return Segwit { fields: fields, tapScriptIndex: INVALID_CB_INDEX }
 }
 
 func (s *Segwit) GetWitnessScript () Script {
 	return s.witnessScript
 }
 
-func (s *Segwit) GetTapScript () (Script, int64) {
+func (s *Segwit) GetTapScript () (Script, uint32) {
 	return s.tapScript, s.tapScriptIndex
 }
 
@@ -193,6 +161,11 @@ func (s *Segwit) parseWitnessScript () Script {
 	return witnessScript
 }
 
+func (s *Segwit) SetWitnessScript (ws Script) {
+	s.witnessScript = ws
+	s.fields [len (s.fields) - 1].SetType ("<<< SERIALIZED WITNESS SCRIPT >>>")
+}
+
 /*
 func (s *Segwit) IsValidTaprootScriptPath (setTapScript bool) bool {
 
@@ -207,20 +180,54 @@ func (s *Segwit) IsValidTaprootScriptPath (setTapScript bool) bool {
 }
 */
 
-func (s *Segwit) parseTapScript () (Script, int64) {
+func (s *Segwit) parseTapScript () (Script, uint32) {
 
 	controlBlockIndex := s.GetControlBlockIndex ()
-	if controlBlockIndex == -1 { return Script {}, -1 }
+	if controlBlockIndex == INVALID_CB_INDEX { return Script {}, INVALID_CB_INDEX }
 
 	// now we read the tap script
-	tapScriptIndex := int64 (controlBlockIndex) - 1
+	tapScriptIndex := uint32 (controlBlockIndex) - 1
 	tapScriptBytes := s.fields [tapScriptIndex].AsBytes ()
 
 	// the script must be parsable
 	tapScript := NewScript (tapScriptBytes)
-	if tapScript.IsNil () || tapScript.HasParseError () { return Script {}, -1 }
+	if tapScript.IsNil () || tapScript.HasParseError () { return Script {}, INVALID_CB_INDEX }
 
 	return tapScript, tapScriptIndex
+}
+
+func (s *Segwit) SetTapScript (ts Script, i uint32) {
+	s.tapScript = ts
+	s.tapScriptIndex = i
+
+	cbIndex := s.GetControlBlockIndex ()
+	cbLeafCount := 0
+	if cbIndex != INVALID_CB_INDEX {
+		cbLeafCount = (len (s.fields [cbIndex].AsBytes ()) - 1) / 32
+	} else {
+		fmt.Println ("Segwit has tap script but no control block.")
+	}
+
+	// set the field types for the Taproot Segwit fields
+	if s.HasAnnex () {
+		annexIndex := len (s.fields) - 1
+		s.fields [annexIndex].SetType (fmt.Sprintf ("Annex (%d Bytes)", len (s.fields [annexIndex].AsBytes ())))
+	}
+
+	s.fields [s.tapScriptIndex].SetType ("<<< SERIALIZED TAP SCRIPT >>>")
+
+	leafCountLabel := "TapLea"
+	if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
+	s.fields [cbIndex].SetType (fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel))
+
+	// set the field types for the Tap Script
+	tapScriptFields := s.tapScript.GetFields ()
+	for f, field := range tapScriptFields {
+		if !field.IsOpcode () {
+			tapScriptFields [f].SetType (GetStackItemType (field.AsBytes (), true))
+		}
+	}
+
 }
 
 func (s *Segwit) HasAnnex () bool {
@@ -228,7 +235,8 @@ func (s *Segwit) HasAnnex () bool {
 	return fieldCount > 1 && s.fields [fieldCount - 1].AsBytes () [0] == 0x50;
 }
 
-func (s *Segwit) GetControlBlockIndex () int {
+const INVALID_CB_INDEX = 0xffffffff
+func (s *Segwit) GetControlBlockIndex () uint32 {
 
 	minimumFieldCount := 2
 	actualFieldCount := len (s.fields)
@@ -240,13 +248,13 @@ func (s *Segwit) GetControlBlockIndex () int {
 	}
 
 	// if this is really a control block, there will be a minimum number of segwit fields
-	if actualFieldCount < minimumFieldCount { return -1 }
+	if actualFieldCount < minimumFieldCount { return INVALID_CB_INDEX }
 
 	// a valid control must have a valid length
 	controlBlockLength := len (s.fields [controlBlockIndex].AsBytes ())
 	validControlBlockLength := controlBlockLength >= 33 && (controlBlockLength - 1) % 32 == 0
-	if !validControlBlockLength { return -1 }
+	if !validControlBlockLength { return INVALID_CB_INDEX }
 
-	return controlBlockIndex
+	return uint32 (controlBlockIndex)
 }
 

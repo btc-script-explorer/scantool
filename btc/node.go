@@ -20,16 +20,17 @@ https://github.com/romanz/electrs (Rust)
 */
 
 type NodeClient interface {
-	GetType () string
+	GetNodeType () string
 	GetVersionString () string
+
 	GetBlock (blockHash string, verbose bool) Block
-	GetBlockHash (blockHeight int) string
+	GetBlockHash (blockHeight uint32) string
 	GetCurrentBlockHash () string
 	GetTx (txId string) Tx
 	GetPreviousOutput (txId string, outputIndex uint32) Output
 }
 
-// singleton, only one node connection currently supported
+// only one node connection currently supported
 var node NodeClient = nil
 var once sync.Once
 

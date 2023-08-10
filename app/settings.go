@@ -94,7 +94,7 @@ func (s *settingsManager) GetBaseUrl () string {
 }
 
 func (s *settingsManager) GetFullUrl () string {
-	return fmt.Sprintf ("http://%s/web", s.GetBaseUrl ())
+	return fmt.Sprintf ("http://%s", s.GetBaseUrl ())
 }
 
 func (s *settingsManager) GetUrl () string {

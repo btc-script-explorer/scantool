@@ -61,7 +61,7 @@ async function handle_pending_block_spend_types ()
 			const headers = new Headers ();
 			headers.append ("Content-Type", "application/json");
 			var request_data = { method: 'POST', headers: headers, body: JSON.stringify (next_pending_spend_types) };
-			const response = await fetch (window.location.protocol + '//' + window.location.host + '/rest/v1/get_legacy_spend_types', request_data);
+			const response = await fetch (base_url_web + '/legacy_spend_types', request_data);
 			const data = await response.json ();
 
 			// handle the response
@@ -97,7 +97,7 @@ async function handle_pending_block_spend_types ()
 	const headers = new Headers ();
 	headers.append ("Content-Type", "application/json");
 	var request_data = { method: 'POST', headers: headers, body: JSON.stringify (block_chart_data) };
-	const response = await fetch (base_url_web + '/get_block_charts', request_data);
+	const response = await fetch (base_url_web + '/block_charts', request_data);
 	const data = await response.json ();
 
 	$ ('#spend-types').html (data.SpendTypeChart);
@@ -144,9 +144,10 @@ async function handle_pending_tx_previous_outputs ()
 			$ ('#input-minimized-' + data.InputIndex + '-spend-type').html (data.PrevOutType);
 			$ ('#input-maximized-' + data.InputIndex + '-spend-type').html (data.PrevOutType);
 
+/*
 			if (data.PrevOutType == 'P2SH')
 			{
-				console.log ('Displaying alternate script for P2SH redemption.');
+				console.log ('Displaying alternate script for P2SH redemption: tx ' + $ ('#query-box').val () + ', input ' + data.InputIndex);
 				var show_type = $ ('#input-maximized-' + data.InputIndex + '-input-script').css ('display');
 				$ ('#input-maximized-' + data.InputIndex + '-input-script').css ('display', 'none');
 				$ ('#input-maximized-' + data.InputIndex + '-input-script-alternate').css ('display', show_type);
@@ -154,12 +155,13 @@ async function handle_pending_tx_previous_outputs ()
 			}
 			else
 			{
+*/
 				if (data.PrevOutType != 'P2PK' && data.PrevOutType != 'MultiSig' && data.PrevOutType != 'P2PKH')
 				{
 					$ ('#input-minimized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
 					$ ('#input-maximized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
 				}
-			}
+//			}
 		}
 
 		// update the tx value in
@@ -264,7 +266,7 @@ async function check_for_new_block ()
 	const headers = new Headers ();
 	headers.append ("Content-Type", "application/json");
 	var request_data = { method: 'GET', headers: headers };
-	const response = await fetch (window.location.protocol + '//' + window.location.host + '/rest/v1/get_current_block_height', request_data);
+	const response = await fetch (base_url_rest + '/current_block_height', request_data);
 	const data = await response.json ();
 
 	$ ('#current-block').html (data.Current_block_height);

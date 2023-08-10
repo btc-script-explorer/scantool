@@ -48,50 +48,24 @@ func (o *Output) setFieldTypes () {
 	if o.outputType == OUTPUT_TYPE_TAPROOT {
 //		o.outputScript.SetFieldType (0, "OP_1")
 		o.outputScript.SetFieldType (1, "Witness Program (Public Key)")
-	} else
-	if o.outputType == OUTPUT_TYPE_P2WSH {
+	} else if o.outputType == OUTPUT_TYPE_P2WSH {
 //		o.outputScript.SetFieldType (0, "OP_0")
 		o.outputScript.SetFieldType (1, "Witness Program (Script Hash)")
-	} else
-	if o.outputType == OUTPUT_TYPE_P2WPKH {
+	} else if o.outputType == OUTPUT_TYPE_P2WPKH {
 //		o.outputScript.SetFieldType (0, "OP_0")
 		o.outputScript.SetFieldType (1, "Witness Program (Public Key Hash)")
-	} else
-	if o.outputType == OUTPUT_TYPE_P2SH {
+	} else if o.outputType == OUTPUT_TYPE_P2SH {
 //		o.outputScript.SetFieldType (0, "OP_HASH160")
 		o.outputScript.SetFieldType (1, "Script Hash")
 //		o.outputScript.SetFieldType (2, "OP_EQUAL")
-	} else
-	if o.outputType == OUTPUT_TYPE_P2PKH {
+	} else if o.outputType == OUTPUT_TYPE_P2PKH {
 //		o.outputScript.SetFieldType (0, "OP_DUP")
 //		o.outputScript.SetFieldType (1, "OP_HASH160")
 		o.outputScript.SetFieldType (2, "Public Key Hash")
 //		o.outputScript.SetFieldType (3, "OP_EQUALVERIFY")
 //		o.outputScript.SetFieldType (4, "OP_CHECKSIG")
-	} else
-	if o.outputType == OUTPUT_TYPE_P2PK {
-//		outputType := [...] string { GetStackItemType (o.outputScript.GetFields () [0].AsHex (), false, false), "OP_CHECKSIG" }
-//		o.outputScript.SetFieldTypes (outputType [:])
-	} else
-	if o.outputType == OUTPUT_TYPE_MultiSig || o.outputType == OUTPUT_TYPE_OP_RETURN || o.outputType == OUTPUT_TYPE_WitnessUnknown || o.outputType == OUTPUT_TYPE_NonStandard {
-/*
-		hexFields := o.outputScript.GetFields ()
-		fieldCount := len (hexFields)
-		fieldTypes := make ([] string, fieldCount)
-		for f, field := range hexFields {
-			if field.IsOpcode () {
-				fieldTypes [f] = field.AsText ()
-				continue
-			}
-
-			fieldTypes [f] = GetStackItemType (field.AsHex (), false, false)
-		}
-		o.outputScript.SetFieldTypes (fieldTypes)
-*/
-	} else {
+	} else if o.outputType != OUTPUT_TYPE_P2PK && o.outputType != OUTPUT_TYPE_MultiSig && o.outputType != OUTPUT_TYPE_OP_RETURN && o.outputType != OUTPUT_TYPE_WitnessUnknown && o.outputType != OUTPUT_TYPE_NonStandard {
 		fmt.Println ("Unknown output type ", o.outputType)
-//		outputType := [...] string {}
-//		o.outputScript.SetFieldTypes (outputType [:])
 	}
 }
 

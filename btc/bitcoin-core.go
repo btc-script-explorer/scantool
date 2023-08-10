@@ -23,12 +23,12 @@ func NewBitcoinCore () BitcoinCore {
 	return bc
 }
 
-func (bc *BitcoinCore) GetType () string {
+func (bc *BitcoinCore) GetNodeType () string {
 	return "Bitcoin Core"
 }
 
 func (bc *BitcoinCore) GetVersionString () string {
-	return "Bitcoin Core " + bc.version
+	return bc.GetNodeType () + "&nbsp;" + bc.version
 }
 
 func (bc *BitcoinCore) GetTx (txId string) Tx {
@@ -69,7 +69,7 @@ func (bc *BitcoinCore) GetBlock (blockHash string, verbose bool) Block {
 	return NewBlock (block ["hash"].(string), previousHash, nextHash, uint32 (block ["height"].(float64)), int64 (block ["time"].(float64)), txs)
 }
 
-func (bc *BitcoinCore) GetBlockHash (blockHeight int) string {
+func (bc *BitcoinCore) GetBlockHash (blockHeight uint32) string {
 	return bc.getBlockHash (blockHeight)
 }
 
@@ -259,7 +259,7 @@ func (bc *BitcoinCore) getBestBlockHash () string {
 	return rawResponse ["result"].(string)
 }
 
-func (bc *BitcoinCore) getBlockHash (blockHeight int) string {
+func (bc *BitcoinCore) getBlockHash (blockHeight uint32) string {
 	jsonResult := bc.getJson ("getblockhash", [] interface {} { blockHeight })
 
 	var rawResponse map [string] interface {}

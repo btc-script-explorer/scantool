@@ -23,7 +23,7 @@ func homeHandler (response http.ResponseWriter, request *http.Request) {
 
 	// redirect web requests to most recent version if web enabled
 	if app.Settings.IsWebOn () {
-		http.Redirect (response, request, app.Settings.GetFullUrl (), http.StatusMovedPermanently)
+		http.Redirect (response, request, app.Settings.GetFullUrl () + "/web", http.StatusMovedPermanently)
 		return
 	}
 
@@ -53,10 +53,10 @@ func main () {
 		mux.HandleFunc ("/css/", web.ServeFile)
 		mux.HandleFunc ("/js/", web.ServeFile)
 		mux.HandleFunc ("/image/", web.ServeFile)
-		mux.HandleFunc ("/web/", web.WebV1Handler)
+		mux.HandleFunc ("/web/", web.WebHandler)
 	}
 
-	mux.HandleFunc ("/rest/v1/", rest.RestV1Handler)
+	mux.HandleFunc ("/rest/", rest.RestHandler)
 
 	log.Fatal (http.ListenAndServe (app.Settings.GetBaseUrl (), mux))
 }

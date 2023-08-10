@@ -19,10 +19,6 @@ func (sf *ScriptField) IsOpcode () bool {
 	return sf.isOpcode
 }
 
-//func (sf *ScriptField) HexLen () uint32 {
-//	return uint32 (len (sf.rawBytes) * 2)
-//}
-
 func (sf *ScriptField) SetBytes (bytes [] byte) {
 	sf.rawBytes = bytes
 }
@@ -31,17 +27,12 @@ func (sf *ScriptField) AsBytes () [] byte {
 	return sf.rawBytes
 }
 
-func (sf *ScriptField) AsHex (maxLength uint) string {
+func (sf *ScriptField) AsHex () string {
 	if sf.isOpcode {
 		return getOpcodeName (sf.rawBytes [0])
 	}
 
-	hexField := hex.EncodeToString (sf.rawBytes)
-	if maxLength == 0 || uint (len (hexField)) <= maxLength {
-		return hexField
-	}
-
-	return ShortenField (hexField, maxLength, 5)
+	return hex.EncodeToString (sf.rawBytes)
 }
 
 func (sf *ScriptField) SetType (dataType string) {
@@ -56,17 +47,12 @@ func (sf *ScriptField) AsType () string {
 	return sf.dataType
 }
 
-func (sf *ScriptField) AsText (maxLength uint) string {
+func (sf *ScriptField) AsText () string {
 	if sf.isOpcode {
 		return getOpcodeName (sf.rawBytes [0])
 	}
 
-	textField := string (sf.rawBytes)
-	if maxLength == 0 || uint (len (textField)) <= maxLength {
-		return textField
-	}
-
-	return ShortenField (textField, maxLength, 5)
+	return string (sf.rawBytes)
 }
 
 type Script struct {
@@ -164,7 +150,7 @@ func NewScript (rawBytes [] byte) Script {
 		endIfCount := 0
 		opReturnCount := 0
 		for f, field := range fieldMap {
-			fieldText := field.AsHex (0)
+			fieldText := field.AsHex ()
 			if fieldText == "OP_IF" || fieldText == "OP_NOTIF" { ifCount++ }
 			if fieldText == "OP_ELSE" { elseCount++ }
 			if fieldText == "OP_ENDIF" { endIfCount++ }
@@ -180,7 +166,7 @@ func NewScript (rawBytes [] byte) Script {
 	// finally, determine the data type of each script item
 	for f, field := range fields {
 		if field.IsOpcode () {
-			fields [f].dataType = field.AsHex (0)
+			fields [f].dataType = field.AsHex ()
 		} else {
 			fields [f].dataType = GetStackItemType (field.AsBytes (), false)
 		}
@@ -194,7 +180,7 @@ func (s *Script) PrintToScreen () {
 	fmt.Println ("\n**************************************")
 	fmt.Println (len (s.fields), " fields in script")
 	for _, f := range s.fields {
-		fmt.Println (f.AsHex (0))
+		fmt.Println (f.AsHex ())
 	}
 	fmt.Println ("**************************************\n")
 }
@@ -235,7 +221,7 @@ func (s *Script) GetFields () [] ScriptField {
 func (s *Script) GetFieldsAsHex () [] string {
 	hexFields := make ([] string, len (s.fields))
 	for f, field := range s.fields {
-		hexFields [f] = field.AsHex (0)
+		hexFields [f] = field.AsHex ()
 	}
 	return hexFields
 }
@@ -247,7 +233,7 @@ func (s *Script) GetRawFieldTypes () string {
 */
 
 // used only in test mode
-func (s *Script) GetHex () string {
+func (s *Script) AsHex () string {
 	return hex.EncodeToString (s.rawBytes)
 }
 
@@ -272,7 +258,7 @@ func (s *Script) GetSerializedScript () Script {
 
 	// it parses, but it is not valid if it contains OP_INVALIDOPCODE
 	for _, field := range possibleScript.fields {
-		if field.AsHex (0) == "OP_INVALIDOPCODE" {
+		if field.AsHex () == "OP_INVALIDOPCODE" {
 			return Script {}
 		}
 	}
@@ -315,7 +301,7 @@ func (s *Script) IsValidMultiSigInput () bool {
 	// the extra stack item can be anything, so we ignore it
 	// all remaining fields must be valid signatures of OP_DUP
 	for f := 1; f < fieldCount; f++ {
-		if !IsValidECSignature (s.fields [f].AsBytes ()) && s.fields [f].AsHex (0) != "OP_DUP" {
+		if !IsValidECSignature (s.fields [f].AsBytes ()) && s.fields [f].AsHex () != "OP_DUP" {
 			return false
 		}
 	}
@@ -355,7 +341,7 @@ func (s *Script) IsMultiSigOutput () bool {
 
 	// the last field must be OP_CHECKMULTISIG
 	lastFieldIndex := fieldCount - 1
-	return s.fields [lastFieldIndex].IsOpcode () && s.fields [lastFieldIndex].AsHex (0) == "OP_CHECKMULTISIG"
+	return s.fields [lastFieldIndex].IsOpcode () && s.fields [lastFieldIndex].AsHex () == "OP_CHECKMULTISIG"
 }
 
 func (s *Script) IsP2pkhOutput () bool { return len (s.rawBytes) == 25 && s.rawBytes [0] == 0x76 && s.rawBytes [1] == 0xa9 && s.rawBytes [2] == 0x14 && s.rawBytes [23] == 0x88 && s.rawBytes [24] == 0xac }
@@ -395,19 +381,19 @@ func (s *Script) IsOrdinal () bool {
 	if fieldCount < 10 { return false }
 
 	if !IsValidSchnorrPublicKey (s.fields [0].AsBytes ()) { return false }
-	if s.fields [1].AsHex (0) != "OP_CHECKSIG" { return false }
+	if s.fields [1].AsHex () != "OP_CHECKSIG" { return false }
 
 	ordBegin := 2
-	if s.fields [3].AsHex (0) == "OP_DROP" { ordBegin = 4 }
+	if s.fields [3].AsHex () == "OP_DROP" { ordBegin = 4 }
 
-	if s.fields [ordBegin].AsHex (0) != "OP_0" { return false }
-	if s.fields [ordBegin + 1].AsHex (0) != "OP_IF" { return false }
-	if s.fields [ordBegin + 2].AsText (0) != "ord" { return false }
+	if s.fields [ordBegin].AsHex () != "OP_0" { return false }
+	if s.fields [ordBegin + 1].AsHex () != "OP_IF" { return false }
+	if s.fields [ordBegin + 2].AsText () != "ord" { return false }
 	if s.fields [ordBegin + 3].AsBytes () [0] != 0x01 { return false }
 
-	if s.fields [ordBegin + 5].AsHex (0) != "OP_0" { return false }
+	if s.fields [ordBegin + 5].AsHex () != "OP_0" { return false }
 
-	if s.fields [fieldCount - 1].AsHex (0) != "OP_ENDIF" { return false }
+	if s.fields [fieldCount - 1].AsHex () != "OP_ENDIF" { return false }
 
 	return true
 }

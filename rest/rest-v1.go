@@ -2,9 +2,8 @@ package rest
 
 import (
 	"fmt"
-	"strings"
+	"io"
 	"encoding/json"
-	"net/http"
 
 	"btctx/btc"
 )
@@ -13,88 +12,505 @@ type RestApiV1 struct {
 	version uint16
 }
 
-type PreviousOutput struct {
+type BlockTxData struct {
+	Index uint16
+	TxId string
+	Bip141 bool
+	InputCount uint16
+	OutputCount uint16
+}
+
+type FieldData struct {
+	Hex string
+	Text string
+	Type string
+}
+
+type OutputData struct {
+	OutputIndex uint32
+	OutputType string
+	Value uint64
+	Address string
+	OutputScript map [string] interface {}
+}
+
+type PreviousOutputRequest struct {
 	InputTxId string
 	InputIndex uint32
+	PrevOutTxId string
+	PrevOutIndex uint32
+}
 
+type PreviousOutputResponse struct {
 	Value uint64
 	OutputType string
 	Address string
-
-	ScriptFieldsHex [] string
-	ScriptFieldsType [] string
-	ScriptFieldsText [] string
+	OutputScript map [string] interface {}
 }
 
-type RestError struct {
-	Error string
-}
+func (api RestApiV1) HandleRequest (httpMethod string, functionName string, getParams [] string, requestBody io.ReadCloser) string {
 
-func RestV1Handler (response http.ResponseWriter, request *http.Request) {
-
-	modifiedPath := request.URL.Path
-	if len (modifiedPath) > 0 && modifiedPath [0] == '/' { modifiedPath = modifiedPath [1:] }
-	lastChar := len (modifiedPath) - 1
-	if lastChar >= 0 && modifiedPath [lastChar] == '/' { modifiedPath = modifiedPath [: lastChar] }
-
-	if len (modifiedPath) == 0 {
-		errorMessage := fmt.Sprintf ("Invalid request: %s", request.URL.Path)
-		fmt.Println (errorMessage)
-		prevOutsBytes, _ := json.Marshal (RestError { Error: errorMessage })
-		fmt.Fprint (response, string (prevOutsBytes))
-		return
-	}
-
-	restApi := RestApiV1 {}
-
-	requestParts := strings.Split (modifiedPath, "/")
-	if requestParts [0] != "rest" || requestParts [1] != "v1" {
-		errorMessage := fmt.Sprintf ("Invalid request: %s", request.URL.Path)
-		fmt.Println (errorMessage)
-		prevOutsBytes, _ := json.Marshal (RestError { Error: errorMessage })
-		fmt.Fprint (response, string (prevOutsBytes))
-		return
-	}
-
-	restApi.version = 1
-
-	params := strings.Split (modifiedPath, "/")
-	paramCount := len (params)
-	functionName := params [paramCount - 1]
-
-	var responseJson string
+	errorMessage := ""
+	responseJson := ""
 
 	switch functionName {
-		case "get_legacy_spend_types":
 
-			if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", functionName)); break }
+/*
+
+pk
+ms
+pkh
+sh
+
+sh-wpkh
+sh-wsh
+wpkh
+wsh
+trk
+trs
+
+
+pk
+ms
+pkh
+sh
+wpkh
+wsh
+tr
+
+		request:
+		{
+			"height": 789012,
+			"hash": "00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594",
+			"options":
+			{
+				"spend-types": ["trs"],
+				"output-types": []
+			}
+		}
+		* If both height and hash are included, height will be ignored.
+		curl -X POST -d "{\"height\":789012}" http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d "{\"hash\":\"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594\"}" http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d "{\"height\":789012,\"options\":{\"NoTxs\":true,\"NoTypes\":true}}" http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d "{\"options\":{\"NoTxs\":true,\"NoTypes\":true,\"WScriptUsage\":true}}" http://127.0.0.1:8888/rest/v1/block
+
+		response:
+		{
+			"height": 789012,
+			"hash": "00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594",
+			"previous-hash":
+			"next-hash":
+			"timestamp":
+			"txs":
+			[
+				{
+					"index": 0
+					"id": "",
+					"bip141": true,
+					"input-count": 4444,
+					"output-count": 5555
+				}
+			]
+		}
+*/
+		case "block":
+
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
+
+			// unpack the json
+			var requestParams map [string] interface {}
+			err := json.NewDecoder (requestBody).Decode (&requestParams)
+			if err != nil { errorMessage = err.Error (); break }
+
+			blockData := GetBlockData (requestParams)
+
+			blockBytes, err := json.Marshal (blockData)
+			if err != nil { fmt.Println (err.Error ()) }
+
+			responseJson = string (blockBytes)
+
+
+		case "tx":
+
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
+
+			// unpack the json
+			var requestParams map [string] interface {}
+			err := json.NewDecoder (requestBody).Decode (&requestParams)
+			if err != nil { errorMessage = err.Error (); break }
+
+			txData := GetTxData (requestParams)
+
+			txBytes, err := json.Marshal (txData)
+			if err != nil { fmt.Println (err.Error ()) }
+
+			responseJson = string (txBytes)
+
+
+/*
+		request:
+		curl -X GET http://127.0.0.1:8888/rest/v1/current_block_height
+
+		response:
+		{
+			"Current_block_height": 802114
+		}
+*/
+		case "current_block_height":
+
+			if httpMethod != "GET" { errorMessage = fmt.Sprintf ("%s must be sent as a GET request.", functionName); break }
+
+			responseJson = api.getCurrentBlockHeight ()
+
+/*
+		request:
+		{
+			"f742b911259dd11278e9e3d34f2538c7d77837daef15fc00a047e3f13253aa0b": [0, 24],
+			"f76874221ce8d7961f91b9ad5e827fb558d5ce95bc60b2722112d3384069c61b": [17, 21],
+			"f7cb6da78444ff5029c5bd1f9ae6c64a1d2d65c604f2989c90cf9dc323692ed8": [0, 2]
+		}
+		curl -X POST -d "{\"f742b911259dd11278e9e3d34f2538c7d77837daef15fc00a047e3f13253aa0b\":[0,24],\"f76874221ce8d7961f91b9ad5e827fb558d5ce95bc60b2722112d3384069c61b\":[17,21],\"f7cb6da78444ff5029c5bd1f9ae6c64a1d2d65c604f2989c90cf9dc323692ed8\":[0,2]}" http://127.0.0.1:8888/rest/v1/previous_output_types
+
+		response:
+		{
+			"f742b911259dd11278e9e3d34f2538c7d77837daef15fc00a047e3f13253aa0b:0": "P2PKH",
+			"f742b911259dd11278e9e3d34f2538c7d77837daef15fc00a047e3f13253aa0b:24": "P2PKH",
+			"f76874221ce8d7961f91b9ad5e827fb558d5ce95bc60b2722112d3384069c61b:17": "P2PKH",
+			"f76874221ce8d7961f91b9ad5e827fb558d5ce95bc60b2722112d3384069c61b:21": "P2PKH",
+			"f7cb6da78444ff5029c5bd1f9ae6c64a1d2d65c604f2989c90cf9dc323692ed8:0": "P2PKH",
+			"f7cb6da78444ff5029c5bd1f9ae6c64a1d2d65c604f2989c90cf9dc323692ed8:2": "P2PKH"
+		}
+*/
+		case "previous_output_types":
+
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
 
 			// unpack the json
 			var requestedPreviousOutputs map [string] [] uint32
-			err := json.NewDecoder (request.Body).Decode (&requestedPreviousOutputs)
-			if err != nil { fmt.Println (err.Error()) }
+			err := json.NewDecoder (requestBody).Decode (&requestedPreviousOutputs)
+			if err != nil { errorMessage = err.Error (); break }
 
-			responseJson = restApi.getLegacySpendTypes (requestedPreviousOutputs)
+			prevOutMap := api.GetPreviousOutputTypes (requestedPreviousOutputs)
+			prevOutsBytes, err := json.Marshal (prevOutMap)
+			if err != nil { fmt.Println (err.Error ()) }
 
-		case "get_current_block_height":
-
-			if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", functionName)); break }
-
-			responseJson = restApi.getCurrentBlockHeight ()
+			responseJson = string (prevOutsBytes)
 
 		default:
-			errorMessage := fmt.Sprintf ("Unknown REST v1 function: %s", functionName)
-			fmt.Println (errorMessage)
-			prevOutsBytes, _ := json.Marshal (RestError { Error: errorMessage })
-			fmt.Fprint (response, string (prevOutsBytes))
-			return
+			errorMessage = fmt.Sprintf ("Unknown REST v1 function: %s", functionName)
 	}
 
-	fmt.Fprint (response, responseJson)
+	if len (errorMessage) > 0 {
+		fmt.Println (errorMessage)
+		errBytes, _ := json.Marshal (RestError { Error: errorMessage })
+		responseJson = string (errBytes)
+	}
+
+	return responseJson
 }
 
+func GetTxData (txRequest map [string] interface {}) map [string] interface {} {
+
+	nodeClient := btc.GetNodeClient ()
+
+	txId := txRequest ["id"].(string)
+	tx := nodeClient.GetTx (txId)
+	if tx.IsNil () { return nil }
+
+	txData := make (map [string] interface {})
+
+	txData ["BlockHeight"] = tx.GetBlockHeight ()
+	txData ["BlockTime"] = tx.GetBlockTime ()
+	txData ["BlockHash"] = tx.GetBlockHash ()
+	txData ["Id"] = tx.GetTxId ()
+	txData ["IsCoinbase"] = tx.IsCoinbase ()
+	txData ["SupportsBip141"] = tx.SupportsBip141 ()
+	txData ["LockTime"] = tx.GetLockTime ()
+
+	// inputs
+	inputs := make ([] map [string] interface {}, tx.GetInputCount ())
+	for i, input := range tx.GetInputs () {
+
+		inputData := make (map [string] interface {})
+
+		inputData ["InputIndex"] = uint32 (i)
+		inputData ["Coinbase"] = input.IsCoinbase ()
+		inputData ["SpendType"] = input.GetSpendType ()
+		inputData ["PreviousOutputTxId"] = input.GetPreviousOutputTxId ()
+		inputData ["PreviousOutputIndex"] = input.GetPreviousOutputIndex ()
+		inputData ["Sequence"] = input.GetSequence ()
+
+		// input script
+		inputScript := input.GetInputScript ()
+		if !inputScript.IsNil () {
+			fieldData := make ([] FieldData, inputScript.GetFieldCount ())
+			for f, field := range inputScript.GetFields () {
+				fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+			}
+
+			inputScriptData := make (map [string] interface {})
+			inputScriptData ["Fields"] = fieldData
+			inputData ["InputScript"] = inputScriptData
+		}
+
+		// redeem script
+		redeemScript := input.GetRedeemScript ()
+		if !redeemScript.IsNil () {
+			fieldData := make ([] FieldData, redeemScript.GetFieldCount ())
+			for f, field := range redeemScript.GetFields () {
+				fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+			}
+
+			redeemScriptData := make (map [string] interface {})
+			redeemScriptData ["Fields"] = fieldData
+			inputData ["RedeemScript"] = redeemScriptData
+		}
+
+		// segwit
+		segwit := input.GetSegwit ()
+		if !segwit.IsEmpty () {
+
+			segwitData := make (map [string] interface {})
+
+			// segwit fields
+			fieldData := make ([] FieldData, segwit.GetFieldCount ())
+			for f, field := range segwit.GetFields () {
+				fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+			}
+			segwitData ["Fields"] = fieldData
+
+			// witness script
+			witnessScript := segwit.GetWitnessScript ()
+			if !witnessScript.IsNil () {
+				fieldData := make ([] FieldData, witnessScript.GetFieldCount ())
+				for f, field := range witnessScript.GetFields () {
+					fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+				}
+
+				witnessScriptData := make (map [string] interface {})
+				witnessScriptData ["Fields"] = fieldData
+				segwitData ["WitnessScript"] = witnessScriptData
+			}
+
+			// tap script
+			tapScript, _ := segwit.GetTapScript ()
+			if !tapScript.IsNil () {
+				fieldData := make ([] FieldData, tapScript.GetFieldCount ())
+				for f, field := range tapScript.GetFields () {
+					fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+				}
+
+				tapScriptData := make (map [string] interface {})
+				tapScriptData ["Fields"] = fieldData
+				if tapScript.IsOrdinal () { tapScriptData ["Ordinal"] = true }
+				segwitData ["TapScript"] = tapScriptData
+			}
+
+			inputData ["Segwit"] = segwitData
+		}
+
+		inputs [i] = inputData
+	}
+	txData ["Inputs"] = inputs
+
+	// previous outputs
 /*
-get_legacy_spend_types
+	previousOutputCount := len (previousOutputRequests)
+	if previousOutputCount > 0 {
+		previousOutputResponses := make ([] PreviousOutputResponse, previousOutputCount)
+		for o, prevOut := range previousOutputRequests {
+			previousOutputResponses [o] = GetPreviousOutputResponseData (prevOut.PrevOutTxId, prevOut.PrevOutIndex)
+		}
+		txData ["PreviousOutputs"] = previousOutputResponses
+	}
+*/
+	txData ["PreviousOutputRequests"] = getPreviousOutputRequestData (tx)
+
+	// outputs
+	outputs := make ([] OutputData, tx.GetOutputCount ())
+	for o, output := range tx.GetOutputs () {
+
+		outputScript := output.GetOutputScript ()
+		fieldData := make ([] FieldData, outputScript.GetFieldCount ())
+		for f, field := range outputScript.GetFields () {
+			fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+		}
+
+		outputs [o] = OutputData { OutputIndex: uint32 (o), OutputType: output.GetOutputType (), Value: output.GetValue (), Address: output.GetAddress (), OutputScript: map [string] interface {} { "Fields": fieldData } }
+	}
+	txData ["Outputs"] = outputs
+
+	return txData
+}
+
+func GetPreviousOutputResponseData (txId string, outputIndex uint32) PreviousOutputResponse {
+	nodeClient := btc.GetNodeClient ()
+	previousOutput := nodeClient.GetPreviousOutput (txId, uint32 (outputIndex))
+
+	outputScript := previousOutput.GetOutputScript ()
+	scriptFields := outputScript.GetFields ()
+	fieldData := make ([] FieldData, len (scriptFields))
+	for f, field := range scriptFields {
+		fieldData [f] = FieldData { Hex: field.AsHex (), Text: field.AsText (), Type: field.AsType () }
+	}
+
+	return PreviousOutputResponse { Value: previousOutput.GetValue (), OutputType: previousOutput.GetOutputType (), Address: previousOutput.GetAddress (), OutputScript: map [string] interface {} { "Fields": fieldData } }
+}
+
+func getPreviousOutputRequestData (tx btc.Tx) [] PreviousOutputRequest {
+
+	if tx.IsCoinbase () { return [] PreviousOutputRequest {} }
+
+	txId := tx.GetTxId ()
+	inputs := tx.GetInputs ()
+	inputCount := len (inputs)
+	previousOutputs := make ([] PreviousOutputRequest, inputCount)
+	for i := uint32 (0); i < uint32 (inputCount); i++ {
+		previousOutputs [i] = PreviousOutputRequest { InputTxId: txId, InputIndex: i, PrevOutTxId: inputs [i].GetPreviousOutputTxId (), PrevOutIndex: inputs [i].GetPreviousOutputIndex () }
+	}
+
+	return previousOutputs
+}
+
+func GetBlockData (blockRequest map [string] interface {}) map [string] interface {} {
+
+	// determine the block hash
+	nodeClient := btc.GetNodeClient ()
+	blockHash := ""
+	if blockRequest ["hash"] != nil {
+		blockHash = blockRequest ["hash"].(string)
+	} else if blockRequest ["height"] != nil {
+		// find an integer type that works
+		// this can vary depending on the software used to send the request
+		blockHeight := uint32 (0)
+		uint32Test, ok := blockRequest ["height"].(uint32)
+		if ok {
+			blockHeight = uint32Test
+		} else {
+			float64Test := float64 (0)
+			float64Test, ok = blockRequest ["height"].(float64)
+			if ok { blockHeight = uint32 (float64Test) }
+		}
+		if !ok { fmt.Println ("Failed to determine integer type of block height: ", blockHeight) }
+		blockHash = nodeClient.GetBlockHash (blockHeight)
+	} else {
+		blockHash = nodeClient.GetCurrentBlockHash ()
+	}
+
+	block := nodeClient.GetBlock (blockHash, true)
+	if block.IsNil () { return nil }
+
+	blockRequestOptions := map [string] interface {} {}
+	if blockRequest ["options"] != nil { blockRequestOptions = blockRequest ["options"].(map [string] interface {}) }
+
+	blockData := make (map [string] interface {})
+
+	previousHash := block.GetPreviousHash ()
+	if len (previousHash) > 0 { blockData ["PreviousHash"] = previousHash }
+	nextHash := block.GetNextHash ()
+	if len (nextHash) > 0 { blockData ["NextHash"] = nextHash }
+
+	blockData ["Hash"] = block.GetHash ()
+	blockData ["Height"] = block.GetHeight ()
+	blockData ["Timestamp"] = block.GetTimestamp ()
+
+	blockData ["InputCount"], blockData ["OutputCount"] = block.GetInputOutputCounts ()
+
+	if blockRequestOptions ["NoTypes"] == nil || !blockRequestOptions ["NoTypes"].(bool) {
+		blockData ["KnownSpendTypeMap"] = getKnownSpendTypes (block)
+		blockData ["UnknownSpendTypeMap"] = block.GetPendingPreviousOutputs ()
+		blockData ["OutputTypeMap"] = getOutputTypes (block)
+	}
+
+	if blockRequestOptions ["NoTxs"] == nil || !blockRequestOptions ["NoTxs"].(bool) {
+		bip141Count := uint16 (0)
+		var txs [] BlockTxData
+		for t, tx := range block.GetTxs () {
+			if tx.SupportsBip141 () { bip141Count++ }
+			txs = append (txs, BlockTxData { Index: uint16 (t), TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
+		}
+		blockData ["Bip141Count"] = bip141Count
+		blockData ["Txs"] = txs
+	}
+
+	if blockRequestOptions != nil {
+		if blockRequestOptions ["WScriptUsage"] != nil && blockRequestOptions ["WScriptUsage"].(bool) {
+
+			witnessScriptMultisigCount := uint16 (0)
+			witnessScriptCount := uint16 (0)
+			tapScriptOrdinalCount := uint16 (0)
+			tapScriptCount := uint16 (0)
+
+			for _, tx := range block.GetTxs () {
+				for _, input := range tx.GetInputs () {
+
+					st := input.GetSpendType ()
+					if st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH {
+						witnessScriptCount++
+						if input.HasMultisigWitnessScript () {
+							witnessScriptMultisigCount++
+						}
+					} else if st == btc.SPEND_TYPE_P2TR_Script {
+						tapScriptCount++
+						if input.HasOrdinalTapScript () {
+							tapScriptOrdinalCount++
+						}
+					}
+				}
+			}
+
+			if witnessScriptCount > 0 {
+				blockData ["WitnessScriptMultisigCount"] = witnessScriptMultisigCount
+				blockData ["WitnessScriptCount"] = witnessScriptCount
+			}
+			if tapScriptCount > 0 {
+				blockData ["TapScriptOrdinalCount"] = tapScriptOrdinalCount
+				blockData ["TapScriptCount"] = tapScriptCount
+			}
+		}
+	}
+
+	return blockData
+}
+
+func getKnownSpendTypes (block btc.Block) map [string] uint16 {
+
+	spendTypeMap := make (map [string] uint16)
+	for _, tx := range block.GetTxs () {
+		for _, input := range tx.GetInputs () {
+			if input.IsCoinbase () { continue }
+
+			spendType := input.GetSpendType ()
+			if len (spendType) > 0 {
+				spendTypeMap [spendType]++
+			}
+		}
+	}
+
+	return spendTypeMap
+}
+
+func getOutputTypes (block btc.Block) map [string] uint16 {
+
+	outputTypeMap := make (map [string] uint16)
+	for _, tx := range block.GetTxs () {
+		for _, output := range tx.GetOutputs () {
+
+			outputType := output.GetOutputType ()
+			if len (outputType) > 0 {
+				outputTypeMap [outputType]++
+			}
+		}
+	}
+
+	return outputTypeMap
+}
+
+
+
+
+/*
+legacy_spend_types
 
 segwit spend types can be determined by their input scripts and segwit fields, but legacy spend types can not
 legacy spend types have the same name as their output types, so we simply return the output types
@@ -126,7 +542,8 @@ The example above would return:
 }
 
 */
-func (r *RestApiV1) getLegacySpendTypes (previousOutputs map [string] [] uint32) string {
+
+func (r *RestApiV1) GetPreviousOutputTypes (previousOutputs map [string] [] uint32) map [string] string {
 
 	nodeClient := btc.GetNodeClient ()
 	prevOutMap := make (map [string] string)
@@ -136,24 +553,13 @@ func (r *RestApiV1) getLegacySpendTypes (previousOutputs map [string] [] uint32)
 		outputs := tx.GetOutputs ()
 
 		for _, prevOutIndex := range outputIndexes {
-
-			previousOutputType := outputs [prevOutIndex].GetOutputType ()
-
-			// if this is not a legacy type, it must be non-standard
-			if previousOutputType != btc.OUTPUT_TYPE_P2PK && previousOutputType != btc.OUTPUT_TYPE_MultiSig && previousOutputType != btc.OUTPUT_TYPE_P2PKH && previousOutputType != btc.OUTPUT_TYPE_P2SH {
-				previousOutputType = btc.SPEND_TYPE_NonStandard
-			}
-
-			jsonKey := fmt.Sprintf ("%s:%d", txId, prevOutIndex)
-			jsonValue := previousOutputType
-			prevOutMap [jsonKey] = jsonValue
+			key := fmt.Sprintf ("%s:%d", txId, prevOutIndex)
+			value := outputs [prevOutIndex].GetOutputType ()
+			prevOutMap [key] = value
 		}
 	}
 
-	prevOutsBytes, err := json.Marshal (prevOutMap)
-	if err != nil { fmt.Println (err.Error ()) }
-
-	return string (prevOutsBytes)
+	return prevOutMap
 }
 
 func (r *RestApiV1) getCurrentBlockHeight () string {
