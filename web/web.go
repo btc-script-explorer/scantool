@@ -146,6 +146,8 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 		possibleQueryTypes = determineQueryTypes (params [1])
 	}
 
+	restApi := rest.RestApiV1 {}
+
 	customJavascript := fmt.Sprintf ("var base_url_web = '%s/web';\n", app.Settings.GetFullUrl ())
 	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), WEB_REST_VERSION)
 
@@ -159,6 +161,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				blockRequestData := make (map [string] interface {})
 
+				// get the block request data
 				blockParam := ""
 				if paramCount >= 2 {
 					blockParam = params [1]
@@ -178,7 +181,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				options := make (map [string] interface {})
 				options ["WScriptUsage"] = true
 				blockRequestData ["options"] = options
-				blockData := rest.GetBlockData (blockRequestData)
+				blockData := restApi.GetBlockData (blockRequestData)
 
 				// spend types
 				knownSpendTypes, knownSpendTypeCount := getKnownSpendTypesHtmlData (blockData ["InputCount"].(uint16) - 1, blockData ["KnownSpendTypeMap"].(map [string] uint16))
@@ -222,7 +225,12 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				txRequestData := make (map [string] interface {})
 				txRequestData ["id"] = params [1]
 				txRequestData ["options"] = map [string] interface {} { "PreviousOutputs": true }
-				txData := rest.GetTxData (txRequestData)
+				txData := restApi.GetTxData (txRequestData)
+				if txData == nil {
+					// TODO: need better error handling
+					html = "Empty response from server."
+					break
+				}
 
 				if txData ["PreviousOutputRequests"] != nil {
 					pendingPreviousOutputsBytes, err := json.Marshal (txData ["PreviousOutputRequests"].([] rest.PreviousOutputRequest))
@@ -254,7 +262,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				inputIndex := previousOutputJsonIn.InputIndex
 				inputTxId := previousOutputJsonIn.InputTxId
 
-				previousOutput := rest.GetPreviousOutputResponseData (txId, uint32 (outputIndex))
+				previousOutput := restApi.GetPreviousOutputResponseData (txId, uint32 (outputIndex))
 				idPrefix := fmt.Sprintf ("previous-output-%d", inputIndex)
 				classPrefix := fmt.Sprintf ("input-%d", inputIndex)
 				previousOutputScriptHtml := getPreviousOutputScriptHtml (previousOutput.OutputScript, idPrefix, classPrefix)
@@ -283,8 +291,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				err := json.NewDecoder (request.Body).Decode (&requestedPreviousOutputs)
 				if err != nil { fmt.Println (err.Error()) }
 
-				restApiV1 := rest.RestApiV1 {}
-				prevOutMap := restApiV1.GetPreviousOutputTypes (requestedPreviousOutputs)
+				prevOutMap := restApi.GetPreviousOutputTypes (requestedPreviousOutputs)
 
 				// if this is not a legacy type, it must be a non-standard input
 				for outpoint, outputType := range prevOutMap {
@@ -445,8 +452,8 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 		tapScriptCount := blockData ["TapScriptCount"].(uint16)
 		if tapScriptCount > 0 {
 			tapScriptOrdinalCount := blockData ["TapScriptOrdinalCount"].(uint16)
-			wsMessage:= fmt.Sprintf ("%6.2f%% Ordinals (%d/%d)", float32 (tapScriptOrdinalCount) * 100 / float32 (tapScriptCount), tapScriptOrdinalCount, tapScriptCount)
-			blockHtmlData ["TapScriptOrdinalsMessage"] = template.HTML (strings.Replace (wsMessage, " ", "&nbsp;", -1))
+			tsMessage:= fmt.Sprintf ("%6.2f%% Ordinals (%d/%d)", float32 (tapScriptOrdinalCount) * 100 / float32 (tapScriptCount), tapScriptOrdinalCount, tapScriptCount)
+			blockHtmlData ["TapScriptOrdinalsMessage"] = template.HTML (strings.Replace (tsMessage, " ", "&nbsp;", -1))
 		}
 	}
 
@@ -632,68 +639,11 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 	fieldCount := len (fields)
 	if fieldCount > 0 {
 
-
-
-/*
-
-
-		// segwit does not know what some of its types are, so it identifies data types when the HTML is rendered
-		witnessScript := segwit.GetWitnessScript ()
-		if !witnessScript.IsNil () { fields [fieldCount - 1].SetType ("<<< SERIALIZED WITNESS SCRIPT >>>") }
-
-		tapScript, tapScriptIndex := segwit.GetTapScript ()
-		if !tapScript.IsNil () {
-
-			cbIndex := segwit.GetControlBlockIndex ()
-			cbLeafCount := 0
-			if cbIndex != -1 {
-				cbLeafCount = (len (fields [cbIndex].AsBytes ()) - 1) / 32
-			} else {
-				fmt.Println ("Segwit has tap script but no control block.")
-			}
-
-			// set the field types for the Taproot Segwit fields
-			if segwit.HasAnnex () {
-				annexIndex := fieldCount - 1
-				fields [annexIndex].SetType (fmt.Sprintf ("Annex (%d Bytes)", len (fields [annexIndex].AsBytes ())))
-			}
-
-			fields [tapScriptIndex].SetType ("<<< SERIALIZED TAP SCRIPT >>>")
-
-			leafCountLabel := "TapLea"
-			if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
-			fields [cbIndex].SetType (fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel))
-
-			// set the field types for the Tap Script
-			tapScriptFields := tapScript.GetFields ()
-			for f, field := range tapScriptFields {
-				if !field.IsOpcode () {
-					tapScriptFields [f].SetType (btc.GetStackItemType (field.AsBytes (), true))
-				}
-			}
-		}
-
-
-
-
-*/
-
-
-
-
-
 		hexFieldsHtml = make ([] FieldHtmlData, fieldCount)
 		textFieldsHtml = make ([] FieldHtmlData, fieldCount)
 		typeFieldsHtml = make ([] FieldHtmlData, fieldCount)
 
 		for f, field := range fields {
-
-/*
-			// set any field types that aren't already set
-			if len (fields [f].AsType ()) == 0 {
-				fields [f].SetType (btc.GetStackItemType (field.AsBytes (), usingSchnorrSignatures))
-			}
-*/
 
 			// hex strings
 			entireHexField := field.Hex
@@ -703,9 +653,13 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 			}
 
 			// text strings
-			entireTextField := field.Text
-			textFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (shortenField (field.Text, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)), ShowCopyButton: uint (len (field.Text)) > FIELD_MAX_WIDTH }
-			if textFieldsHtml [f].ShowCopyButton {
+			bytes, _ := hex.DecodeString (field.Hex)
+			entireTextField := string (bytes)
+			shortenedField := shortenField (entireTextField, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)
+			finalText := hexToText (shortenedField)
+			textFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (finalText), ShowCopyButton: uint (len (entireTextField)) > FIELD_MAX_WIDTH }
+			if shortenedField != entireTextField {
+				textFieldsHtml [f].ShowCopyButton = true
 				textFieldsHtml [f].CopyText = entireTextField
 			}
 
@@ -766,10 +720,16 @@ func getScriptHtmlData (script map [string] interface {}, htmlId string, display
 		}
 
 		// text strings
-		entireTextField := field.Text
+		bytes, err := hex.DecodeString (field.Hex)
+		isOpcode := err != nil
+
+		entireTextField := string (bytes)
 		shortenedField := shortenField (entireTextField, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)
-		shortenedField = strings.ReplaceAll (shortenedField, " ", "&nbsp;")
-		textFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (shortenedField), ShowCopyButton: uint (len (entireTextField)) > FIELD_MAX_WIDTH }
+		finalText := field.Hex
+		if !isOpcode {
+			finalText = hexToText (shortenedField)
+		}
+		textFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (finalText), ShowCopyButton: !isOpcode && uint (len (entireTextField)) > FIELD_MAX_WIDTH }
 		if shortenedField != entireTextField {
 			textFieldsHtml [f].ShowCopyButton = true
 			textFieldsHtml [f].CopyText = entireTextField
@@ -794,6 +754,16 @@ func getScriptHtmlData (script map [string] interface {}, htmlId string, display
 	scriptHtmlData.FieldSet.CopyImageUrl = copyImageUrl
 
 	return scriptHtmlData
+}
+
+func hexToText (originalStr string) string {
+
+	result := originalStr
+	result = strings.ReplaceAll (result, "<", "&lt;")
+	result = strings.ReplaceAll (result, ">", "&gt;")
+	result = strings.ReplaceAll (result, " ", "&nbsp;")
+
+	return result
 }
 
 func getPreviousOutputScriptHtml (script map [string] interface {}, htmlId string, displayTypeClassPrefix string) string {

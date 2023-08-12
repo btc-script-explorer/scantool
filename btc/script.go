@@ -35,10 +35,6 @@ func (sf *ScriptField) AsHex () string {
 	return hex.EncodeToString (sf.rawBytes)
 }
 
-func (sf *ScriptField) SetType (dataType string) {
-	sf.dataType = dataType
-}
-
 func (sf *ScriptField) AsType () string {
 	if sf.isOpcode {
 		return getOpcodeName (sf.rawBytes [0])
@@ -47,6 +43,7 @@ func (sf *ScriptField) AsType () string {
 	return sf.dataType
 }
 
+/*
 func (sf *ScriptField) AsText () string {
 	if sf.isOpcode {
 		return getOpcodeName (sf.rawBytes [0])
@@ -54,6 +51,7 @@ func (sf *ScriptField) AsText () string {
 
 	return string (sf.rawBytes)
 }
+*/
 
 type Script struct {
 	rawBytes [] byte
@@ -179,8 +177,8 @@ func NewScript (rawBytes [] byte) Script {
 func (s *Script) PrintToScreen () {
 	fmt.Println ("\n**************************************")
 	fmt.Println (len (s.fields), " fields in script")
-	for _, f := range s.fields {
-		fmt.Println (f.AsHex ())
+	for index, f := range s.fields {
+		fmt.Println (index, f.AsHex (), f.AsType ())
 	}
 	fmt.Println ("**************************************\n")
 }
@@ -388,7 +386,7 @@ func (s *Script) IsOrdinal () bool {
 
 	if s.fields [ordBegin].AsHex () != "OP_0" { return false }
 	if s.fields [ordBegin + 1].AsHex () != "OP_IF" { return false }
-	if s.fields [ordBegin + 2].AsText () != "ord" { return false }
+	if string (s.fields [ordBegin + 2].AsBytes ()) != "ord" { return false }
 	if s.fields [ordBegin + 3].AsBytes () [0] != 0x01 { return false }
 
 	if s.fields [ordBegin + 5].AsHex () != "OP_0" { return false }

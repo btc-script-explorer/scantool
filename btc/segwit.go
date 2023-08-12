@@ -27,11 +27,6 @@ func (swf *SegwitField) AsType () string {
 	return swf.dataType
 }
 
-func (swf *SegwitField) AsText () string {
-	return string (swf.rawBytes)
-}
-
-
 type Segwit struct {
 	fields [] SegwitField
 	witnessScript Script
@@ -49,7 +44,7 @@ func NewSegwit (rawFields [] [] byte) Segwit {
 	// segwit is not aware of the types of all of its fields
 	for f, field := range fields {
 		if len (field.rawBytes) == 0 {
-			fields [f].dataType = "<<< ZERO-LENGTH FIELD >>>"
+			fields [f].dataType = "ZERO-LENGTH FIELD"
 		}
 	}
 
@@ -64,8 +59,8 @@ func (s *Segwit) GetTapScript () (Script, uint32) {
 	return s.tapScript, s.tapScriptIndex
 }
 
-func (s *Segwit) GetFieldCount () uint16 {
-	return uint16 (len (s.fields))
+func (s *Segwit) GetFieldCount () uint32 {
+	return uint32 (len (s.fields))
 }
 
 func (s *Segwit) GetFields () [] SegwitField {
@@ -163,7 +158,17 @@ func (s *Segwit) parseWitnessScript () Script {
 
 func (s *Segwit) SetWitnessScript (ws Script) {
 	s.witnessScript = ws
-	s.fields [len (s.fields) - 1].SetType ("<<< SERIALIZED WITNESS SCRIPT >>>")
+	s.fields [len (s.fields) - 1].SetType ("SERIALIZED WITNESS SCRIPT")
+
+	// set the field types for the Witness Script
+	witnessScriptFields := s.witnessScript.GetFields ()
+	for f, field := range witnessScriptFields {
+		if field.IsOpcode () {
+			s.witnessScript.SetFieldType (f, field.AsHex ())
+		} else {
+			s.witnessScript.SetFieldType (f, GetStackItemType (field.AsBytes (), false))
+		}
+	}
 }
 
 /*
@@ -214,7 +219,7 @@ func (s *Segwit) SetTapScript (ts Script, i uint32) {
 		s.fields [annexIndex].SetType (fmt.Sprintf ("Annex (%d Bytes)", len (s.fields [annexIndex].AsBytes ())))
 	}
 
-	s.fields [s.tapScriptIndex].SetType ("<<< SERIALIZED TAP SCRIPT >>>")
+	s.fields [s.tapScriptIndex].SetType ("SERIALIZED TAP SCRIPT")
 
 	leafCountLabel := "TapLea"
 	if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
@@ -224,10 +229,9 @@ func (s *Segwit) SetTapScript (ts Script, i uint32) {
 	tapScriptFields := s.tapScript.GetFields ()
 	for f, field := range tapScriptFields {
 		if !field.IsOpcode () {
-			tapScriptFields [f].SetType (GetStackItemType (field.AsBytes (), true))
+			s.tapScript.SetFieldType (f, GetStackItemType (field.AsBytes (), true))
 		}
 	}
-
 }
 
 func (s *Segwit) HasAnnex () bool {

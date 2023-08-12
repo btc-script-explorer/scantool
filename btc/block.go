@@ -60,7 +60,7 @@ func (b *Block) GetInputOutputCounts () (uint16, uint16) {
 	return inputCount, outputCount
 }
 
-func (b *Block) GetPendingPreviousOutputs () map [string] [] uint32 {
+func (b *Block) GetUnknownPreviousOutputs () map [string] [] uint32 {
 
 	unknownPreviousOutputTypes := make (map [string] [] uint32)
 	for _, tx := range b.txs {

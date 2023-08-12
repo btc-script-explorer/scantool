@@ -33,6 +33,7 @@ func (bc *BitcoinCore) GetVersionString () string {
 
 func (bc *BitcoinCore) GetTx (txId string) Tx {
 	rawTx := bc.getRawTransaction (txId)
+	if rawTx == nil { return Tx {} }
 	return bc.parseTx (rawTx, true)
 }
 
@@ -319,6 +320,8 @@ func (bc *BitcoinCore) getRawTransaction (txId string) map [string] interface {}
 		jsonResult = [] byte (rawJson)
 	}
 
+	if len (jsonResult) == 0 { return nil }
+
 	var rawResponse map [string] interface {}
 	err := json.Unmarshal (jsonResult, &rawResponse)
 	if err != nil { fmt.Println (err.Error ()) }
@@ -334,6 +337,7 @@ func (bc *BitcoinCore) getRawTransaction (txId string) map [string] interface {}
 
 func (bc *BitcoinCore) getNetworkInfo () map [string] interface {} {
 	jsonResult := bc.getJson ("getnetworkinfo", [] interface {} {})
+	if len (jsonResult) == 0 { return map [string] interface {} {} }
 
 	var rawResponse map [string] interface {}
 	err := json.Unmarshal (jsonResult, &rawResponse)
@@ -369,8 +373,11 @@ func (bc *BitcoinCore) getJson (function string, params [] interface {}) [] byte
 	// get the HTTP response
 	client := &http.Client {}
 	response, err := client.Do (req)
-	if response == nil { fmt.Println ("Node did not respond.") }
-	if err != nil { fmt.Println (err.Error ()) }
+	if response == nil {
+		fmt.Println ("Node returned empty response.")
+		if err != nil { fmt.Println (err.Error ()) }
+		return [] byte {}
+	}
 
 	// return the JSON response
 	json, err := io.ReadAll (response.Body)
