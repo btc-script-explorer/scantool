@@ -89,10 +89,10 @@ tr
 		}
 		* If both height and hash are included, height will be ignored.
 
-		curl -X POST -d '{"height":789012}' http://127.0.0.1:8888/rest/v1/block
-		curl -X POST -d '{"hash":"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594"}' http://127.0.0.1:8888/rest/v1/block
-		curl -X POST -d '{"height":789012,"options":{"NoTxs":true,"NoTypes":true}}' http://127.0.0.1:8888/rest/v1/block
-		curl -X POST -d '{"options":{"NoTxs":true,"NoTypes":true,"WScriptUsage":true,"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d '{"options":{"HumanReadable":true,"NoUnknownSpendTypes":true}}' http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d '{"hash":"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594","options":{"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d '{"height":789012,"options":{"NoTxs":true,"NoTypes":true,"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/block
+		curl -X POST -d '{"options":{"NoTxs":true,"NoTypes":true,"ScriptUsageStats":true,"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/block
 
 		response:
 		{
@@ -205,7 +205,7 @@ tr
 
 			if httpMethod != "GET" { errorMessage = fmt.Sprintf ("%s must be sent as a GET request.", functionName); break }
 
-			responseJson = api.getCurrentBlockHeight ()
+			responseJson = api.GetCurrentBlockHeight ()
 
 /*
 		request:
@@ -311,6 +311,7 @@ func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [strin
 		if !redeemScript.IsNil () {
 			redeemScriptData := make (map [string] interface {})
 			api.addScriptFields (redeemScriptData, redeemScript)
+			redeemScriptData ["Multisig"] = input.HasMultisigRedeemScript ()
 			inputData ["RedeemScript"] = redeemScriptData
 		}
 
@@ -332,6 +333,7 @@ func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [strin
 			if !witnessScript.IsNil () {
 				witnessScriptData := make (map [string] interface {})
 				api.addScriptFields (witnessScriptData, witnessScript)
+				witnessScriptData ["Multisig"] = input.HasMultisigWitnessScript ()
 				segwitData ["WitnessScript"] = witnessScriptData
 			}
 
@@ -340,7 +342,7 @@ func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [strin
 			if !tapScript.IsNil () {
 				tapScriptData := make (map [string] interface {})
 				api.addScriptFields (tapScriptData, tapScript)
-				if tapScript.IsOrdinal () { tapScriptData ["Ordinal"] = true }
+				tapScriptData ["Ordinal"] = tapScript.IsOrdinal ()
 				segwitData ["TapScript"] = tapScriptData
 			}
 
@@ -415,20 +417,25 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 	nodeClient := btc.GetNodeClient ()
 	blockHash := ""
 	if blockRequest ["hash"] != nil {
+		// if both hash and height are provided, hash will be used
 		blockHash = blockRequest ["hash"].(string)
 	} else if blockRequest ["height"] != nil {
-		// find an integer type that works
+		// find an integer type for the height field
 		// this can vary depending on the software used to send the request
+		uint32Test, uint32Okay := blockRequest ["height"].(uint32)
+		float64Test, float64Okay := blockRequest ["height"].(float64)
+
 		blockHeight := uint32 (0)
-		uint32Test, ok := blockRequest ["height"].(uint32)
-		if ok {
+		if uint32Okay {
 			blockHeight = uint32Test
+		} else if float64Okay {
+			blockHeight = uint32 (float64Test)
 		} else {
-			float64Test := float64 (0)
-			float64Test, ok = blockRequest ["height"].(float64)
-			if ok { blockHeight = uint32 (float64Test) }
+			// none of the types worked, it isn't a valid height or it is a different numeric type
+			fmt.Println ("Failed to read height field.")
+			return nil
 		}
-		if !ok { fmt.Println ("Failed to determine integer type of block height: ", blockHeight) }
+
 		blockHash = nodeClient.GetBlockHash (blockHeight)
 	} else {
 		blockHash = nodeClient.GetCurrentBlockHash ()
@@ -437,9 +444,15 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 	block := nodeClient.GetBlock (blockHash, true)
 	if block.IsNil () { return nil }
 
+	// get the options
 	blockRequestOptions := map [string] interface {} {}
 	if blockRequest ["options"] != nil { blockRequestOptions = blockRequest ["options"].(map [string] interface {}) }
+	optionNoTypes := blockRequestOptions ["NoTypes"] != nil && blockRequestOptions ["NoTypes"].(bool)
+	optionNoTxs := blockRequestOptions ["NoTxs"] != nil && blockRequestOptions ["NoTxs"].(bool)
+	optionNoUnknownSpendTypes := blockRequestOptions ["NoUnknownSpendTypes"] != nil && blockRequestOptions ["NoUnknownSpendTypes"].(bool)
+	optionsScriptUsageStats := blockRequestOptions ["ScriptUsageStats"] != nil && blockRequestOptions ["ScriptUsageStats"].(bool)
 
+	// build the JSON response
 	blockData := make (map [string] interface {})
 
 	previousHash := block.GetPreviousHash ()
@@ -450,60 +463,73 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 	blockData ["Hash"] = block.GetHash ()
 	blockData ["Height"] = block.GetHeight ()
 	blockData ["Timestamp"] = block.GetTimestamp ()
-
 	blockData ["InputCount"], blockData ["OutputCount"] = block.GetInputOutputCounts ()
 
-	if blockRequestOptions ["NoTypes"] == nil || !blockRequestOptions ["NoTypes"].(bool) {
-		blockData ["KnownSpendTypeMap"] = api.getKnownSpendTypes (block)
-		blockData ["UnknownSpendTypeMap"] = block.GetUnknownPreviousOutputs ()
-		blockData ["OutputTypeMap"] = api.getOutputTypes (block)
-	}
+	// transaction-related data
+	bip141Count := uint16 (0)
+	redeemScriptMultisigCount := uint16 (0)
+	redeemScriptCount := uint16 (0)
+	witnessScriptMultisigCount := uint16 (0)
+	witnessScriptCount := uint16 (0)
+	tapScriptOrdinalCount := uint16 (0)
+	tapScriptCount := uint16 (0)
+	var txs [] BlockTxData
+	for t, tx := range block.GetTxs () {
 
-	if blockRequestOptions ["NoTxs"] == nil || !blockRequestOptions ["NoTxs"].(bool) {
-		bip141Count := uint16 (0)
-		var txs [] BlockTxData
-		for t, tx := range block.GetTxs () {
-			if tx.SupportsBip141 () { bip141Count++ }
-			txs = append (txs, BlockTxData { Index: uint16 (t), TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
-		}
-		blockData ["Bip141Count"] = bip141Count
-		blockData ["Txs"] = txs
-	}
+		if optionsScriptUsageStats {
+			for _, input := range tx.GetInputs () {
 
-	if blockRequestOptions != nil {
-		if blockRequestOptions ["WScriptUsage"] != nil && blockRequestOptions ["WScriptUsage"].(bool) {
-
-			witnessScriptMultisigCount := uint16 (0)
-			witnessScriptCount := uint16 (0)
-			tapScriptOrdinalCount := uint16 (0)
-			tapScriptCount := uint16 (0)
-
-			for _, tx := range block.GetTxs () {
-				for _, input := range tx.GetInputs () {
-
-					st := input.GetSpendType ()
-					if st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH {
-						witnessScriptCount++
-						if input.HasMultisigWitnessScript () {
-							witnessScriptMultisigCount++
-						}
-					} else if st == btc.SPEND_TYPE_P2TR_Script {
-						tapScriptCount++
-						if input.HasOrdinalTapScript () {
-							tapScriptOrdinalCount++
-						}
+				st := input.GetSpendType ()
+				if st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH {
+					witnessScriptCount++
+					if input.HasMultisigWitnessScript () {
+						witnessScriptMultisigCount++
+					}
+				} else if st == btc.SPEND_TYPE_P2TR_Script {
+					tapScriptCount++
+					if input.HasOrdinalTapScript () {
+						tapScriptOrdinalCount++
+					}
+				} else if st == btc.OUTPUT_TYPE_P2SH {
+					redeemScriptCount++
+					if input.HasMultisigRedeemScript () {
+						redeemScriptMultisigCount++
 					}
 				}
 			}
+		}
 
-			if witnessScriptCount > 0 {
-				blockData ["WitnessScriptMultisigCount"] = witnessScriptMultisigCount
-				blockData ["WitnessScriptCount"] = witnessScriptCount
-			}
-			if tapScriptCount > 0 {
-				blockData ["TapScriptOrdinalCount"] = tapScriptOrdinalCount
-				blockData ["TapScriptCount"] = tapScriptCount
-			}
+		if !optionNoTxs {
+			if tx.SupportsBip141 () { bip141Count++ }
+			txs = append (txs, BlockTxData { Index: uint16 (t), TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
+		}
+	}
+
+	if !optionNoTxs {
+		blockData ["Bip141Count"] = bip141Count
+		blockData ["Txs"] = txs
+		if !optionNoUnknownSpendTypes {
+			blockData ["UnknownSpendTypes"] = block.GetUnknownPreviousOutputs ()
+		}
+	}
+
+	if !optionNoTypes {
+		blockData ["KnownSpendTypes"] = api.getKnownSpendTypes (block)
+		blockData ["OutputTypes"] = api.getOutputTypes (block)
+	}
+
+	if optionsScriptUsageStats {
+		if redeemScriptCount > 0 {
+			blockData ["RedeemScriptMultisigCount"] = redeemScriptMultisigCount
+			blockData ["RedeemScriptCount"] = redeemScriptCount
+		}
+		if witnessScriptCount > 0 {
+			blockData ["WitnessScriptMultisigCount"] = witnessScriptMultisigCount
+			blockData ["WitnessScriptCount"] = witnessScriptCount
+		}
+		if tapScriptCount > 0 {
+			blockData ["TapScriptOrdinalCount"] = tapScriptOrdinalCount
+			blockData ["TapScriptCount"] = tapScriptCount
 		}
 	}
 
@@ -599,10 +625,12 @@ func (r *RestApiV1) GetPreviousOutputTypes (previousOutputs map [string] [] uint
 	return prevOutMap
 }
 
-func (r *RestApiV1) getCurrentBlockHeight () string {
+func (r *RestApiV1) GetCurrentBlockHeight () string {
 
 	nodeClient := btc.GetNodeClient ()
 	blockHash := nodeClient.GetCurrentBlockHash ()
+	if len (blockHash) == 0 { return "" }
+
 	block := nodeClient.GetBlock (blockHash, false)
 
 	blockJsonData := struct { Current_block_height uint32 } { Current_block_height: block.GetHeight () }

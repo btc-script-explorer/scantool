@@ -26,6 +26,7 @@ type Input struct {
 	segwit Segwit
 	sequence uint32
 
+	multisigRedeemScript bool
 	multisigWitnessScript bool
 	ordinalTapScript bool
 }
@@ -48,8 +49,8 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 		// a form of duck typing is used here in order to identify the spend type with no knowledge of the previous output type
 		// messages are printed to the screen when there are potential misidentifications
 
-		// it is impossible to know for sure that a redemption is not non-standard without seeing the output script
-		// however, spend types for legacy output types use the same name as the output type, so there is no reason to identify them at this point
+		// it is impossible to know for sure that a redemption is not non-standard without seeing the previous output script
+		// spend types for legacy output types use the same name as the output type, so there is no reason to identify them at this point
 		// therefore, we defer identification of these until the previous output is retrieved by the client
 
 		if isP2shWrappedType {
@@ -166,9 +167,6 @@ if i.spendType == SPEND_TYPE_P2TR_Script { fmt.Println (previousOutputTxId, prev
 			}
 		}
 
-		i.multisigWitnessScript = (i.spendType == OUTPUT_TYPE_P2WSH || i.spendType == SPEND_TYPE_P2SH_P2WSH) && i.segwit.witnessScript.IsMultiSigOutput ()
-		i.ordinalTapScript = i.spendType == SPEND_TYPE_P2TR_Script && i.segwit.tapScript.IsOrdinal ()
-
 		// if the spend type is empty, it must redeem a legacy output type
 		// therefore, we must check for the possibility of a P2SH output
 		if len (i.spendType) == 0 {
@@ -196,6 +194,10 @@ if i.spendType == SPEND_TYPE_P2TR_Script { fmt.Println (previousOutputTxId, prev
 				}
 			}
 		}
+
+		i.multisigRedeemScript = i.spendType == OUTPUT_TYPE_P2SH && i.redeemScript.IsMultiSigOutput ()
+		i.multisigWitnessScript = (i.spendType == OUTPUT_TYPE_P2WSH || i.spendType == SPEND_TYPE_P2SH_P2WSH) && i.segwit.witnessScript.IsMultiSigOutput ()
+		i.ordinalTapScript = i.spendType == SPEND_TYPE_P2TR_Script && i.segwit.tapScript.IsOrdinal ()
 	}
 
 	return i
@@ -223,6 +225,10 @@ func (i *Input) HasSegwitFields () bool {
 
 func (i *Input) GetSegwit () Segwit {
 	return i.segwit
+}
+
+func (i *Input) HasMultisigRedeemScript () bool {
+	return i.multisigRedeemScript
 }
 
 func (i *Input) HasMultisigWitnessScript () bool {

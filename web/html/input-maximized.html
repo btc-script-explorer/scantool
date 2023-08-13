@@ -81,15 +81,8 @@
 						</tr>
 					{{ end }}
 
-					{{/* if .IncludeAlternateInputScript }}
-						<tr id="input-maximized-{{ .InputIndex }}-input-script-alternate" style="display:none;">
-							<td class="maximized-section maximized-section-name">Input Script</td>
-							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .InputScriptAlternate.FieldSet }}</td>
-						</tr>
-					{{ end */}}
-
 					{{ if not .RedeemScript.IsNil }}
-						<tr{{ if .IncludeAlternateInputScript }} id="input-maximized-{{ .InputIndex }}-redeem-script" style="display:none;"{{ end }}>
+						<tr>
 							<td class="maximized-section maximized-section-name">Redeem Script</td>
 							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .RedeemScript.FieldSet }}</td>
 						</tr>

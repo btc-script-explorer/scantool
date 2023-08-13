@@ -58,11 +58,17 @@
 										<td style="text-align:left;">{{ .OutputCount }}</td>
 									</tr>
 
-									{{ if or (ne .WitnessScriptMultiSigMessage nil) (ne .TapScriptOrdinalsMessage nil) }}
+									{{ if or (ne .RedeemScriptMultiSigMessage nil) (or (ne .WitnessScriptMultiSigMessage nil) (ne .TapScriptOrdinalsMessage nil)) }}
 										<tr>
 											<td class="info-window-label">&nbsp;</td>
 											<td style="text-align:left;">&nbsp;</td>
 										</tr>
+										{{ if ne .RedeemScriptMultiSigMessage nil }}
+											<tr>
+												<td class="info-window-label">Redeem Scripts:</td>
+												<td style="text-align:left;">{{ .RedeemScriptMultiSigMessage }}</td>
+											</tr>
+										{{ end }}
 										{{ if ne .WitnessScriptMultiSigMessage nil }}
 											<tr>
 												<td class="info-window-label">Witness Scripts:</td>

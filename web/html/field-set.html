@@ -10,9 +10,9 @@
 							{{ if gt (len $field.DisplayText) 0 }}
 								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
 								{{ if $field.ShowCopyButton }}
-									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+									<span style="color:blue; cursor:pointer;" onclick="copy_to_clipboard ('{{ $field.CopyText }}');">Copy</span>
 								{{ else }}
-									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+									<span style="visibility:hidden;">Copy</span>
 								{{ end }}
 							{{ else }}
 								&nbsp;
@@ -27,9 +27,9 @@
 							{{ if gt (len $field.DisplayText) 0 }}
 								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
 								{{ if $field.ShowCopyButton }}
-									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+									<span style="color:blue; cursor:pointer;" onclick="copy_to_clipboard ('{{ $field.CopyText }}');">Copy</span>
 								{{ else }}
-									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+									<span style="visibility:hidden;">Copy</span>
 								{{ end }}
 							{{ else }}
 								&nbsp;
@@ -43,9 +43,9 @@
 						<div style="font-family:monospace; text-align:center; overflow-x:hidden; min-height:20px;">
 								<div style="display:inline-block; width:{{ $.CharWidth }}ch;">{{ $field.DisplayText }}</div>
 								{{ if $field.ShowCopyButton }}
-									<img style="width:2ch; cursor:pointer;" src="{{ $.CopyImageUrl }}" onclick="copy_to_clipboard ('{{ $field.CopyText }}');" />
+									<span style="color:blue; cursor:pointer;" onclick="copy_to_clipboard ('{{ $field.CopyText }}');">Copy</span>
 								{{ else }}
-									<img style="width:2ch; visibility:hidden;" src="{{ $.CopyImageUrl }}" />
+									<span style="visibility:hidden;">Copy</span>
 								{{ end }}
 						</div>
 					{{end}}

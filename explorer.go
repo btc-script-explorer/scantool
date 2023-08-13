@@ -21,14 +21,14 @@ import (
 
 func homeHandler (response http.ResponseWriter, request *http.Request) {
 
-	// redirect web requests to most recent version if web enabled
-	if app.Settings.IsWebOn () {
+	// redirect web requests if web enabled
+	if (request.Method == "GET" || len (request.Method) == 0) && app.Settings.IsWebOn () {
 		http.Redirect (response, request, app.Settings.GetFullUrl () + "/web", http.StatusMovedPermanently)
 		return
 	}
 
-	// web is disabled, this request is not supported
-	errorMessage := "Invalid REST URL. Web server is turned off."
+	// this request is not supported
+	errorMessage := "Invalid REST URL. No rest version provided. No function name provided."
 	fmt.Println (errorMessage)
 	fmt.Fprint (response, errorMessage)
 }
@@ -36,6 +36,14 @@ func homeHandler (response http.ResponseWriter, request *http.Request) {
 func main () {
 
 	app.ParseSettings ()
+
+	// test the connection
+	restApi := rest.RestApiV1 {}
+	currentBlockJson := restApi.GetCurrentBlockHeight ()
+	if len (currentBlockJson) == 0 {
+		fmt.Println ("Failed to connect to node.")
+		return
+	}
 
 	if app.Settings.GetTestMode () != "" {
 		test.RunTests ()
@@ -52,7 +60,6 @@ func main () {
 		mux.HandleFunc ("/favicon.ico", web.ServeFile)
 		mux.HandleFunc ("/css/", web.ServeFile)
 		mux.HandleFunc ("/js/", web.ServeFile)
-		mux.HandleFunc ("/image/", web.ServeFile)
 		mux.HandleFunc ("/web/", web.WebHandler)
 	}
 

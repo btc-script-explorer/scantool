@@ -63,13 +63,11 @@ type InputHtmlData struct {
 	PreviousOutputIndex uint32
 	Sequence uint32
 	InputScript ScriptHtmlData
-	InputScriptAlternate ScriptHtmlData
 	RedeemScript ScriptHtmlData
 	WitnessScript ScriptHtmlData
 	TapScript ScriptHtmlData
 	Bip141 bool
 	Segwit SegwitHtmlData
-	IncludeAlternateInputScript bool
 }
 
 type OutputHtmlData struct {
@@ -132,12 +130,21 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	customJavascript := fmt.Sprintf ("var base_url_web = '%s/web';\n", app.Settings.GetFullUrl ())
+	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), WEB_REST_VERSION)
+
+	// about page
+	if requestParts [1] == "about" {
+		fmt.Fprint (response, getAboutPageHtml (customJavascript))
+		return
+	}
+
 	params = requestParts [1:]
 	paramCount = len (params)
 
 	html := ""
 
-	// here, duck typing is used to determine what the user is requesting by examining the parameters received
+	// here, a determination is made as to what the user is requesting by examining the parameters received
 	possibleQueryTypes := [] string { "block" } // default query type
 	if paramCount >= 1 { possibleQueryTypes [0] = params [0] }
 
@@ -147,9 +154,6 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	}
 
 	restApi := rest.RestApiV1 {}
-
-	customJavascript := fmt.Sprintf ("var base_url_web = '%s/web';\n", app.Settings.GetFullUrl ())
-	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), WEB_REST_VERSION)
 
 	for _, queryType := range possibleQueryTypes {
 		switch queryType {
@@ -179,12 +183,12 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				}
 
 				options := make (map [string] interface {})
-				options ["WScriptUsage"] = true
+				options ["ScriptUsageStats"] = true
 				blockRequestData ["options"] = options
 				blockData := restApi.GetBlockData (blockRequestData)
 
 				// spend types
-				knownSpendTypes, knownSpendTypeCount := getKnownSpendTypesHtmlData (blockData ["InputCount"].(uint16) - 1, blockData ["KnownSpendTypeMap"].(map [string] uint16))
+				knownSpendTypes, knownSpendTypeCount := getKnownSpendTypesHtmlData (blockData ["InputCount"].(uint16) - 1, blockData ["KnownSpendTypes"].(map [string] uint16))
 				knownSpendTypeJs := ""
 				for _, knownSpendType := range knownSpendTypes {
 					if len (knownSpendTypeJs) > 0 { knownSpendTypeJs += "," }
@@ -195,7 +199,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				customJavascript += fmt.Sprintf ("var unknown_spend_type_count = %d;\n", blockData ["InputCount"].(uint16) - knownSpendTypeCount)
 
 				// output types
-				outputTypes := getOutputTypesHtmlData (blockData ["OutputCount"].(uint16), blockData ["OutputTypeMap"].(map [string] uint16))
+				outputTypes := getOutputTypesHtmlData (blockData ["OutputCount"].(uint16), blockData ["OutputTypes"].(map [string] uint16))
 				outputTypeJs := ""
 				for _, outputType := range outputTypes {
 					if len (outputTypeJs) > 0 { outputTypeJs += "," }
@@ -205,7 +209,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				customJavascript += fmt.Sprintf ("var output_count = %d;\n", blockData ["OutputCount"].(uint16))
 
 				// unknown spend types
-				pendingPreviousOutputs := blockData ["UnknownSpendTypeMap"].(map [string] [] uint32)
+				pendingPreviousOutputs := blockData ["UnknownSpendTypes"].(map [string] [] uint32)
 				pendingPrevOutBytes, err := json.Marshal (pendingPreviousOutputs)
 				if err != nil { fmt.Println (err.Error ()) }
 
@@ -396,8 +400,8 @@ func getLayoutHtmlData (customJavascript string, explorerPageData map [string] i
 	layoutData ["ExplorerPage"] = explorerPageData
 
 	nodeClient := btc.GetNodeClient ()
-	layoutData ["NodeVersion"] = nodeClient.GetVersionString ()
-	layoutData ["NodeUrl"] = app.Settings.GetNodeFullUrl ()
+	layoutData ["NodeVersion"] = template.HTML (nodeClient.GetVersionString ())
+	layoutData ["NodeUrl"] = template.HTML (app.Settings.GetNodeFullUrl ())
 
 	return layoutData
 }
@@ -438,7 +442,16 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 	if blockData ["NextHash"] != nil { blockHtmlData ["NextHash"] = blockData ["NextHash"].(string) }
 	blockHtmlData ["TxCount"] = uint16 (len (blockData ["Txs"].([] rest.BlockTxData)))
 
-	// get the numbers of inputs and outputs and their types, and the tx detail
+	// get the tx detail
+	if blockData ["RedeemScriptCount"] != nil && blockData ["RedeemScriptMultisigCount"] != nil {
+		redeemScriptCount := blockData ["RedeemScriptCount"].(uint16)
+		if redeemScriptCount > 0 {
+			redeemScriptMultisigCount := blockData ["RedeemScriptMultisigCount"].(uint16)
+			wsMessage:= fmt.Sprintf ("%6.2f%% MultiSig (%d/%d)", float32 (redeemScriptMultisigCount) * 100 / float32 (redeemScriptCount), redeemScriptMultisigCount, redeemScriptCount)
+			blockHtmlData ["RedeemScriptMultiSigMessage"] = template.HTML (strings.Replace (wsMessage, " ", "&nbsp;", -1))
+		}
+	}
+
 	if blockData ["WitnessScriptCount"] != nil && blockData ["WitnessScriptMultisigCount"] != nil {
 		witnessScriptCount := blockData ["WitnessScriptCount"].(uint16)
 		if witnessScriptCount > 0 {
@@ -550,6 +563,23 @@ func getTxHtml (txData map [string] interface {}, customJavascript string) strin
 		GetPath () + "html/output-minimized.html",
 		GetPath () + "html/output-maximized.html",
 		GetPath () + "html/field-set.html" }
+	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
+
+	// execute the templates
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+
+func getAboutPageHtml (customJavascript string) string {
+	layoutHtmlData := getLayoutHtmlData (customJavascript, map [string] interface {} { "AppVersion": app.VERSION })
+
+	// parse the files
+	layoutHtmlFiles := [] string {
+		GetPath () + "html/layout.html",
+		GetPath () + "html/page-about.html" }
 	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
 
 	// execute the templates

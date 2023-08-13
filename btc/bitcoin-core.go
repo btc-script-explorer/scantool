@@ -246,6 +246,7 @@ func (bc *BitcoinCore) getBlock (blockHash string, withTxData bool) map [string]
 
 func (bc *BitcoinCore) getBestBlockHash () string {
 	jsonResult := bc.getJson ("getbestblockhash", [] interface {} {})
+	if len (jsonResult) == 0 { return "" }
 
 	var rawResponse map [string] interface {}
 	err := json.Unmarshal (jsonResult, &rawResponse)
@@ -368,6 +369,8 @@ func (bc *BitcoinCore) getJson (function string, params [] interface {}) [] byte
 	// create the HTTP request
 	requestUrl := "http://" + app.Settings.GetNodeFullUrl () + "/"
 	req, err := http.NewRequest (http.MethodPost, requestUrl, bytes.NewBuffer (requestJsonBytes))
+	if err != nil { fmt.Println (err.Error ()) }
+
 	req.SetBasicAuth (app.Settings.GetNodeUsername (), app.Settings.GetNodePassword ())
 
 	// get the HTTP response

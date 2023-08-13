@@ -9,27 +9,7 @@ import (
 	"strconv"
 )
 
-type TestSettings struct {
-}
-
-func NewTestSettings (testMode string, verifiedDir string, unverifiedDir string, sourceFile string) TestSettings {
-	mode := strings.ToLower (testMode)
-	if mode != "" && mode != "save" && mode != "verify" {
-		fmt.Println (mode + " is not a valid test mode.")
-		os.Exit (1)
-	}
-	return TestSettings {}
-}
-
-////////////////////////////////////////////////////////
-
-type AppSettings struct {
-}
-func NewAppSettings (configFile string) AppSettings {
-	return AppSettings {}
-}
-
-////////////////////////////////////////////////////////
+const VERSION = "0.1.0"
 
 type settingsManager struct {
 
