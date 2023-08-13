@@ -8,11 +8,11 @@ The application is primarily a research tool that can also be used as a learning
 
 - Block Explorer
 
-  -- The block explorer displays all serialized scripts instead of only showing them as a hex field of an input script or segregated witness block like most block explorers do.
+  - The block explorer displays all serialized scripts instead of only showing them as a hex field of an input script or segregated witness block like most block explorers do.
 
 - REST API
 
-  -- A REST API is provided for the purpose of automated analysis of transactions and scripts.
+  - A REST API is provided for the purpose of automated analysis of transactions and scripts.
 
 ## Motivation
 
