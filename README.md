@@ -4,16 +4,23 @@
 
 ## Features
 
-The application is primarily a research tool that can also be used as a learning tool. It provides 2 main services.
+The application is primarily a research tool that can also be used as a learning tool with a focus on analysis of scripts. It provides 2 main services.
 
-- Web Site (Block Explorer)
-  - Displays parsed serialized scripts, which most block explorers do not.
-  - Displays Spend Types of inputs in addition to Output Types, which most block exporers do not.
-  - Allows the user to switch between hex, text and data types of script fields, which most block explorers do not.
-  - Can be configured to serve pages on any network interfact and port.
+- Web Site (Block/Tx Explorer)
+  - Displays parsed serialized scripts (redeem scripts, witness scripts and tap scripts) which are displayed only in hex by most block explorers.
+  - Displays Spend Types of inputs in addition to Output Types.
+  - Allows the user to view script fields and segregated witness fields as hex, text or data types.
+  - Displays both blocks and transactions. (Address searches are not currently supported.)
+  - Can be configured to serve web pages on any network interface and port.
 
 - REST API
-  - A REST API is provided for the purpose of automated analysis of transactions and scripts.
+  - Returns everything the web site displays, plus other data.
+  - Could be used (by a custom-written program) to store specific data in a database. Such data could be used to monitor and analyze various different things in the blockchain over time. Some of things it could be used to analyze are:
+    - Spend Types
+    - Output Types
+    - Ordinals
+    - Multisig usage in serialized scripts
+    - Usage of specific opcodes
 
 ## Motivation
 
