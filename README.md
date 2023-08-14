@@ -2,7 +2,7 @@
 
 [![AGPL licensed](https://img.shields.io/badge/license-AGPL-blue.svg)](https://github.com/btc-script-explorer/explorer/blob/master/LICENSE)
 
-### Features
+## Features
 
 The application provides 2 main services.
 
@@ -16,9 +16,9 @@ The application provides 2 main services.
 - REST API
   - Returns data in JSON format, some of which is not provided by ordinary bitcoin nodes.
 
-### Motivation
+## Motivation
 
-##### Serialized Scripts
+#### Serialized Scripts
 
 When people discuss Transaction Types in the bicoin blockchain, they are usually referring to Output Types.
 However, outputs are relatively uninteresting from an analytical perspective. The only thing an output does is store a value and reveal a method, or a set of possible methods, (but not the actual data)
@@ -44,30 +44,30 @@ Since these are all standard methods for redeeming funds, the data in both the i
 
 ![Spend Types](/assets/images/spend-type-table.jpg)
 
-##### Hex, Text & Data Types
+#### Script Field Viewing
 
 Another important feature missing from most block explorers is the ability to easily change the way that script and segregated witness fields are interpretted and displayed.
 A field in a script could be an op code, a signature, a public key, a hash, a text message, part of a binary file or some piece of data that is not easily identifiable.
 Providing a way to view these fields as hex or text, or have the system attempt to determine what types of data they are, is a feature that most block explorers do not have,
 but it is very useful for anyone interested in analyzing script usage as well as anyone who simply wants to learn how the system works.
 
-##### Custom Projects
+#### Back End for Custom Projects
 
-The REST API makes it easy to create individualized research projects which might focus on analysis of specific spend types, output types, script types, opcode usage or anything else.
+The REST API can be used as a back end for research projects which might focus on analysis of specific spend types, output types, script types, opcode usage or anything else.
 Such a program would, in most cases, be simple to write and would make it easy to put large of amounts of data into a database where it could be analyzed more thoroughly.
-The REST API could also be used as a back end for custom user interfaces.
+The REST API can also be used as a back end for custom user interfaces.
 
-### Screen Shots
+## Screen Shots
 
-### Usage
+## Usage
 
-##### Requirements
+#### Requirements
 
 1. Access to a bitcoin node that has transaction indexing enabled.
 
-##### Download
+#### Download
 
-##### Quick Start (Bitcoin Core)
+#### Quick Start (Bitcoin Core)
 
 Obviously, the following ip addresses, ports, username and password should be replaced by the ones used in your specific setup. Do not use the ones shown here.
 
@@ -99,13 +99,13 @@ Obviously, the following ip addresses, ports, username and password should be re
 
 4. View the Web User Interface in a Browser
 
-        http://127.0.0.1:8080
+        http://192.168.1.77:8080
 
 4. Send a REST Request from the Command Line
 
-        $ curl -X GET http://127.0.0.1:8080/rest/v1/current_block_height
+        $ curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height
         {"Current_block_height":803131}
 
-### Building
+## Building
 
 
