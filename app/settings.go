@@ -112,7 +112,7 @@ func (s *settingsManager) setSettings (settings map [string] string) {
 			case "config-file": s.configFile = v
 
 			// bitcoin core
-			case "bitcoin-core-url": s.bitcoinCoreUrl = v
+			case "bitcoin-core-addr": s.bitcoinCoreUrl = v
 			case "bitcoin-core-port":
 				port, err := strconv.Atoi (v)
 				if err != nil { panic (err.Error ()) }
