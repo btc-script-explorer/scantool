@@ -287,8 +287,8 @@ func (s *settingsManager) PrintListeningMessage () {
 
 	// create the data lines of the message
 	lines := make ([] string, 2)
-	lines [0] = "*    Node: " + s.GetNodeFullUrl () + " (" + s.nodeType + ")  "
-	lines [1] = "*  Server: " + s.GetBaseUrl () + "  "
+	lines [0] = "*      Node: " + s.GetNodeFullUrl () + " (" + s.nodeType + ")  "
+	lines [1] = "*  Explorer: " + s.GetBaseUrl () + "  "
 
 	// calculate the width of the message and add padding as necessary
 	bannerWidth := len (lines [0]) + 1
