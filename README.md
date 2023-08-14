@@ -72,6 +72,7 @@ The REST API could also be used as a back end for custom user interfaces.
 Obviously, the following ip addresses, ports, username and password should be replaced by the ones you specific setup uses.
 
 1. Bitcoin Core Config Settings
+
         txindex=1
         rpcbind=192.168.1.99:9999
         rpcallowip=192.168.1.77
@@ -79,6 +80,7 @@ Obviously, the following ip addresses, ports, username and password should be re
         rpcpassword=btc_node_password
 
 2. Explorer Config Settings
+
         bitcoin-core-url=192.168.1.99
         bitcoin-core-port=9999
         bitcoin-core-username=btc_node_username
@@ -87,6 +89,7 @@ Obviously, the following ip addresses, ports, username and password should be re
         port=8080
 
 3. Run Explorer
+
         $ ./explorer --config-file=./explorer.conf 
         
         ************************************************
@@ -95,9 +98,11 @@ Obviously, the following ip addresses, ports, username and password should be re
         ************************************************
 
 4. View the Web User Interface in a Browser
+
         http://127.0.0.1:8080
 
 4. Send a REST Request from the Command Line
+
         $ curl -X GET http://127.0.0.1:8080/rest/v1/current_block_height
         {"Current_block_height":803131}
 
