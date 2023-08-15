@@ -45,6 +45,7 @@ func (bc *BitcoinCore) GetPreviousOutput (txId string, outputIndex uint32) Outpu
 }
 
 func (bc *BitcoinCore) GetBlock (blockHash string, verbose bool) Block {
+
 	block := bc.getBlock (blockHash, verbose)
 	if block == nil { return Block {} }
 

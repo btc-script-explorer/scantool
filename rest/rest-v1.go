@@ -474,34 +474,37 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 	tapScriptOrdinalCount := uint16 (0)
 	tapScriptCount := uint16 (0)
 	var txs [] BlockTxData
-	for t, tx := range block.GetTxs () {
 
-		if optionsScriptUsageStats {
-			for _, input := range tx.GetInputs () {
+	if optionsScriptUsageStats || !optionNoTxs {
+		for t, tx := range block.GetTxs () {
 
-				st := input.GetSpendType ()
-				if st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH {
-					witnessScriptCount++
-					if input.HasMultisigWitnessScript () {
-						witnessScriptMultisigCount++
-					}
-				} else if st == btc.SPEND_TYPE_P2TR_Script {
-					tapScriptCount++
-					if input.HasOrdinalTapScript () {
-						tapScriptOrdinalCount++
-					}
-				} else if st == btc.OUTPUT_TYPE_P2SH {
-					redeemScriptCount++
-					if input.HasMultisigRedeemScript () {
-						redeemScriptMultisigCount++
+			if optionsScriptUsageStats {
+				for _, input := range tx.GetInputs () {
+
+					st := input.GetSpendType ()
+					if st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH {
+						witnessScriptCount++
+						if input.HasMultisigWitnessScript () {
+							witnessScriptMultisigCount++
+						}
+					} else if st == btc.SPEND_TYPE_P2TR_Script {
+						tapScriptCount++
+						if input.HasOrdinalTapScript () {
+							tapScriptOrdinalCount++
+						}
+					} else if st == btc.OUTPUT_TYPE_P2SH {
+						redeemScriptCount++
+						if input.HasMultisigRedeemScript () {
+							redeemScriptMultisigCount++
+						}
 					}
 				}
 			}
-		}
 
-		if !optionNoTxs {
-			if tx.SupportsBip141 () { bip141Count++ }
-			txs = append (txs, BlockTxData { Index: uint16 (t), TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
+			if !optionNoTxs {
+				if tx.SupportsBip141 () { bip141Count++ }
+				txs = append (txs, BlockTxData { Index: uint16 (t), TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
+			}
 		}
 	}
 

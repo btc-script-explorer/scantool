@@ -119,9 +119,6 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	var params [] string
-	paramCount := 0
-
 	requestParts := strings.Split (modifiedPath, "/")
 	if requestParts [0] != "web" {
 		errorMessage := fmt.Sprintf ("Invalid request: %s", request.URL.Path)
@@ -130,19 +127,18 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	params := requestParts [1:]
+	paramCount := len (params)
+
+	html := ""
 	customJavascript := fmt.Sprintf ("var base_url_web = '%s/web';\n", app.Settings.GetFullUrl ())
 	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), WEB_REST_VERSION)
 
 	// about page
-	if requestParts [1] == "about" {
+	if paramCount >= 1 && params [0] == "about" {
 		fmt.Fprint (response, getAboutPageHtml (customJavascript))
 		return
 	}
-
-	params = requestParts [1:]
-	paramCount = len (params)
-
-	html := ""
 
 	// here, a determination is made as to what the user is requesting by examining the parameters received
 	possibleQueryTypes := [] string { "block" } // default query type
@@ -470,7 +466,7 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 		}
 	}
 
-	blockHtmlData ["Bip141Percent"] = fmt.Sprintf ("%9.2f%%", float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)))
+	blockHtmlData ["Bip141Message"] = fmt.Sprintf ("%9.2f%% BIP 141 (%d/%d)", float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)), blockData ["Bip141Count"].(uint16), blockHtmlData ["TxCount"].(uint16))
 
 	blockHtmlData ["BaseUrl"] = app.Settings.GetFullUrl () + "/web"
 	blockHtmlData ["TxData"] = blockData ["Txs"].([] rest.BlockTxData)

@@ -17,14 +17,14 @@ type settingsManager struct {
 
 	configFile string
 
-	bitcoinCoreUrl string
+	bitcoinCoreAddr string
 	bitcoinCorePort uint16
 	bitcoinCoreUsername string
 	bitcoinCorePassword string
 
 	nodeType string
 
-	url string
+	addr string
 	port uint16
 
 	noWeb bool
@@ -38,7 +38,7 @@ type settingsManager struct {
 func (s *settingsManager) ExitOnError () {
 
 	// verify the web settings
-	if s.noWeb && (len (s.url) == 0 || s.port == 0) { panic ("Web parameters are not valid.") }
+	if s.noWeb && (len (s.addr) == 0 || s.port == 0) { panic ("Web parameters are not valid.") }
 
 	// make sure the user has the correct test file permissions
 	if s.testMode == "save" {
@@ -58,7 +58,7 @@ func (s *settingsManager) GetNodeType () string {
 }
 
 func (s *settingsManager) GetNodeFullUrl () string {
-	return s.bitcoinCoreUrl + ":" + strconv.FormatUint (uint64 (s.bitcoinCorePort), 10)
+	return s.bitcoinCoreAddr + ":" + strconv.FormatUint (uint64 (s.bitcoinCorePort), 10)
 }
 
 func (s *settingsManager) GetNodeUsername () string {
@@ -70,15 +70,15 @@ func (s *settingsManager) GetNodePassword () string {
 }
 
 func (s *settingsManager) GetBaseUrl () string {
-	return fmt.Sprintf ("%s:%d", s.url, s.port)
+	return fmt.Sprintf ("%s:%d", s.addr, s.port)
 }
 
 func (s *settingsManager) GetFullUrl () string {
 	return fmt.Sprintf ("http://%s", s.GetBaseUrl ())
 }
 
-func (s *settingsManager) GetUrl () string {
-	return s.url
+func (s *settingsManager) GetAddr () string {
+	return s.addr
 }
 
 func (s *settingsManager) GetPort () uint16 {
@@ -112,7 +112,7 @@ func (s *settingsManager) setSettings (settings map [string] string) {
 			case "config-file": s.configFile = v
 
 			// bitcoin core
-			case "bitcoin-core-addr": s.bitcoinCoreUrl = v
+			case "bitcoin-core-addr": s.bitcoinCoreAddr = v
 			case "bitcoin-core-port":
 				port, err := strconv.Atoi (v)
 				if err != nil { panic (err.Error ()) }
@@ -121,7 +121,7 @@ func (s *settingsManager) setSettings (settings map [string] string) {
 			case "bitcoin-core-password": s.bitcoinCorePassword = v
 
 			// web
-			case "url": s.url = v
+			case "addr": s.addr = v
 			case "port":
 				port, err := strconv.Atoi (v)
 				if err != nil { panic (err.Error ()) }
@@ -143,14 +143,14 @@ func getDefaultSettings () settingsManager {
 	return settingsManager {
 //								configFile: "",
 
-//								bitcoinCoreUrl: "",
+//								bitcoinCoreAddr: "",
 //								bitcoinCorePort: 0,
 //								bitcoinCoreUsername: "",
 //								bitcoinCorePassword: "",
 
 //								nodeType: "",
 
-								url: "127.0.0.1",
+								addr: "127.0.0.1",
 								port: 8080,
 //								noWeb: false,
 
@@ -205,7 +205,7 @@ func ParseSettings () {
 		Settings.setSettings (configFileParameters)
 	}
 
-	if len (Settings.bitcoinCoreUrl) > 0 && Settings.bitcoinCorePort != 0 && len (Settings.bitcoinCoreUsername) > 0 && len (Settings.bitcoinCorePassword) > 0 {
+	if len (Settings.bitcoinCoreAddr) > 0 && Settings.bitcoinCorePort != 0 && len (Settings.bitcoinCoreUsername) > 0 && len (Settings.bitcoinCorePassword) > 0 {
 		Settings.nodeType = "Bitcoin Core"
 	}
 

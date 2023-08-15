@@ -5,57 +5,75 @@
 ## Features
 
 The application provides 2 main services.
+The REST API connects to an ordinary bitcoin node, but returns data that is not provided by most nodes or online block explorers.
+The web interface can display anything the REST API returns.
+
+- REST API
+  - Returns all fields in serialized scripts (redeem scripts, witness scripts and tap scripts).
+  - Returns Spend Types of inputs in addition to Output Types.
+  - Returns the data types for all script and segregated witness fields.
+  - Returns any other fields that a bitcoin node can return.
+  - Can be used as a back end for custom analysis tools as well as custom user interfaces.
 
 - Web Site (Block/Tx Explorer)
-  - Displays serialized scripts (redeem scripts, witness scripts and tap scripts) which are displayed only in hex by most block explorers.
-  - Displays Spend Types of inputs in addition to Output Types.
+  - Displays all data returned by the REST API.
   - Allows the user to view script fields and segregated witness fields as hex, text or data types.
   - Displays both blocks and transactions. (Address searches are not currently supported.)
   - Can be configured to serve web pages on any network interface and port.
-
-- REST API
-  - Returns data in JSON format, some of which is not provided by ordinary bitcoin nodes.
 
 ## Motivation
 
 #### Serialized Scripts
 
 When people discuss Transaction Types in the bicoin blockchain, they are usually referring to Output Types.
-However, outputs are relatively uninteresting from an analytical perspective. The only thing an output does is store a value and reveal a method, or a set of possible methods, (but not the actual data)
-required to redeem that value.
+However, outputs are passive elements and therefore they are relatively uninteresting from an analytical perspective.
+An output has two main roles: to store value, and to reveal the methods (but not the data) that can be used to redeem that value.
 
-Inputs are the workhorses of the bitcoin blockchain. They do the heavy lifting required to transfer funds.
-Many modern transactions are redeemed using serialized scripts. Visualizing these scripts is the best way to understand how they work, but most block explorers display them only as hex fields, the same way
-they would display a signature or a public key. When we examine serialized scripts, we can see that there are a few more standard input types than there are output types.
+Unlike outputs, inputs are active elements. They are the workhorses of the bitcoin blockchain, and they do the heavy lifting required to redeem funds.
+In general, there are two ways funds can be redeemed.
 
-As serialized scripts themselves have become standardized, we now have what could be called a standard within a standard, a concept that first appeared with the wrapped P2SH redemption methods
-described in BIP 143, where the redeem script used to redeem a standard P2SH output was itself a standard P2WSH output script. Among the redeem scripts that redeem legacy (non-segwit) P2SH outputs
-and all witness scripts (which redeem P2SH-P2WSH and P2WSH outputs), more than 90% are standard Multisig transactions.
-Ordinals (the newest standard serialized script type) account for nearly 99% of all tap scripts.
+The first is to provide a signature and public key and then call OP_CHECKSIG. In the early days of bitcoin, these were the legacy pay-to-public-key outputs that had no address
+format and mostly used an uncompressed public key. Today we have Taproot outputs and its Key Path spend type which uses a Schnorr Signature and a slightly different type of public key.
+But the basic concept behind all key-based transaction types is exactly the same. They verify a signature against a public key and a sequence of bytes.
 
-In order to analyze how the bitcoin system works, and the ways that transation types are being used, it requires a system that can both identify script types and display them.
+The second way to redeem funds is to use a custom script. In the old "Wild West" days of the bitcoin blockchain when redemptions of non-standard outputs were not uncommon,
+custom functionality was often written directly into the input script, whereas the newer standards require the input script to be empty in most cases. Over the years, support for custom scripts was moved to
+serialized scripts. A serialized script is like a script with a script. After the first script executes, the serialized script is popped off the stack, parsed and executed.
+The success of the transaction depends on the success of the serialized script.
 
-In this discussion, we use the term Spend Type to describe the various standard methods that inputs use to redeem funds.
+There are 3 types of serialized scripts.
+- Redeem Scripts (BIP 16, 2012)
+- Witness Scripts (BIP 143, 2016)
+- Tap Scripts (BIP 341, 2020)
+
+Seeing the contents of these scripts is essential to understanding how transactions work, but most block explorers display them only as hex fields, the same way
+they would display a signature or a public key. Being able to analyze redeem scripts also tells us what bitcoin transactions are being used for over time.
+Currently, approximately 90% of redeem scripts and witness scripts are multisig transactions, and nearly 99% of tap scripts are ordinals.
+
+#### Spend Types
+
+We use the term Spend Type to describe the standard methods that inputs use to redeem funds.
 Each Spend Type can redeem exactly one Output Type, but some Output Types are redeemable by multiple Spend Types.
 Bitcoin Core recognizes 7 standard Output Types. The table below shows the 10 standard Spend Types that can be used to redeem the standard Output Types.
-the required contents of the input script and segregated witness are included in the table.
+The table also shows the required contents of the input script and segregated witness for each Spend Type.
 The Output Types are listed by the names assigned to them by Bitcoin Core. The Spend Types are listed by their commonly-used "P2" names.
 Since these are all standard methods for redeeming funds, the data in both the inputs and the outputs must be exactly as shown in the table below, otherwise one or both will be considered non-standard.
 
 ![Spend Types](/assets/images/spend-type-table.jpg)
 
-#### Script Field Viewing
+#### Script Fields
 
-Another important feature missing from most block explorers is the ability to easily change the way that script and segregated witness fields are interpretted and displayed.
-A field in a script could be an op code, a signature, a public key, a hash, a text message, part of a binary file or some piece of data that is not easily identifiable.
-Providing a way to view these fields as hex or text, or have the system attempt to determine what types of data they are, is a feature that most block explorers do not have,
-but it is very useful for anyone interested in analyzing script usage as well as anyone who simply wants to learn how the system works.
+The script fields and segregated witness fields that redeem outputs represent many different data types.
+Therefore, it is useful to have a quick and easy way to view these fields as different types.
+For example, a field in a script could be an op code, a signature, a public key, a hash, a text message, part of a binary file or some piece of data that is not easily identifiable.
+Providing a way to view these fields as hex or text, or have the system attempt to tell us what types of data they are, is useful for anyone interested in analyzing
+script usage as well as anyone who simply wants to learn how the system works.
 
-#### Back End for Custom Projects
+#### Custom Projects
 
-The REST API can be used as a back end for research projects which might focus on analysis of specific spend types, output types, script types, opcode usage or anything else.
-Such a program would, in most cases, be simple to write and would make it easy to put large of amounts of data into a database where it could be analyzed more thoroughly.
-The REST API can also be used as a back end for custom user interfaces.
+The REST API can be used as a back end for research projects which might focus on analysis of specific spend types, output types, script types, opcodes or anything else.
+Such a program would, in most cases, be simple to write, could be written in almost any language and would make it easy to put large of amounts of data into a database
+where it could be analyzed more thoroughly. The REST API can also be used as a back end for custom user interfaces.
 
 ## Screen Shots
 
@@ -69,26 +87,27 @@ The REST API can also be used as a back end for custom user interfaces.
 
 #### Quick Start (Bitcoin Core)
 
-Obviously, the following ip addresses, ports, username and password should be replaced by the ones used in your specific setup. Do not use the ones shown here.
+Obviously, the following ip addresses, port numbers, username and password should be replaced by the ones used in your specific setup. Do not use the ones shown here.
+Currently, Bitcoin Core is the only supported node, but other will likely be supported in the future.
 
 1. Bitcoin Core Config Settings
 
         txindex=1
         rpcbind=192.168.1.99:9999
         rpcallowip=192.168.1.77
-        rpcuser=btc_node_username
-        rpcpassword=btc_node_password
+        rpcuser=node_username
+        rpcpassword=node_password
 
 2. Explorer Config Settings
 
         bitcoin-core-addr=192.168.1.99
         bitcoin-core-port=9999
-        bitcoin-core-username=btc_node_username
-        bitcoin-core-password=btc_node_password
-        url=192.168.1.77
+        bitcoin-core-username=node_username
+        bitcoin-core-password=node_password
+        addr=192.168.1.77
         port=8080
 
-3. Run Explorer
+3. Run the Explorer
 
         $ ./explorer --config-file=./explorer.conf 
         
@@ -105,7 +124,4 @@ Obviously, the following ip addresses, ports, username and password should be re
 
         $ curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height
         {"Current_block_height":803131}
-
-## Building
-
 
