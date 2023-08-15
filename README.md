@@ -5,52 +5,16 @@
 ## Features
 
 The application provides 2 main services.
-The REST API connects to an ordinary bitcoin node, but returns data that is not provided by most nodes or online block explorers.
-The web interface can display anything the REST API returns.
-
-- REST API
-  - Returns all fields in serialized scripts (redeem scripts, witness scripts and tap scripts).
-  - Returns Spend Types of inputs in addition to Output Types.
-  - Returns the data types for all script and segregated witness fields.
-  - Returns any other fields that a bitcoin node can return.
-  - Can be used as a back end for custom analysis tools as well as custom user interfaces.
-
-- Web Site (Block/Tx Explorer)
-  - Displays all data returned by the REST API.
-  - Allows the user to view script fields and segregated witness fields as hex, text or data types.
-  - Displays both blocks and transactions. (Address searches are not currently supported.)
-  - Can be configured to serve web pages on any network interface and port.
+- The REST API connects to an ordinary bitcoin node, but returns data that is not provided by most nodes or online block explorers. See the Motivation section below for details.
+- The web interface can display anything the REST API returns.
 
 ## Motivation
 
-#### Serialized Scripts
+#### Spend Types
 
 When people discuss Transaction Types in the bicoin blockchain, they are usually referring to Output Types.
-However, outputs are passive elements and therefore they are relatively uninteresting from an analytical perspective.
+But outputs are relatively uninteresting from an analytical perspective because they are passive elements.
 An output has two main roles: to store value, and to reveal the methods (but not the data) that can be used to redeem that value.
-
-Unlike outputs, inputs are active elements. They are the workhorses of the bitcoin blockchain, and they do the heavy lifting required to redeem funds.
-In general, there are two ways funds can be redeemed.
-
-The first is to provide a signature and public key and then call OP_CHECKSIG. In the early days of bitcoin, these were the legacy pay-to-public-key outputs that had no address
-format and mostly used an uncompressed public key. Today we have Taproot outputs and its Key Path spend type which uses a Schnorr Signature and a slightly different type of public key.
-But the basic concept behind all key-based transaction types is exactly the same. They verify a signature against a public key and a sequence of bytes.
-
-The second way to redeem funds is to use a custom script. In the old "Wild West" days of the bitcoin blockchain when redemptions of non-standard outputs were not uncommon,
-custom functionality was often written directly into the input script, whereas the newer standards require the input script to be empty in most cases. Over the years, support for custom scripts was moved to
-serialized scripts. A serialized script is like a script with a script. After the first script executes, the serialized script is popped off the stack, parsed and executed.
-The success of the transaction depends on the success of the serialized script.
-
-There are 3 types of serialized scripts.
-- Redeem Scripts (BIP 16, 2012)
-- Witness Scripts (BIP 143, 2016)
-- Tap Scripts (BIP 341, 2020)
-
-Seeing the contents of these scripts is essential to understanding how transactions work, but most block explorers display them only as hex fields, the same way
-they would display a signature or a public key. Being able to analyze redeem scripts also tells us what bitcoin transactions are being used for over time.
-Currently, approximately 90% of redeem scripts and witness scripts are multisig transactions, and nearly 99% of tap scripts are ordinals.
-
-#### Spend Types
 
 We use the term Spend Type to describe the standard methods that inputs use to redeem funds.
 Each Spend Type can redeem exactly one Output Type, but some Output Types are redeemable by multiple Spend Types.
@@ -59,7 +23,24 @@ The table also shows the required contents of the input script and segregated wi
 The Output Types are listed by the names assigned to them by Bitcoin Core. The Spend Types are listed by their commonly-used "P2" names.
 Since these are all standard methods for redeeming funds, the data in both the inputs and the outputs must be exactly as shown in the table below, otherwise one or both will be considered non-standard.
 
-![Spend Types](/assets/images/spend-type-table.jpg)
+![Spend Types](/assets/images/spend-type-table.png)
+
+#### Serialized Scripts
+
+There have been 5 generations of standard bitcoin spend types, each of which provides one key-based and one script-based method for redeeming outputs. The legacy multisig transactions are the
+ancestors of modern script-based transaction types. The following table shows 
+These "generations" did not necessarily evolve in the order they appear in the table below.
+
+![Transaction Generations](/assets/images/tx-generations.png)
+
+There are 3 types of serialized scripts.
+- Redeem Scripts (BIP 16, 2012)
+- Witness Scripts (BIP 143, 2016)
+- Tap Scripts (BIP 341, 2020)
+
+Viewing the contents of serialized scripts is essential to understanding how transactions work, but most block explorers display them only as hex fields, the same way
+they would display a signature or a public key. Analysis of serialized scripts also allows us to see what various spend types are being used for.
+Currently, approximately 90% of redeem scripts and witness scripts are multisig transactions, and nearly 99% of tap scripts are ordinals.
 
 #### Script Fields
 
