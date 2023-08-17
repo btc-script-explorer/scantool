@@ -21,9 +21,11 @@ Other than that, they do nothing. Outputs just sit there in the blockchain waiti
 Inputs are the workhorses of the bitcoin system. They supply all of the data and/or functionality required to redeem outputs.
 There are 10 standard input types which we will refer to as Spend Types.
 Each Spend Type can redeem exactly one Output Type, but some Output Types are redeemable by multiple Spend Types.
+
+Most nodes return little or no information about spend types, and few block explorers identify them either.
+
 The table below shows which Spend Types can be used to redeem which Output Types.
 It also shows the required contents of the input script and segregated witness for each Spend Type.
-
 The Output Types are listed by the names assigned to them by Bitcoin Core. The Spend Types are listed by their commonly-used "P2" names.
 Since these are all standard methods for redeeming funds, all input data must be exactly as shown in the table below, otherwise the redemption method will be considered non-standard.
 
@@ -31,14 +33,14 @@ Since these are all standard methods for redeeming funds, all input data must be
 
 #### Serialized Scripts
 
-There have been 5 generations of standard bitcoin spend types, each of which provides one key-based and one script-based method for redeeming outputs. The legacy multisig transactions were the
-ancestors of modern script-based transaction types. In each of the script-based types, there is a serialized script provided in the input data. For these spend types, the serialized script
-is parsed and executed. These "generations" did not necessarily evolve in the order they appear in the table below.
+There have been 5 generations of standard bitcoin spend types, each of which provides one key-based and one script-based method for redeeming outputs.
+In each of the script-based types, there is a serialized script provided in the input data. That script is parsed and executed and must succeed in order for the transaction to succeed.
+The legacy multisig scripts were the ancestors of modern serialized scripts. The "generations" shown here did not necessarily evolve in the order they appear in the table below.
 
 ![Transaction Generations](/assets/images/tx-generations.png)
 
 There are 3 types of serialized scripts:
-- Redeem Script (BIP 16, 2012) is the last field of an input script that redeems a P2SH output.
+- Redeem Script (BIP 16, 2012) is the last field of any input script that redeems a P2SH output.
 - Witness Script (BIP 143, 2016) is the last segregated witness field in a P2SH-P2WSH or P2WSH input.
 - Tap Script (BIP 341, 2020) is the segregated witness field before the control block in a Taproot Script Path input.
 
@@ -52,7 +54,7 @@ Script fields and segregated witness fields can represent many different types o
 Therefore, it is useful to have a quick and easy way to view these fields as different types, or have the system identify which types they appear to be.
 For example, a field in a script could be an op code, a signature, a public key, a hash, a text message, part of a binary file or some piece of data that is not easily identifiable.
 Having a way to change viewing modes for these fields would be useful for anyone interested in analyzing script usage as well as anyone who simply wants to learn how the system works.
-(See the Screen Shots section below for examples.)
+(See the [Screen Shots](/LICENSE) section for examples.)
 
 #### Custom Projects
 
@@ -72,7 +74,7 @@ where it could be analyzed more thoroughly. The REST API can also be used as a b
 
 #### Quick Start (Bitcoin Core)
 
-Obviously, the following ip addresses, port numbers, username and password should be replaced by the ones used in your specific setup. Do not use the ones shown here.
+Obviously, the following ip addresses, port numbers, username and password must be replaced by the ones used in your specific setup. Do not use the example values shown here.
 
 1. Bitcoin Core Config Settings
 
