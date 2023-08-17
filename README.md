@@ -62,8 +62,6 @@ The REST API can be used as a back end for research projects which might focus o
 Such a program would, in most cases, be simple to write, could be written in almost any language and would make it easy to put large of amounts of data into a database
 where it could be analyzed more thoroughly. The REST API can also be used as a back end for custom user interfaces.
 
-## Screen Shots
-
 ## Usage
 
 #### Requirements

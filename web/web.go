@@ -466,7 +466,7 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 		}
 	}
 
-	blockHtmlData ["Bip141Message"] = fmt.Sprintf ("%9.2f%% BIP 141 (%d/%d)", float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)), blockData ["Bip141Count"].(uint16), blockHtmlData ["TxCount"].(uint16))
+	blockHtmlData ["Bip141Message"] = fmt.Sprintf ("%d (%.2f%% BIP 141)", blockHtmlData ["TxCount"].(uint16), float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)))
 
 	blockHtmlData ["BaseUrl"] = app.Settings.GetFullUrl () + "/web"
 	blockHtmlData ["TxData"] = blockData ["Txs"].([] rest.BlockTxData)
