@@ -46,7 +46,7 @@ Viewing the contents of serialized scripts is essential to understanding how tra
 they would display a signature or a public key. Analysis of serialized scripts also allows us to see what serialized scripts are being used for.
 Currently, approximately 90% of redeem scripts and witness scripts are standard multisig transactions, and nearly 99% of tap scripts are ordinals.
 
-#### Script Fields
+#### Script Field Data Types
 
 Script fields and segregated witness fields can represent many different types of data.
 Therefore, it is useful to have a quick and easy way to view these fields as different types, or have the system identify which types they appear to be.
