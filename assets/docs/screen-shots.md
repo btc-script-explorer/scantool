@@ -20,6 +20,10 @@
 
 ![Ordinal (as text)](/assets/images/screen-shots/op-return-message-as-text.png)
 
+### Transaction Results
+
+![Transaction Results](/assets/images/screen-shots/tx-results.png)
+
 ### Block Results
 
 ![Block Results](/assets/images/screen-shots/block-results.png)
