@@ -152,7 +152,6 @@ if i.spendType == SPEND_TYPE_P2TR_Script { fmt.Println (previousOutputTxId, prev
 					i.segwit.SetWitnessScript (possibleWitnessScript)
 				} else if possibleTaprootScriptPath {
 					i.spendType = SPEND_TYPE_P2TR_Script
-					if possibleTapScript.IsEmpty () { fmt.Printf ("Input that redeems %s:%d has %s spend type with empty tap script.\n", previousOutputTxId, previousOutputIndex, i.spendType) }
 					i.segwit.SetTapScript (possibleTapScript, possibleTapScriptIndex)
 				}
 			}

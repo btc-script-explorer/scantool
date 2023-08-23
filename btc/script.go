@@ -43,7 +43,6 @@ func (sf *ScriptField) AsType () string {
 	return sf.dataType
 }
 
-/*
 func (sf *ScriptField) AsText () string {
 	if sf.isOpcode {
 		return getOpcodeName (sf.rawBytes [0])
@@ -51,7 +50,6 @@ func (sf *ScriptField) AsText () string {
 
 	return string (sf.rawBytes)
 }
-*/
 
 type Script struct {
 	rawBytes [] byte

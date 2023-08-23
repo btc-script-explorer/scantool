@@ -3,6 +3,7 @@ package rest
 import (
 	"fmt"
 	"io"
+"strings"
 	"encoding/json"
 
 	"btctx/btc"
@@ -242,6 +243,61 @@ tr
 
 			responseJson = string (prevOutsBytes)
 
+/*
+		request:
+		curl -X POST http://127.0.0.1:8888/rest/v1/serialized_script_usage
+		curl -X POST -d '{"height":801234,"options":{"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/serialized_script_usage
+		curl -X POST -d '{"height":786501,"options":{"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/serialized_script_usage
+
+		response:
+		{
+			"Current_block_height": 802114
+		}
+*/
+		case "serialized_script_usage":
+
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
+
+			// unpack the json
+			var requestParams map [string] interface {}
+			err := json.NewDecoder (requestBody).Decode (&requestParams)
+			if err != nil { errorMessage = err.Error (); break }
+
+			blockHash := ""
+			if requestParams ["hash"] != nil {
+				blockHash = requestParams ["hash"].(string)
+			} else if requestParams ["height"] != nil {
+
+				blockHeight, isNumeric := api.convertToBlockHeight (requestParams ["height"])
+				if !isNumeric { fmt.Println ("Failed to read height parameter."); break }
+
+				nodeClient := btc.GetNodeClient ()
+				blockHash = nodeClient.GetBlockHash (blockHeight)
+				if len (blockHash) == 0 { fmt.Println ("Failed to read height parameter."); break }
+			} else {
+				fmt.Println ("hash or height parameter required for ", functionName)
+				break
+			}
+
+			requestOptions := map [string] interface {} {}
+			if requestParams ["options"] != nil { requestOptions = requestParams ["options"].(map [string] interface {}) }
+
+			tap := requestOptions ["tap"] != nil && requestOptions ["tap"].(bool)
+			redeem := requestOptions ["redeem"] != nil && requestOptions ["redeem"].(bool)
+			witness := requestOptions ["witness"] != nil && requestOptions ["witness"].(bool)
+			serializedScriptMap := api.getSerializedScriptJson (blockHash, tap, redeem, witness)
+
+			var resultBytes [] byte
+			if requestOptions ["HumanReadable"] != nil && requestOptions ["HumanReadable"].(bool) {
+				resultBytes, err = json.MarshalIndent (serializedScriptMap, "", "\t")
+			} else {
+				resultBytes, err = json.Marshal (serializedScriptMap)
+			}
+			if err != nil { fmt.Println (err.Error ()) }
+
+			responseJson = string (resultBytes)
+
+
 		default:
 			errorMessage = fmt.Sprintf ("Unknown REST v1 function: %s", functionName)
 	}
@@ -352,18 +408,6 @@ func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [strin
 		inputs [i] = inputData
 	}
 	txData ["Inputs"] = inputs
-
-	// previous outputs
-/*
-	previousOutputCount := len (previousOutputRequests)
-	if previousOutputCount > 0 {
-		previousOutputResponses := make ([] PreviousOutputResponse, previousOutputCount)
-		for o, prevOut := range previousOutputRequests {
-			previousOutputResponses [o] = GetPreviousOutputResponseData (prevOut.PrevOutTxId, prevOut.PrevOutIndex)
-		}
-		txData ["PreviousOutputs"] = previousOutputResponses
-	}
-*/
 	txData ["PreviousOutputRequests"] = api.getPreviousOutputRequestData (tx)
 
 	// outputs
@@ -411,6 +455,22 @@ func (api *RestApiV1) getPreviousOutputRequestData (tx btc.Tx) [] PreviousOutput
 	return previousOutputs
 }
 
+func (api *RestApiV1) convertToBlockHeight (param interface {}) (uint32, bool) {
+	// find an integer type for the height field
+	// this can vary depending on the software used to send the request
+	uint32Test, uint32Okay := param.(uint32)
+	float64Test, float64Okay := param.(float64)
+
+	if uint32Okay {
+		return uint32Test, true
+	} else if float64Okay {
+		return uint32 (float64Test), true
+	}
+
+	// none of the types worked, it isn't a valid height or it is a different numeric type
+	return 0xffffffff, false
+}
+
 func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map [string] interface {} {
 
 	// determine the block hash
@@ -420,23 +480,18 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 		// if both hash and height are provided, hash will be used
 		blockHash = blockRequest ["hash"].(string)
 	} else if blockRequest ["height"] != nil {
-		// find an integer type for the height field
-		// this can vary depending on the software used to send the request
-		uint32Test, uint32Okay := blockRequest ["height"].(uint32)
-		float64Test, float64Okay := blockRequest ["height"].(float64)
-
-		blockHeight := uint32 (0)
-		if uint32Okay {
-			blockHeight = uint32Test
-		} else if float64Okay {
-			blockHeight = uint32 (float64Test)
-		} else {
-			// none of the types worked, it isn't a valid height or it is a different numeric type
+		blockHeight, isNumeric := api.convertToBlockHeight (blockRequest ["height"])
+		if !isNumeric {
 			fmt.Println ("Failed to read height field.")
 			return nil
 		}
 
 		blockHash = nodeClient.GetBlockHash (blockHeight)
+		if len (blockHash) == 0 {
+			fmt.Println ("Failed to read height field.")
+			return nil
+		}
+
 	} else {
 		blockHash = nodeClient.GetCurrentBlockHash ()
 	}
@@ -537,6 +592,107 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 	}
 
 	return blockData
+}
+
+func (api *RestApiV1) getSerializedScriptJson (blockHash string, tap bool, redeem bool, witness bool) map [string] [] map [string] interface {} {
+
+	nodeClient := btc.GetNodeClient ()
+	block := nodeClient.GetBlock (blockHash, true)
+
+	var ordResults [] map [string] interface {}
+	var redeemResults [] map [string] interface {}
+	var witnessResults [] map [string] interface {}
+
+	for _, tx := range block.GetTxs () {
+		for i, input := range tx.GetInputs () {
+
+			resultObj := make (map [string] interface {})
+			resultObj ["tx"] = tx.GetTxId ()
+			resultObj ["input"] = i
+
+			st := input.GetSpendType ()
+			if tap && st == btc.SPEND_TYPE_P2TR_Script && input.HasOrdinalTapScript () {
+
+				segwit := input.GetSegwit ()
+				script, _ := segwit.GetTapScript ()
+				ordinalFields := script.GetFields ()
+
+				ordBegin := 2
+				if ordinalFields [3].AsHex () == "OP_DROP" { ordBegin = 4 }
+
+				ordMimeType := ordinalFields [ordBegin + 4].AsText ()
+				mimeTypeTextPlain := strings.Index (ordMimeType, "text/plain") != -1
+				mimeTypeTextHtml := strings.Index (ordMimeType, "text/html") != -1
+				mimeTypeApplicationJson := strings.Index (ordMimeType, "application/json") != -1
+//				mimeTypeTextJavascript := strings.Index (ordMimeType, "text/javascript") != -1
+
+				resultObj ["mimetype"] = ordMimeType
+
+				ordParams := make (map [string] interface {})
+
+				if mimeTypeTextPlain || mimeTypeTextHtml || mimeTypeApplicationJson {
+
+					ordJson := ordinalFields [ordBegin + 6].AsBytes ()
+					err := json.Unmarshal (ordJson, &ordParams)
+
+					dataIsJson := err == nil
+					if dataIsJson {
+						resultObj ["ord"] = ordParams
+					} else {
+						resultObj ["ord"] = ordinalFields [ordBegin + 6].AsText ()
+					}
+				} else {
+					dataSize := uint32 (0)
+					for dataSegment := ordBegin + 6; dataSegment <= len (ordinalFields) - 2; dataSegment++ {
+						dataSize += uint32 (len (ordinalFields [dataSegment].AsBytes ()))
+					}
+					resultObj ["data_size"] = dataSize
+				}
+
+				ordResults = append (ordResults, resultObj)
+			} else if redeem && st == btc.OUTPUT_TYPE_P2SH && input.HasMultisigRedeemScript () {
+
+				script := input.GetRedeemScript ()
+				multisigFields := script.GetFields ()
+
+				sigCount := multisigFields [0].AsBytes () [0]
+				if sigCount >= 0x51 && sigCount <= 0x60 { sigCount -= 0x50 }
+
+				keyCount := multisigFields [len (multisigFields) - 2].AsBytes () [0]
+				if keyCount >= 0x51 && keyCount <= 0x60 { keyCount -= 0x50 }
+
+				resultObj ["sig_count"] = uint8 (sigCount)
+				resultObj ["key_count"] = uint8 (keyCount)
+
+				redeemResults = append (redeemResults, resultObj)
+
+			} else if witness && (st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH) && input.HasMultisigWitnessScript () {
+
+				segwit := input.GetSegwit ()
+				script := segwit.GetWitnessScript ()
+				multisigFields := script.GetFields ()
+
+				sigCount := multisigFields [0].AsBytes () [0]
+				if sigCount >= 0x51 && sigCount <= 0x60 { sigCount -= 0x50 }
+
+				keyCount := multisigFields [len (multisigFields) - 2].AsBytes () [0]
+				if keyCount >= 0x51 && keyCount <= 0x60 { keyCount -= 0x50 }
+
+				resultObj ["sig_count"] = uint8 (sigCount)
+				resultObj ["key_count"] = uint8 (keyCount)
+				resultObj ["spend_type"] = st
+
+				witnessResults = append (witnessResults, resultObj)
+			}
+		}
+	}
+
+	results := make (map [string] [] map [string] interface {})
+	if len (ordResults) > 0 { results ["ordinals"] = ordResults }
+	if len (redeemResults) > 0 { results ["redeem"] = redeemResults }
+	if len (witnessResults) > 0 { results ["witness"] = witnessResults }
+
+	return results
 }
 
 func (api *RestApiV1) getKnownSpendTypes (block btc.Block) map [string] uint16 {
