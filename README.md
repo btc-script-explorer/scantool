@@ -52,7 +52,7 @@ Script fields and segregated witness fields can represent many different types o
 Therefore, it is useful to have a quick and easy way to view these fields as different types, or have the system identify which types they appear to be.
 For example, a field in a script could be an op code, a signature, a public key, a hash, a text message, part of a binary file or some piece of data that is not easily identifiable.
 Having a way to change viewing modes for these fields would be useful for anyone interested in analyzing script usage as well as anyone who simply wants to learn how the system works.
-(See the [Screen Shots](/assets/docs/screen-shots.md) section for examples.)
+(See the [Screen Shots](/examples/screen-shots.md) section for examples.)
 
 #### Custom Projects
 
