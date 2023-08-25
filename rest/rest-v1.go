@@ -48,6 +48,12 @@ type PreviousOutputResponse struct {
 	OutputScript map [string] interface {}
 }
 
+type PrevOutJsonResponse struct {
+	InputTxId string
+	InputIndex uint32
+	PrevOut PreviousOutputResponse
+}
+
 func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, getParams [] string, requestBody io.ReadCloser) string {
 
 	errorMessage := ""
@@ -208,6 +214,7 @@ tr
 
 			responseJson = api.GetCurrentBlockHeight ()
 
+
 /*
 		request:
 		{
@@ -243,6 +250,68 @@ tr
 
 			responseJson = string (prevOutsBytes)
 
+
+/*
+		request:
+		{
+			"InputTxId":"801906494bfa5710e3a47131640859222abf52391de5800844a79fd148d5a658",
+			"InputIndex":0,
+			"PrevOutTxId":"f742b911259dd11278e9e3d34f2538c7d77837daef15fc00a047e3f13253aa0b",
+			"PrevOutIndex":24
+		}
+		curl -X POST -d '{"InputTxId":"801906494bfa5710e3a47131640859222abf52391de5800844a79fd148d5a658","InputIndex":0,"PrevOutTxId":"f742b911259dd11278e9e3d34f2538c7d77837daef15fc00a047e3f13253aa0b","PrevOutIndex":24}' http://127.0.0.1:8888/rest/v1/prevout
+
+		response:
+		{
+			"InputTxId":"801906494bfa5710e3a47131640859222abf52391de5800844a79fd148d5a658",
+			"InputIndex":0,
+			"PrevOut":
+			{
+				"Value":769440,
+				"OutputType":"P2PKH",
+				"Address":"12iFKzb55TnNURcqSpp3swtZKUTyV2nXxV",
+				"OutputScript":
+				{
+					"Fields":[
+								{"Hex":"OP_DUP","Type":"OP_DUP"},
+								{"Hex":"OP_HASH160","Type":"OP_HASH160"},
+								{"Hex":"12c523e2edf0e0de04094f4df37ed2b4f5b26e37","Type":"Public Key Hash"},
+								{"Hex":"OP_EQUALVERIFY","Type":"OP_EQUALVERIFY"},
+								{"Hex":"OP_CHECKSIG","Type":"OP_CHECKSIG"}
+					]
+				}
+			}
+		}
+*/
+		// called when the tx id and input index need to be returned with the response
+		case "prevout":
+
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
+
+			// unpack the json
+			var previousOutputJsonIn PreviousOutputRequest
+			err := json.NewDecoder (requestBody).Decode (&previousOutputJsonIn)
+			if err != nil { errorMessage = err.Error (); break }
+
+			txId := previousOutputJsonIn.PrevOutTxId
+			outputIndex := previousOutputJsonIn.PrevOutIndex
+			inputIndex := previousOutputJsonIn.InputIndex
+			inputTxId := previousOutputJsonIn.InputTxId
+
+			previousOutput := api.GetPreviousOutputResponseData (txId, uint32 (outputIndex))
+
+			// return the json response
+			previousOutputResponse := PrevOutJsonResponse { InputTxId: inputTxId,
+																InputIndex: uint32 (inputIndex),
+																PrevOut: previousOutput }
+
+			jsonBytes, err := json.Marshal (previousOutputResponse)
+			if err != nil { fmt.Println (err) }
+
+			responseJson = string (jsonBytes)
+
+
+
 /*
 		request:
 		curl -X POST http://127.0.0.1:8888/rest/v1/serialized_script_usage
@@ -250,9 +319,6 @@ tr
 		curl -X POST -d '{"height":786501,"options":{"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/serialized_script_usage
 
 		response:
-		{
-			"Current_block_height": 802114
-		}
 */
 		case "serialized_script_usage":
 
@@ -426,6 +492,8 @@ func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [strin
 	return txData
 }
 
+// handles a single output from a single transaction
+// returns value, output type, address and output script
 func (api *RestApiV1) GetPreviousOutputResponseData (txId string, outputIndex uint32) PreviousOutputResponse {
 	nodeClient := btc.GetNodeClient ()
 	previousOutput := nodeClient.GetPreviousOutput (txId, uint32 (outputIndex))
@@ -438,6 +506,27 @@ func (api *RestApiV1) GetPreviousOutputResponseData (txId string, outputIndex ui
 	}
 
 	return PreviousOutputResponse { Value: previousOutput.GetValue (), OutputType: previousOutput.GetOutputType (), Address: previousOutput.GetAddress (), OutputScript: map [string] interface {} { "Fields": fieldData } }
+}
+
+// handles multiple outputs in multiple transactions
+// returns outpoints and the output type of each
+func (r *RestApiV1) GetPreviousOutputTypes (previousOutputs map [string] [] uint32) map [string] string {
+
+	nodeClient := btc.GetNodeClient ()
+	prevOutMap := make (map [string] string)
+	for txId, outputIndexes := range previousOutputs {
+
+		tx := nodeClient.GetTx (txId)
+		outputs := tx.GetOutputs ()
+
+		for _, prevOutIndex := range outputIndexes {
+			key := fmt.Sprintf ("%s:%d", txId, prevOutIndex)
+			value := outputs [prevOutIndex].GetOutputType ()
+			prevOutMap [key] = value
+		}
+	}
+
+	return prevOutMap
 }
 
 func (api *RestApiV1) getPreviousOutputRequestData (tx btc.Tx) [] PreviousOutputRequest {
@@ -764,25 +853,6 @@ The example above would return:
 }
 
 */
-
-func (r *RestApiV1) GetPreviousOutputTypes (previousOutputs map [string] [] uint32) map [string] string {
-
-	nodeClient := btc.GetNodeClient ()
-	prevOutMap := make (map [string] string)
-	for txId, outputIndexes := range previousOutputs {
-
-		tx := nodeClient.GetTx (txId)
-		outputs := tx.GetOutputs ()
-
-		for _, prevOutIndex := range outputIndexes {
-			key := fmt.Sprintf ("%s:%d", txId, prevOutIndex)
-			value := outputs [prevOutIndex].GetOutputType ()
-			prevOutMap [key] = value
-		}
-	}
-
-	return prevOutMap
-}
 
 func (r *RestApiV1) GetCurrentBlockHeight () string {
 
