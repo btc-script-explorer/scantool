@@ -11,7 +11,7 @@ When using a config file, the **--config-file** command line parameter is requir
 The IP address used to connect to the JSON RPC API of Bitcoin Core.
 This should be the IP address part of one of the **rpcbind** Bitcoin Core settings.
 
-**Default**: 127.0.0.1
+**Default**: 127.0.0.1<br>
 **Required** if using Bitcoin Core
 
 ### bitcoin-core-port
@@ -19,7 +19,7 @@ This should be the IP address part of one of the **rpcbind** Bitcoin Core settin
 The port number used to connect to the JSON RPC API of Bitcoin Core.
 This should be the port part of one of the **rpcbind** Bitcoin Core settings.
 
-**Default**: 8332
+**Default**: 8332<br>
 **Required** if using Bitcoin Core
 
 ### bitcoin-core-username
@@ -27,7 +27,7 @@ This should be the port part of one of the **rpcbind** Bitcoin Core settings.
 The username used to connect to the JSON RPC API of Bitcoin Core.
 This should be the **rpcuser** Bitcoin Core setting.
 
-**Default**: None
+**Default**: None<br>
 **Required** if using Bitcoin Core
 
 ### bitcoin-core-password
@@ -35,7 +35,7 @@ This should be the **rpcuser** Bitcoin Core setting.
 The password used to connect to the JSON RPC API of Bitcoin Core.
 This should be the **rpcpassword** Bitcoin Core setting.
 
-**Default**: None
+**Default**: None<br>
 **Required** if using Bitcoin Core
 
 ## HTTP Server Settings
@@ -44,19 +44,21 @@ This should be the **rpcpassword** Bitcoin Core setting.
 
 The IP address of the website.
 
-**Default**: 127.0.0.1
+**Default**: 127.0.0.1<br>
 **Required** if **no-web** is not set
 
 ### port
 
 The port number of the website.
 
-**Default**: 8080
+**Default**: 8080<br>
 **Required** if **no-web** is not set
 
 ### no-web
 
 Turns off the web server. It does not take a value. If it is present, the web server will be turned off. Otherwise, it will be turned on.
+
+**Default**: off<br>
 **Optional**
 
 ## Test Settings (not yet officially supported)
