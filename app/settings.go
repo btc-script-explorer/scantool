@@ -143,8 +143,8 @@ func getDefaultSettings () settingsManager {
 	return settingsManager {
 //								configFile: "",
 
-//								bitcoinCoreAddr: "",
-//								bitcoinCorePort: 0,
+								bitcoinCoreAddr: "127.0.0.1",
+								bitcoinCorePort: 8332,
 //								bitcoinCoreUsername: "",
 //								bitcoinCorePassword: "",
 
