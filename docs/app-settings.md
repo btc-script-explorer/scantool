@@ -1,33 +1,62 @@
-# Bitcoin Core Settings
+# Application Settings
 
-### bitcoin-core-addr
+It is recommended to use a config file, although all of the settings shown here can be used on the command line by prepending -- to the front of them.
+
+When using a config file, the **--config-file** command line parameter is required. It can be a full path or a relative path to the config file.
+
+### Bitcoin Core Settings
+
+##### bitcoin-core-addr
 
 The IP address used to connect to the JSON RPC API of Bitcoin Core.
-This should be the IP address part of one of the *rpcbind* settings used when Bitcoin Core starts up.
+This should be the IP address part of one of the **rpcbind** Bitcoin Core settings.
 
-*Default*: 127.0.0.1
+**Default**: 127.0.0.1
 
-### bitcoin-core-port
+##### bitcoin-core-port
 
-8332
+The port number used to connect to the JSON RPC API of Bitcoin Core.
+This should be the port part of one of the **rpcbind** Bitcoin Core settings.
 
-### bitcoin-core-username
+**Default**: 8332
+
+##### bitcoin-core-username
+
+The username used to connect to the JSON RPC API of Bitcoin Core.
+This should be the **rpcuser** Bitcoin Core setting.
+
+**Default**: None
+
+##### bitcoin-core-password
+
+The password used to connect to the JSON RPC API of Bitcoin Core.
+This should be the **rpcpassword** Bitcoin Core setting.
+
+**Default**: None
+
+### HTTP Server Settings
+
+##### addr
+
+The IP address of the website.
+
+**Default**: 127.0.0.1
+
+##### port
+
+The port number of the website.
+
+**Default**: 8080
+
+##### no-web
+
+This turns off the web server. It does not take a value. If it is present, the web server will be turned off. Otherwise, it will be turned on.
 
 
-### bitcoin-core-password
+### Test Settings (not yet officially supported)
 
-
-# Default http server settings
-
-#addr=127.0.0.1
-#port=8080
-#no-web
-
-
-# Testing is off by default. This feature is not yet fully supported.
-
-#test-mode=
-#test-verified-dir=
-#test-unverified-dir=
-#test-source-file=
+##### test-mode=
+##### test-verified-dir=
+##### test-unverified-dir=
+##### test-source-file=
 
