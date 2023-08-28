@@ -61,10 +61,3 @@ Turns off the web server. It does not take a value. If it is present, the web se
 **Default**: off<br>
 **Optional**
 
-## Test Settings (not yet officially supported)
-
-### test-mode=
-### test-verified-dir=
-### test-unverified-dir=
-### test-source-file=
-
