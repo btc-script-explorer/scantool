@@ -11,11 +11,11 @@
                 HumanReadable bool
         }
 
-- **NoTypes**: If true, the response will not include spend types or output types. Default: false
-- **NoTxs**: If true, the response will not include transaction data. Default: false
-- **NoUnknownSpendTypes**: If true, the response will not include unknown spend types. Default: false
-- **ScriptUsageStats**: If true, the response will include script usage stats. Default: false
-- **HumanReadable**: If true, JSON will be returned in a human readable format with newlines and indentations. Default: false
+- **NoTypes**: Optional. If true, the response will not include spend types or output types. Default: false
+- **NoTxs**: Optional. If true, the response will not include transaction data. Default: false
+- **NoUnknownSpendTypes**: Optional. If true, the response will not include unknown spend types. Default: false
+- **ScriptUsageStats**: Optional. If true, the response will include script usage stats. Default: false
+- **HumanReadable**: Optional. If true, JSON will be returned in a human readable format with newlines and indentations. Default: false
 
 ***
 
@@ -27,8 +27,8 @@
                 options BlockRequestOptions
         }
 
-- **hash, height**: The block hash or height. If both are provided in the request, height will be ignored. Default: most recent block
-- **options**: Optional. If not included in the request, default values for all options will be used.
+- **hash, height**: Optional. The block hash or height. If both are provided in the request, hash will be used and height will be ignored. Default: most recent block
+- **options**: Optional. If not included in the request, default values will be used for all options.
 
 ***
 
@@ -54,15 +54,16 @@ Used in the BlockResponse. This is a small summary of information about a transa
 
 ## SpendTypeList
 
-Each field is a transaction id that points to an array of output indexes.
 If spend types are needed for a block, these objects should be sent back in subsequent previous_output_types requests.
 
         {
                 string: [ uint32 ]
         }
 
-- **string**: Transaction id.
-- **[ uint32 ]**: Array of output indexes.
+- **Key**: Transaction id.
+- **Value**: Array of output indexes.
+
+***
 
 ## TxPartType
 
@@ -72,8 +73,8 @@ Each field is a spend type or output type that points to the total number of obj
                 string: uint16
         }
 
-- **string**: Spend type.
-- **uint16**: Number of inputs of this spend type found in the search results.
+- **Key**: Spend type name.
+- **Value**: Number of inputs of this spend type found in the search results.
 
 ***
 
@@ -124,6 +125,7 @@ Each field is a spend type or output type that points to the total number of obj
 - **TapScriptOrdinalCount**: Number of ordinal tap scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
 - **TapScriptCount**: Number of tap scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
 
+***
 
 ## Examples
 
