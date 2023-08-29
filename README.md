@@ -113,6 +113,6 @@ As explained above, the ip addresses, port numbers, username and password shown 
 
 ## Examples
 
-![Web Examples](/examples/screen-shots.md)
-![REST Examples](/examples/rest.md)
+- Website Screen Shots: (/examples/screen-shots.md)
+- REST API Examples: (/examples/rest.md)
 
