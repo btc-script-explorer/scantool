@@ -129,19 +129,21 @@ Each field is a spend type or output type that points to the total number of obj
 
 # Examples
 
-Request the most recent block using all default values.
+## Request the most recent block using all default values.
 
         $ curl -X POST -d '{}' http://127.0.0.1:8080/rest/v1/block
 
-Request the most recent block in human readable JSON without returning unknown spend type data.
+## Request the most recent block without returning unknown spend type data.
 
-        $ curl -X POST -d '{"options":{"HumanReadable":true,"NoUnknownSpendTypes":true}}' http://127.0.0.1:8080/rest/v1/block
+        $ curl -X POST -d '{"options":{"NoUnknownSpendTypes":true}}' http://127.0.0.1:8080/rest/v1/block
 
-Request a block in human readable JSON by block hash.
+## Request a block by block hash.
 
-        $ curl -X POST -d '{"hash":"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594","options":{"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/block
+        $ curl -X POST -d '{"hash":"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594"}' http://127.0.0.1:8080/rest/v1/block
 
-Request a block without returning any types. By using this option, we are asking not to receive spend types or output types, only block and transaction data.
+## Request a block without returning any types.
+
+By using this option, we are asking not to receive spend types or output types, only block and transaction data.
 
         $ curl -X POST -d '{"height":769895,"options":{"NoTypes":true,"HumanReadable":true}}' http://192.168.1.77:8080/rest/v1/block
         {
@@ -188,7 +190,7 @@ Request a block without returning any types. By using this option, we are asking
 ***
 
 
-Request the most recent block in human readable JSON with only script usage stats but no type data or transaction data.
+## Request the most recent block with only script usage stats.
 
         $ curl -X POST -d '{"options":{"NoTxs":true,"NoTypes":true,"ScriptUsageStats":true,"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/block
         {
@@ -205,6 +207,8 @@ Request the most recent block in human readable JSON with only script usage stat
                 "WitnessScriptCount": 756,
                 "WitnessScriptMultisigCount": 701
         }
+
+## Spend Type Analysis Example
 
 In order to analyze spend types in blocks, a multi-step process is required in order to gather the data.
 This is because the spend types of legacy non-segwit inputs can not be known without looking at every previous output.
@@ -297,7 +301,7 @@ In order to save time, and prevent too many requests being sent to your node all
                 }
         }
 
-In this example, only one of the input spend types was known in the original response. The rest must be retrieved separately.
+In this example, only one of the spend types was known in the original response. The rest must be retrieved separately.
 There are 8 separate transactions to get previous output data from.
 These requests can be sent in batches or individually.
 We will divide the 8 transactions into 2 groups.
