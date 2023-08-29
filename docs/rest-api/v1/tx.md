@@ -36,7 +36,7 @@
                 PreviousOutputTxId string
                 PreviousOutputIndex uint16
 
-				Segwit SegregatedWitness
+                Segwit SegregatedWitness
         }
 
 - **InputIndex**: Index of the input in the transaction.
@@ -59,7 +59,7 @@
                 OutputScript Script
         }
 
-- **OutputIndex**: Index of the output in the transaction.
+- **OutputIndex**: Not present for previous outputs. Index of the output in the transaction.
 - **OutputType**: Output type of this output.
 - **Value**: Value of this output.
 - **Address**: Address for this output.
@@ -69,8 +69,8 @@
 
         {
                 Fields [ Field ]
-				WitnessScript Script
-				TapScript Script
+                WitnessScript Script
+                TapScript Script
         }
 
 - **Fields**: Array of fields in the segregated witness.
@@ -90,6 +90,18 @@
 - **InputIndex**: Required. Index of the input that the previous output belongs to.
 - **PrevOutTxId**: Required. Transaction id of the previous output.
 - **PrevOutIndex**: Required. Index of the previous output.
+
+## PreviousOutputResponse
+
+        {
+                InputTxId string
+                InputIndex uint16
+                PrevOut Output
+        }
+
+- **InputTxId**: Transaction id of the input that the previous output belongs to.
+- **InputIndex**: Index of the input that the previous output belongs to.
+- **PrevOut**: Previous output for this input.
 
 ## TxRequestOptions
 
@@ -139,10 +151,9 @@
 
 # Examples
 
-## Spend Type Stats
+## Previous Output Data
 
-In order to analyze spend types of all inputs in a transaction, a multi-step process is required in order to gather the data.
-This is because the spend types of legacy non-segwit inputs can not be known without looking at every previous output.
+In order to get previous output data for all inputs in a transaction, a multi-step process is required.
 In order to save time, and prevent too many requests being sent to your node all at once, the previous outputs are obtained separately.
 
 **Step 1**: Get the transaction.
