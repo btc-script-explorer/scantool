@@ -109,9 +109,11 @@ As explained above, the ip addresses, port numbers, username and password shown 
 
 ## Documentation
 
-#### [Settings](/docs/app-settings.md)
+### [Settings](/docs/app-settings.md)
 
-#### [Website Screen Shots](/examples/screen-shots.md)
+### [Website Screen Shots](/docs/screen-shots.md)
+
+### REST API
 
 #### [Block](/docs/rest-api/v1/block.md)
 #### [Transaction](/docs/rest-api/v1/tx.md)
