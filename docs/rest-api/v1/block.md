@@ -54,7 +54,7 @@ Used in the BlockResponse. This is a small summary of information about a transa
 
 ## SpendTypeList
 
-If spend types are needed for a block, these objects should be sent back in subsequent previous_output_types requests.
+If spend types are needed for a block, these objects will be returned in the response and should be sent back in subsequent output_types requests. (See example below.)
 
         {
                 string: [ uint32 ]
@@ -127,7 +127,7 @@ Each field is a spend type or output type that points to the total number of obj
 
 ***
 
-## Examples
+# Examples
 
 Request the most recent block using all default values.
 
@@ -137,9 +137,56 @@ Request the most recent block in human readable JSON without returning unknown s
 
         $ curl -X POST -d '{"options":{"HumanReadable":true,"NoUnknownSpendTypes":true}}' http://127.0.0.1:8080/rest/v1/block
 
-Request a block with a block hash instead of a block height.
+Request a block in human readable JSON by block hash.
 
         $ curl -X POST -d '{"hash":"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594","options":{"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/block
+
+Request a block without returning any types. By using this option, we are asking not to receive spend types or output types, only block and transaction data.
+
+        $ curl -X POST -d '{"height":769895,"options":{"NoTypes":true,"HumanReadable":true}}' http://192.168.1.77:8080/rest/v1/block
+        {
+                "Bip141Count": 3,
+                "Hash": "0000000000000000000137ced007fddf254c01c8771f2e8591db63b3cd531b2e",
+                "Height": 769895,
+                "InputCount": 7,
+                "NextHash": "000000000000000000075fce527f1d1c500c7d13406325a80092ad79c65dc53c",
+                "OutputCount": 10,
+                "PreviousHash": "000000000000000000035acb4404247eafdf7d4ead9e2412ea75d71e55fedb11",
+                "Timestamp": 1672591723,
+                "Txs": [
+                        {
+                                "Index": 0,
+                                "TxId": "826ec483b6daad9a941680b870f6b0546087f49aace234f821ad3eabeb7cf738",
+                                "Bip141": true,
+                                "InputCount": 1,
+                                "OutputCount": 3
+                        },
+                        {
+                                "Index": 1,
+                                "TxId": "55e7d863b62569d0b180a6d36511a49cb46b11470c077c962d67294d4ccfbddf",
+                                "Bip141": true,
+                                "InputCount": 2,
+                                "OutputCount": 1
+                        },
+                        {
+                                "Index": 2,
+                                "TxId": "244eb1b6205a0b76f32169f80ea872019f92d6288586c2e5e62fdd4a817fd8d0",
+                                "Bip141": false,
+                                "InputCount": 1,
+                                "OutputCount": 4
+                        },
+                        {
+                                "Index": 3,
+                                "TxId": "929c2d4f780a8ed935c6b0d71f48458bb6bdefb8c35e4b43ee4bbc51d1194f40",
+                                "Bip141": true,
+                                "InputCount": 3,
+                                "OutputCount": 2
+                        }
+                ]
+        }
+
+***
+
 
 Request the most recent block in human readable JSON with only script usage stats but no type data or transaction data.
 
@@ -159,12 +206,11 @@ Request the most recent block in human readable JSON with only script usage stat
                 "WitnessScriptMultisigCount": 701
         }
 
-If you want to analyze spend types in blocks, it is a multi-step process to gather the data.
-This is because the spend types of legacy non-segwit inputs can not be known without getting the previous outputs.
-In order to save time, and avoid bombarding the node with requests, the previous outputs are obtained separately.
-The first step is to get the block.
+In order to analyze spend types in blocks, a multi-step process is required in order to gather the data.
+This is because the spend types of legacy non-segwit inputs can not be known without looking at every previous output.
+In order to save time, and throttle the requests to your node, the previous outputs are obtained separately.
 
-If this were a real blockchain research project, the HumanReadable option would not be used, but we use it here to make the response easier to read.
+**Step 1**: Get the block.
 
         $ curl -X POST -d '{"height":752522,"options":{"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/block
         {
@@ -251,18 +297,17 @@ If this were a real blockchain research project, the HumanReadable option would 
                 }
         }
 
-In this sample block, only one of the input spend types was known. The rest must be retrived separately.
-The previous_output_types API call will return only spend types identified by their previous outpoint.
-(If you need to be identified by their transaction id and input index, the prevout API call must be used.)
+In this example, only one of the input spend types was known in the original response. The rest must be retrived separately.
+There are 8 separate transactions to get previous output data from.
+The spend types can be retrieved in batches or individually.
 
-The spend types can be retrieved in batches or individually. There are 8 separate transactions to get previous output data from in this case.
-So we will send 2 groups of 4.
+**Step 2**: Request 2 groups of 4 output types.
 
-		$ curl -X POST -d '{"031918f9778991941e5a03cf6042a1c4ad5c1987d96cad512cdbefed1e35a900":[0],"05db92ec996950dd9d4344b9006cbd0d96c5d228ac3c32754034a73998a55bd7":[1],"14897f4eb049a47296bad20f53f7da63bd500b8ee3d86e80fcf298ac81324c66":[189],"292c0b21b6fd8ec5d332f76fb6bf17e3f84336b3225ff4a780ee5ef4f76c26d4":[152]}' http://127.0.0.1:8080/rest/v1/previous_output_types
+		$ curl -X POST -d '{"031918f9778991941e5a03cf6042a1c4ad5c1987d96cad512cdbefed1e35a900":[0],"05db92ec996950dd9d4344b9006cbd0d96c5d228ac3c32754034a73998a55bd7":[1],"14897f4eb049a47296bad20f53f7da63bd500b8ee3d86e80fcf298ac81324c66":[189],"292c0b21b6fd8ec5d332f76fb6bf17e3f84336b3225ff4a780ee5ef4f76c26d4":[152]}' http://127.0.0.1:8080/rest/v1/output_types
         {"031918f9778991941e5a03cf6042a1c4ad5c1987d96cad512cdbefed1e35a900:0":"P2PKH","05db92ec996950dd9d4344b9006cbd0d96c5d228ac3c32754034a73998a55bd7:1":"P2PKH","14897f4eb049a47296bad20f53f7da63bd500b8ee3d86e80fcf298ac81324c66:189":"P2PKH","292c0b21b6fd8ec5d332f76fb6bf17e3f84336b3225ff4a780ee5ef4f76c26d4:152":"P2PKH"}
 
-		$ curl -X POST -d '{"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba":[88,143],"7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05":[122],"8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0":[1],"a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7":[121]}' http://127.0.0.1:8080/rest/v1/previous_output_types
+		$ curl -X POST -d '{"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba":[88,143],"7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05":[122],"8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0":[1],"a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7":[121]}' http://127.0.0.1:8080/rest/v1/output_types
         {"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:143":"P2PKH","72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:88":"P2PKH","7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05:122":"P2PKH","8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0:1":"P2PKH","a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7:121":"P2PKH"}
 
-The result is that the block has 10 non-coinbase inputs, 1 P2WPKH and 9 P2PKH.
+We now have a full analysis of spend types for the block. It has a total of 10 non-coinbase inputs: 1 P2WPKH, 9 P2PKH.
 

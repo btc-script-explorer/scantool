@@ -119,7 +119,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 
 
 		// called after getting a block
-		case "previous_output_types":
+		case "output_types":
 
 			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
 
@@ -136,7 +136,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 
 
 		// called when the tx id and input index need to be returned with the response
-		case "prevout":
+		case "previous_output":
 
 			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
 

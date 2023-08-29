@@ -120,7 +120,7 @@ async function handle_pending_tx_previous_outputs ()
 		const headers = new Headers ();
 		headers.append ("Content-Type", "application/json");
 		var request_data = { method: 'POST', headers: headers, body: JSON.stringify (pending_tx_previous_outputs [0]) };
-		const response = await fetch (base_url_web + '/prevout', request_data);
+		const response = await fetch (base_url_web + '/previous_output', request_data);
 		const data = await response.json ();
 
 		// previous output type

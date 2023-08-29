@@ -248,7 +248,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 
 			// returns json
-			case "prevout":
+			case "previous_output":
 
 				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); return }
 
