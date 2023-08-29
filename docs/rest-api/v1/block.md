@@ -208,7 +208,7 @@ Request the most recent block in human readable JSON with only script usage stat
 
 In order to analyze spend types in blocks, a multi-step process is required in order to gather the data.
 This is because the spend types of legacy non-segwit inputs can not be known without looking at every previous output.
-In order to save time, and throttle the requests to your node, the previous outputs are obtained separately.
+In order to save time, and prevent too many requests being sent to your node all at once, the previous outputs are obtained separately.
 
 **Step 1**: Get the block.
 
@@ -297,11 +297,12 @@ In order to save time, and throttle the requests to your node, the previous outp
                 }
         }
 
-In this example, only one of the input spend types was known in the original response. The rest must be retrived separately.
+In this example, only one of the input spend types was known in the original response. The rest must be retrieved separately.
 There are 8 separate transactions to get previous output data from.
-The spend types can be retrieved in batches or individually.
+These requests can be sent in batches or individually.
+We will divide the 8 transactions into 2 groups.
 
-**Step 2**: Request 2 groups of 4 output types.
+**Step 2**: Request 2 groups of output types, with each group containing 4 transactions.
 
 		$ curl -X POST -d '{"031918f9778991941e5a03cf6042a1c4ad5c1987d96cad512cdbefed1e35a900":[0],"05db92ec996950dd9d4344b9006cbd0d96c5d228ac3c32754034a73998a55bd7":[1],"14897f4eb049a47296bad20f53f7da63bd500b8ee3d86e80fcf298ac81324c66":[189],"292c0b21b6fd8ec5d332f76fb6bf17e3f84336b3225ff4a780ee5ef4f76c26d4":[152]}' http://127.0.0.1:8080/rest/v1/output_types
         {"031918f9778991941e5a03cf6042a1c4ad5c1987d96cad512cdbefed1e35a900:0":"P2PKH","05db92ec996950dd9d4344b9006cbd0d96c5d228ac3c32754034a73998a55bd7:1":"P2PKH","14897f4eb049a47296bad20f53f7da63bd500b8ee3d86e80fcf298ac81324c66:189":"P2PKH","292c0b21b6fd8ec5d332f76fb6bf17e3f84336b3225ff4a780ee5ef4f76c26d4:152":"P2PKH"}
@@ -309,5 +310,24 @@ The spend types can be retrieved in batches or individually.
 		$ curl -X POST -d '{"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba":[88,143],"7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05":[122],"8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0":[1],"a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7":[121]}' http://127.0.0.1:8080/rest/v1/output_types
         {"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:143":"P2PKH","72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:88":"P2PKH","7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05:122":"P2PKH","8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0:1":"P2PKH","a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7:121":"P2PKH"}
 
-We now have a full analysis of spend types for the block. It has a total of 10 non-coinbase inputs: 1 P2WPKH, 9 P2PKH.
+Here is the second of the two requests and its response in a more readable format.
+
+		{
+				"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba":[88,143],
+				"7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05":[122],
+				"8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0":[1],
+				"a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7":[121]
+		}
+
+        {
+                "72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:143":"P2PKH",
+                "72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:88":"P2PKH",
+                "7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05:122":"P2PKH",
+                "8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0:1":"P2PKH",
+                "a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7:121":"P2PKH"
+        }
+
+After these responses have been received, we have a full analysis of spend types for the block. It has a total of 10 non-coinbase inputs with the following spend types:
+- P2WPKH: 1
+- P2PKH: 9
 
