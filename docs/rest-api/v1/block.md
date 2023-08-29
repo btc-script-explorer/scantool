@@ -220,7 +220,7 @@ Request the most recent block with only script usage stats.
                 "WitnessScriptMultisigCount": 701
         }
 
-## Analysis of Spend Types
+## Spend Type Stats
 
 In order to analyze spend types in blocks, a multi-step process is required in order to gather the data.
 This is because the spend types of legacy non-segwit inputs can not be known without looking at every previous output.
