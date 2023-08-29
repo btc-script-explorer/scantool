@@ -109,10 +109,10 @@ As explained above, the ip addresses, port numbers, username and password shown 
 
 ## Documentation
 
-![Block](/docs/rest/v1.block.md)
+![Block](/docs/rest-api/v1/block.md)
 
 ## Examples
 
-- Website Screen Shots: (/examples/screen-shots.md)
-- REST API Examples: (/examples/rest.md)
+- Website Screen Shots: [Website Screen Shots](/examples/screen-shots.md)
+- REST API Examples: [REST API Examples](/examples/rest.md)
 
