@@ -1,7 +1,7 @@
 
-# Block
+# JSON Objects
 
-## BlockRequestOptionsObject
+## BlockRequestOptions
 
         {
                 NoTypes bool
@@ -19,26 +19,22 @@
 
 ***
 
-## BlockRequestObject
+## BlockRequest
 
-        hash string
-        height uint32
-        options BlockRequestOptionsObject
+        {
+                hash string
+                height uint32
+                options BlockRequestOptions
+        }
 
-#### hash, height
-
-The block hash or height. If both are provided in the request, height will be ignored.
-**Default**: the most recent block
-
-#### options
-
-The options object is optional. If it is not included in the request, default values for all options will be used.
+- **hash, height**: The block hash or height. If both are provided in the request, height will be ignored. Default: most recent block
+- **options**: Optional. If not included in the request, default values for all options will be used.
 
 ***
 
-## BlockTxObject
+## BlockTx
 
-Used in the BlockResponseObject. This is a small summary of information about a transaction in a block.
+Used in the BlockResponse. This is a small summary of information about a transaction in a block.
 
         {
                 Index uint16
@@ -48,29 +44,15 @@ Used in the BlockResponseObject. This is a small summary of information about a 
                 OutputCount uint16
         }
 
-#### Index
-
-The index of the transaction within the block.
-
-#### TxId
-
-The transaction id.
-
-#### Bip141
-
-True if the transaction supports BIP 141.
-
-#### InputCount
-
-The number of inputs in the transaction.
-
-#### OutputCount
-
-The number of outputs in the transaction.
+- **Index**: The index of the transaction within the block.
+- **TxId**: The transaction id.
+- **Bip141**: True if the transaction supports BIP 141. False otherwise.
+- **InputCount**: The number of inputs in the transaction.
+- **OutputCount**: The number of outputs in the transaction.
 
 ***
 
-## SpendTypeListObject
+## SpendTypeList
 
 Each field is a transaction id that points to an array of output indexes.
 If spend types are needed for a block, these objects should be sent back in subsequent previous_output_types requests.
@@ -79,6 +61,8 @@ If spend types are needed for a block, these objects should be sent back in subs
                 string: [ uint32 ]
         }
 
+- **string**: Transaction id.
+- **[ uint32 ]**: Array of output indexes.
 
 ## TxPartType
 
@@ -88,9 +72,12 @@ Each field is a spend type or output type that points to the total number of obj
                 string: uint16
         }
 
+- **string**: Spend type.
+- **uint16**: Number of inputs of this spend type found in the search results.
+
 ***
 
-## BlockResponseObject
+## BlockResponse
 
         {
                 PreviousHash string
@@ -102,8 +89,8 @@ Each field is a spend type or output type that points to the total number of obj
                 OutputCount uint16
 
                 Bip141Count uint16
-                Txs [ BlockTxObject ]
-                UnknownSpendTypes SpendTypeListObject
+                Txs [ BlockTx ]
+                UnknownSpendTypes SpendTypeList
                 KnownSpendTypes TxPartType
                 OutputTypes TxPartType
 
@@ -118,90 +105,24 @@ Each field is a spend type or output type that points to the total number of obj
         }
 
 
-#### PreviousHash
-
-Hash of the block before the requested block, if one exists.
-
-#### NextHash
-
-Hash of the block after the requested block, if one exists.
-
-#### Hash
-
-Hash of the requested block.
-
-#### Height
-
-Height of the requested block.
-
-#### Timestamp
-
-Timestamp of the requested block.
-
-#### InputCount
-
-Number of inputs in the requested block.
-
-#### OutputCount
-
-Number of outputs in the requested block.
-
-#### Bip141Count
-
-Number of transactions in the requested block that support BIP 141.
-
-#### Txs
-
-An array of BlockTxObject objects, one per transaction in the requested block.
-If the NoTxs options is set to true, this array will not be included in the response.
-
-#### UnknownSpendTypes
-
-The transaction ids of previous outputs and an array of output indexes for each.
-If the NoUnknownSpendTypes option is set to true, this object will not be included in the response.
-
-#### KnownSpendTypes
-
-The name of each spend time and the number of times it occurs in the block.
-If the NoTypes option is set to true, this object will not be included in the response.
-
-#### OutputTypes (unless NoTypes)
-
-The name of each output time and the number of times it occurs in the block.
-If the NoTypes option is set to true, this object will not be included in the response.
-
-#### RedeemScriptMultisigCount
-
-The number of standard multisig redeem scripts in the block.
-If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
-
-#### RedeemScriptCount
-
-The total number of redeem scripts in the block.
-If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
-
-#### WitnessScriptMultisigCount
-
-The number of standard multisig witness scripts in the block.
-If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
-
-#### WitnessScriptCount
-
-The total number of witness scripts in the block.
-If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
-
-#### TapScriptOrdinalCount
-
-The number of ordinal tap scripts in the block.
-If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
-
-#### TapScriptCount
-
-The total number of tap scripts in the block.
-If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
-
-
-
+- **PreviousHash**: Hash of the previous block, if one exists.
+- **NextHash**: Hash of the next block, if one exists.
+- **Hash**: Hash of the requested block.
+- **Height**: Height of the requested block.
+- **Timestamp**: Timestamp of the requested block.
+- **InputCount**: Number of inputs in the requested block.
+- **OutputCount**: Number of outputs in the requested block.
+- **Bip141Count**: Number of transactions in the requested block that support BIP 141.
+- **Txs**: Array of BlockTx objects, one per transaction in the requested block. If the NoTxs options is set to true, this array will not be included in the response.
+- **UnknownSpendTypes**: Transaction ids of previous outputs and an array of output indexes for each. If the NoUnknownSpendTypes option is set to true, this object will not be included in the response.
+- **KnownSpendTypes**: Name of each spend time and the number of times it occurs in the block. If the NoTypes option is set to true, this object will not be included in the response.
+- **OutputTypes (unless NoTypes)**: Name of each output time and the number of times it occurs in the block. If the NoTypes option is set to true, this object will not be included in the response.
+- **RedeemScriptMultisigCount**: Number of standard multisig redeem scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
+- **RedeemScriptCount**: Number of redeem scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
+- **WitnessScriptMultisigCount**: Number of standard multisig witness scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
+- **WitnessScriptCount**: Number of witness scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
+- **TapScriptOrdinalCount**: Number of ordinal tap scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
+- **TapScriptCount**: Number of tap scripts in the block. If none exist, or if the ScriptUsageStats is set to false, this field will not be included in the response.
 
 
 ## Examples
