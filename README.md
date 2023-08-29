@@ -109,10 +109,14 @@ As explained above, the ip addresses, port numbers, username and password shown 
 
 ## Documentation
 
+#### [Settings](/docs/app-settings.md)
+
+#### [Website Screen Shots](/examples/screen-shots.md)
+
 #### [Block](/docs/rest-api/v1/block.md)
-
-## Examples
-
-- Website Screen Shots: [Website Screen Shots](/examples/screen-shots.md)
-- REST API Examples: [REST API Examples](/examples/rest.md)
+#### [Transaction](/docs/rest-api/v1/tx.md)
+#### [Output Types](/docs/rest-api/v1/output_types.md)
+#### [Previous Output](/docs/rest-api/v1/previous_output.md)
+#### [Current Block Height](/docs/rest-api/v1/current_block_height.md)
+#### [Serialize Script Usage](/docs/rest-api/v1/serialized_script_usage.md)
 
