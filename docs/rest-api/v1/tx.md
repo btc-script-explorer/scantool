@@ -10,6 +10,8 @@
 - **Hex**: The hex representation of the field.
 - **Type**: The data type of the field.
 
+***
+
 ## Script
 
         {
@@ -21,6 +23,8 @@
 - **Fields**: Array of fields.
 - **Ordinal**: Only present for tap scripts. If true, the script is an ordinal.
 - **Multisig**: Only present for redeem scripts and witness scripts. If true, the script is a standard multisig script.
+
+***
 
 ## Input
 
@@ -49,6 +53,8 @@
 - **PreviousOutputIndex**: Output index for the previous output.
 - **Segwit**: Only present for transactions that support BIP 141.
 
+***
+
 ## Output
 
         {
@@ -65,6 +71,8 @@
 - **Address**: Address for this output.
 - **OutputScript**: Output script.
 
+***
+
 ## SegregatedWitness
 
         {
@@ -76,6 +84,8 @@
 - **Fields**: Array of fields in the segregated witness.
 - **WitnessScript**: Only present if there is a witness script.
 - **TapScript**: Only present if there is a tap script.
+
+***
 
 ## PreviousOutputRequest
 
@@ -91,6 +101,8 @@
 - **PrevOutTxId**: Required. Transaction id of the previous output.
 - **PrevOutIndex**: Required. Index of the previous output.
 
+***
+
 ## PreviousOutputResponse
 
         {
@@ -103,6 +115,8 @@
 - **InputIndex**: Index of the input that the previous output belongs to.
 - **PrevOut**: Previous output for this input.
 
+***
+
 ## TxRequestOptions
 
         {
@@ -110,6 +124,8 @@
         }
 
 - **HumanReadable**: Optional. If true, JSON will be returned in a human readable format with newlines and indentations. Default: false
+
+***
 
 ## TxRequest
 
@@ -120,6 +136,8 @@
 
 - **id**: Required. The id of the transaction being requested.
 - **options**: Optional. If not included in the request, default values will be used for all options.
+
+***
 
 ## TxResponse
 
@@ -148,6 +166,8 @@
 - **Outputs**: Array of outputs.
 - **LockTime**: Lock time of the transaction.
 - **PreviousOutputRequests**: Previous output request objects.
+
+***
 
 # Examples
 
