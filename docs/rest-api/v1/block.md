@@ -129,20 +129,33 @@ Each field is a spend type or output type that points to the total number of obj
 
 # Examples
 
-## Request the most recent block using all default values.
+## Default Block Request
+
+Request the most recent block using all default values.
 
         $ curl -X POST -d '{}' http://127.0.0.1:8080/rest/v1/block
 
-## Request the most recent block without returning unknown spend type data.
+## Block Hash
 
-        $ curl -X POST -d '{"options":{"NoUnknownSpendTypes":true}}' http://127.0.0.1:8080/rest/v1/block
-
-## Request a block by block hash.
+Request a block by block hash.
 
         $ curl -X POST -d '{"hash":"00000000000000000005956ad0afdcba175f9be14e9fee92282c1a8a66b9a594"}' http://127.0.0.1:8080/rest/v1/block
 
-## Request a block without returning any types.
+## Block Height
 
+Request a block by block height.
+
+        $ curl -X POST -d '{"height":789012}' http://127.0.0.1:8080/rest/v1/block
+
+## NoUnknownSpendTypes Option
+
+Request the most recent block without returning unknown spend type data.
+
+        $ curl -X POST -d '{"options":{"NoUnknownSpendTypes":true}}' http://127.0.0.1:8080/rest/v1/block
+
+## NoTypes Option
+
+Request a block without returning any types.
 By using this option, we are asking not to receive spend types or output types, only block and transaction data.
 
         $ curl -X POST -d '{"height":769895,"options":{"NoTypes":true,"HumanReadable":true}}' http://192.168.1.77:8080/rest/v1/block
@@ -187,10 +200,9 @@ By using this option, we are asking not to receive spend types or output types, 
                 ]
         }
 
-***
+## Serialized Script Usage Stats
 
-
-## Request the most recent block with only script usage stats.
+Request the most recent block with only script usage stats.
 
         $ curl -X POST -d '{"options":{"NoTxs":true,"NoTypes":true,"ScriptUsageStats":true,"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/block
         {
@@ -208,7 +220,7 @@ By using this option, we are asking not to receive spend types or output types, 
                 "WitnessScriptMultisigCount": 701
         }
 
-## Spend Type Analysis Example
+## Analysis of Spend Types
 
 In order to analyze spend types in blocks, a multi-step process is required in order to gather the data.
 This is because the spend types of legacy non-segwit inputs can not be known without looking at every previous output.
@@ -316,12 +328,12 @@ We will divide the 8 transactions into 2 groups.
 
 Here is the second of the two requests and its response in a more readable format.
 
-		{
-				"72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba":[88,143],
-				"7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05":[122],
-				"8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0":[1],
-				"a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7":[121]
-		}
+        {
+                "72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba":[88,143],
+                "7e9b26fef1afa0523a420d4747077b8d9d44defd118d9d6447a1e56ecdc0dd05":[122],
+                "8b5d1c025d50f254352203facf2d893547ec2b5ee786dcaf7fb8e9f9ce8222a0":[1],
+                "a28bbb62247f9c8b4a00baad467900df7f2e78dd763128c40c1d82e5c2c69fd7":[121]
+        }
 
         {
                 "72b329e94dab613c6dd82c670a7deb8c00c406af0a776b3ed70e92b4be9760ba:143":"P2PKH",
