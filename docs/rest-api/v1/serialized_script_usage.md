@@ -12,7 +12,7 @@
 - **redeem**: Optional. Get redeem script usage.
 - **witness**: Optional. Get witness script usage.
 - **tap**: Optional. Get tap script usage.
-- **InputIndex**: Optional. If true, JSON will be returned in a human readable format with newlines and indentations. Default: false
+- **HumanReadable**: Optional. If true, JSON will be returned in a human readable format with newlines and indentations. Default: false
 
 ## SerializedScriptUsageRequest
 
@@ -22,7 +22,7 @@
         }
 
 - **height**: Required. Block height of the block to examine.
-- **InputIndex**: Optional.
+- **options**: Optional.
 
 ***
 
@@ -45,7 +45,7 @@
 ## OrdinalResponse
 
         {
-				tx string
+                tx string
                 input uint16
                 mimetype string
                 ord ?
