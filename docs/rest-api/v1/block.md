@@ -315,8 +315,9 @@ In order to save time, and prevent too many requests being sent to your node all
 
 In this example, only one of the spend types was known in the original response. The rest must be retrieved separately.
 There are 8 separate transactions to get previous output data from.
-These requests can be sent in batches or individually.
-We will divide the 8 transactions into 2 groups.
+These fields are returned in the UnknownSpendTypes object of the original response.
+The requests can be sent in batches or individually.
+We will divide the 8 transactions into 2 groups and send them in batches of 4 each.
 
 **Step 2**: Request 2 groups of output types, with each group containing 4 transactions.
 

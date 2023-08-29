@@ -282,7 +282,7 @@ In order to save time, and prevent too many requests being sent to your node all
                 "SupportsBip141": true
         }
 
-In this example, there is previous output data to obtain for 2 inputs.
+In this example, there is previous output data to obtain for 2 inputs. These objects are returned in the PreviousOutputRequests object of the original response.
 
 **Step 2**: Send the requests for the previous outputs.
 
