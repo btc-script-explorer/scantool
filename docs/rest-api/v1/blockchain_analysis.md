@@ -52,6 +52,13 @@ The standards all provide a JSON object with metadata about the ordinal. The "p"
 
 Here are the different standards found in this test and the number of times that each occurred.
 
+Standard | Count | PPP
+---|---|---
+brc-20 | 542265 | 98.74%
+orc-20 | 2525 | 0.46%
+sns | 2408 | 0.44%
+
+
 Standard | Count | 
 ---|---|---
 brc-20 | 542265 | 98.74%
