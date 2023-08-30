@@ -25,7 +25,7 @@ By far the most common file types found were images. The content of the images w
 The number of each file type found is shown here.
 
 File Type | Count | %
----|---|---:
+---|---:|---:
 image/png | 3944 | 63.75
 image/webp | 803 | 12.98
 image/jpeg | 529 | 8.55
@@ -55,7 +55,7 @@ The standards all provide a JSON object with metadata about the ordinal. The "p"
 Here are the different standards found in this test and the number of times that each occurred.
 
 Standard | Count | %
----|---|---
+---|---:|---:
 brc-20 | 542265 | 98.74
 orc-20 | 2525 | 0.46
 sns | 2408 | 0.44
