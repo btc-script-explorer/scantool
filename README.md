@@ -121,4 +121,5 @@ As explained above, the ip addresses, port numbers, username and password shown 
 - [Previous Output](/docs/rest-api/v1/previous_output.md)
 - [Current Block Height](/docs/rest-api/v1/current_block_height.md)
 - [Serialize Script Usage](/docs/rest-api/v1/serialized_script_usage.md)
+- [Blockchain Analysis/Research](/docs/rest-api/v1/blockchain_analysis.md)
 

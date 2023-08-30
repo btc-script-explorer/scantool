@@ -6,8 +6,6 @@ When using a config file, the **--config-file** command line parameter is requir
 
 ## Bitcoin Core Settings
 
-***
-
 ### bitcoin-core-addr
 
 The IP address used to connect to the JSON RPC API of Bitcoin Core.
@@ -45,6 +43,8 @@ This should be the **rpcpassword** Bitcoin Core setting.
 
 **Default**: None<br>
 **Required** if using Bitcoin Core
+
+***
 
 ## HTTP Server Settings
 
