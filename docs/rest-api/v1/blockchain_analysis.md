@@ -56,55 +56,27 @@ Others-20 | 1 | 0
 src-20 | 1 | 0
 bitclub | 1 | 0
 
-When we add the operations performed by each standard ordinal type, we see that the vase majority are mint operations.
+The vast majority of standard ordinals were mint operations.
 
-Standard | Operation | Count | %
-:---:|:---:|---:|---:
-brc-20 | mint | 527007 | 95.96
-brc-20 | transfer | 14671 | 2.67
-orc-20 | mint | 2431 | 0.44
-sns | reg | 2407 | 0.44
-orc-cash | mint | 647 | 0.12
-brc-20 | deploy | 587 | 0.11
-brc-721 | mint | 456 | 0.08
-grc-721 | mint | 293 | 0.05
-nft-brc-721 | mint | 128 | 0.02
-brc20-s | deposit | 105 | 0.02
-brc-20c | mint | 102 | 0.02
-orc-721 | mint | 94 | 0.02
-orc-20 | send | 76 | 0.01
-grc-20 | mint | 73 | 0.01
-brc20-s | mint | 18 | 0.00
-brc20-s | withdraw | 15 | 0.00
-orc-20 | deploy | 14 | 0.00
-brc20-s | deploy | 12 | 0.00
-Ordinals | mint | 11 | 0.00
-drc-20 | mint | 10 | 0.00
-orc-721 | deploy | 8 | 0.00
-erc-20 | mint | 5 | 0.00
-brc20-s | transfer | 5 | 0.00
-orc-cash | deploy | 4 | 0.00
-grc-137 | register | 3 | 0.00
-gen-brc-721 | mint | 2 | 0.00
-grc-137 | deploy | 2 | 0.00
-brc-721 | deploy | 2 | 0.00
-ons | post | 2 | 0.00
-orc-20 | cancel | 2 | 0.00
-orc-20 | upgrade | 2 | 0.00
-orcns | reg | 2 | 0.00
-.bitter | post | 2 | 0.00
-orc-cash | upgrade | 1 | 0.00
-src-20 | mint | 1 | 0.00
-bitclub | clubreg | 1 | 0.00
-Others-20 | Mint | 1 | 0.00
-sns | ns |      1 | 0.00
-urc-20 | transfer | 1 | 0.00
-Brc-20 | transfer | 1 | 0.00
-.bitter | reply | 1 | 0.00
+Operation | Count | %
+---|---:|---:
+mint | 531278 | 96.74
+transfer | 14678 | 2.67
+reg | 2409 | 0.44
+deploy | 629 | 0.11
+deposit | 105 | 0.02
+send | 76 | 0.01
+withdraw | 15 | 0.00
+post | 4 | 0.00
+register | 3 | 0.00
+upgrade | 3 | 0.00
+cancel | 2 | 0.00
+clubreg | 1 | 0.00
+ns | 1 | 0.00
+reply | 1 | 0.00
+Mint | 1 | 0.00
 
-
-
-## Binary Files in Ordinals
+### Binary Files in Ordinals
 
 There were 6187 binary files (including javascript, css and markdown files) encoded among the ordinals analyzed. They ranged in file size from 35 bytes to 396484 bytes.
 By far the most common file types found were images. The content of the images was not examined.
@@ -125,8 +97,9 @@ text/css | 2 | 0.03
 text/markdown | 1 | 0.02
 audio/mpeg | 1 | 0.02
 
-## Text Strings in Ordinals
+### Text Strings in Ordinals
 
 A total of 41597 ordinals were encoded as simple text strings. Of these, approximately 2440 were HTML. The content of the HTML was not examined.
 There were 1703 that began with the @ character which appeared to be online handles of some sort.
+
 
