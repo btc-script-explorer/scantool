@@ -4,11 +4,10 @@ Client applications can easily be created in any programming language.
 Such an application could be used to gather data over a period of time or a specific range of blocks, or even the entire history of the blockchain.
 
 As a test case, two programs were written in C++, one to analyze the types and contents of ordinals, and the other to analyze multisig transactions that use serialized scripts.
-The multisig program was written in 121 lines of code. That includes comments and blank lines.
 
 ## Ordinals Test Project
 
-The ordinals analysis program was written in C++. The data gathered was written to a PostgreSQL database.
+The ordinals analysis program was written in C++. The data gathered were written to a PostgreSQL database.
 
 For the test, 392 arbitrarily chosen blocks were analyzed. They were all between block 777000 (February 2023) and block 800019 (July 2023).
 A total of 587171 ordinals were found, averaging about 1497 ordinals per block during a peak period of ordinal creation.
@@ -104,12 +103,12 @@ There were 1703 that began with the @ character which appeared to be online hand
 
 ## Multisig Test Project
 
-The multisig analysis program was written in C++. The data gathered was written to a PostgreSQL database.
+The multisig analysis program was written in C++. The data gathered were written to a PostgreSQL database.
 
-For the test, 300 arbitrarily chosen blocks were analyzed. They were all between block 798000 and 798299.
-A total of 120817 multisig serialized scripts were found, averaging about 403 multisig serialized scripts per block.
+For the test, all blocks between 798000 and 798299 were analyzed, a total of 300 blocks.
+The test identified 120817 multisig serialized scripts, averaging about 403 per block.
 
-The results are shown below. The most notable thing about these data is the large number of 1-of-1 multisig scripts found, which is actually normal.
+The results are shown below. The most notable thing about these data is the large number of 1-of-1 multisig scripts found, which is actually quite common.
 
 Multisig Type | Count | %
 ---|---:|---:

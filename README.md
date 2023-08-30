@@ -5,7 +5,7 @@
 ## What It Is
 
 - a research and learning utility that provides data that other APIs and user interfaces do not
-- intended to be used in a private network
+- intended to be used in a private network, but doesn't necessarily have to be
 
 ## What It Is Not
 
@@ -52,7 +52,7 @@ Script fields and segregated witness fields can represent many different types o
 Therefore, it is useful to have a quick and easy way to view these fields as different types, or have the system identify which types they appear to be.
 For example, a field in a script could be an op code, a signature, a public key, a hash, a text message, part of a binary file or some piece of data that is not easily identifiable.
 Having a way to change viewing modes for these fields would be useful for anyone interested in analyzing script usage as well as anyone who simply wants to learn how the system works.
-(See the [Screen Shots](/examples/screen-shots.md) section for examples.)
+(See the [Screen Shots](/docs/screen-shots.md) section for examples.)
 
 #### Custom Projects
 
@@ -68,10 +68,12 @@ The REST API can also be used as a back end for custom user interfaces.
 
 #### Download
 
-#### Quick Start (Bitcoin Core)
+#### Quick Start (with Bitcoin Core)
+
+For this example, we assume we are running Bitcoin Core on a private network and that the node will make itself available at **192.168.1.99:9999** to connection from **192.168.1.77**.
+Obviously, the ip addresses, port numbers, username and password shown here must be replaced by the ones used in your specific setup. **Do not use the example values shown here.**
 
 1. The following Bitcoin Core settings are required.
-Obviously, the ip addresses, port numbers, username and password shown here must be replaced by the ones used in your specific setup. Do not use the example values shown here.
 
         txindex=1
         rpcbind=192.168.1.99:9999
@@ -80,7 +82,6 @@ Obviously, the ip addresses, port numbers, username and password shown here must
         rpcpassword=node_password
 
 2. Create a file called explorer.conf in the same directory as the explorer executable. (Other locations can also be used.)
-As explained above, the ip addresses, port numbers, username and password shown here must be replaced by the ones used in your specific setup. Do not use the example values shown here.
 
         bitcoin-core-addr=192.168.1.99
         bitcoin-core-port=9999
@@ -111,7 +112,7 @@ As explained above, the ip addresses, port numbers, username and password shown 
 
 ### [Settings](/docs/app-settings.md)
 
-### [Website Screen Shots](/docs/screen-shots.md)
+### [Web Application](/docs/screen-shots.md)
 
 ### REST API
 
