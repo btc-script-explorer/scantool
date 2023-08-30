@@ -52,39 +52,32 @@ The standards all provide a JSON object with metadata about the ordinal. The "p"
 
 Here are the different standards found in this test and the number of times that each occurred.
 
-Standard | Count | PPP
+Standard | Count | %
 ---|---|---
-brc-20 | 542265 | 98.74%
-orc-20 | 2525 | 0.46%
-sns | 2408 | 0.44%
-
-
-Standard | Count | 
----|---|---
-brc-20 | 542265 | 98.74%
-orc-20 | 2525 | 0.46%
-sns | 2408 | 0.44%
-orc-cash | 652 | 0.12%
-brc-721 | 458 | 0.08%
-grc-721 | 293 | 0.05%
-brc20-s | 155 | 0.03%
-nft-brc-721 | 128 | 0.02%
-orc-721 | 102 | 0.02%
-brc-20c | 102 | 0.02%
-grc-20 | 73 | 0.01%
-Ordinals | 11 | 
-drc-20 | 10 | 
-grc-137 | 5 | 
-erc-20 | 5 | 
-.bitter | 3 | 
-orcns | 2 | 
-gen-brc-721 | 2 | 
-ons | 2 | 
-urc-20 | 1 | 
-Brc-20 | 1 | 
-Others-20 | 1 | 
-src-20 | 1 | 
-bitclub | 1 | 
+brc-20 | 542265 | 98.74
+orc-20 | 2525 | 0.46
+sns | 2408 | 0.44
+orc-cash | 652 | 0.12
+brc-721 | 458 | 0.08
+grc-721 | 293 | 0.05
+brc20-s | 155 | 0.03
+nft-brc-721 | 128 | 0.02
+orc-721 | 102 | 0.02
+brc-20c | 102 | 0.02
+grc-20 | 73 | 0.01
+Ordinals | 11 | < 0.00
+drc-20 | 10 | < 0.00
+grc-137 | 5 | < 0.00
+erc-20 | 5 | < 0.00
+.bitter | 3 | < 0.00
+orcns | 2 | < 0.00
+gen-brc-721 | 2 | < 0.00
+ons | 2 | < 0.00
+urc-20 | 1 | < 0.00
+Brc-20 | 1 | < 0.00
+Others-20 | 1 | < 0.00
+src-20 | 1 | < 0.00
+bitclub | 1 | < 0.00
 
 
 There are 3 types of serialized scripts:
