@@ -115,8 +115,8 @@ As explained above, the ip addresses, port numbers, username and password shown 
 
 ### REST API
 
-#### [Block](/docs/rest-api/v1/block.md)
-#### [Transaction](/docs/rest-api/v1/tx.md)
+- [Block](/docs/rest-api/v1/block.md)
+- [Transaction](/docs/rest-api/v1/tx.md)
 - [Output Types](/docs/rest-api/v1/output_types.md)
 - [Previous Output](/docs/rest-api/v1/previous_output.md)
 - [Current Block Height](/docs/rest-api/v1/current_block_height.md)

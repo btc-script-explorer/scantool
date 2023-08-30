@@ -6,6 +6,8 @@ When using a config file, the **--config-file** command line parameter is requir
 
 ## Bitcoin Core Settings
 
+***
+
 ### bitcoin-core-addr
 
 The IP address used to connect to the JSON RPC API of Bitcoin Core.
@@ -13,6 +15,8 @@ This should be the IP address part of one of the **rpcbind** Bitcoin Core settin
 
 **Default**: 127.0.0.1<br>
 **Required** if using Bitcoin Core
+
+***
 
 ### bitcoin-core-port
 
@@ -22,6 +26,8 @@ This should be the port part of one of the **rpcbind** Bitcoin Core settings.
 **Default**: 8332<br>
 **Required** if using Bitcoin Core
 
+***
+
 ### bitcoin-core-username
 
 The username used to connect to the JSON RPC API of Bitcoin Core.
@@ -29,6 +35,8 @@ This should be the **rpcuser** Bitcoin Core setting.
 
 **Default**: None<br>
 **Required** if using Bitcoin Core
+
+***
 
 ### bitcoin-core-password
 
@@ -47,12 +55,16 @@ The IP address of the website.
 **Default**: 127.0.0.1<br>
 **Required** if **no-web** is not set
 
+***
+
 ### port
 
 The port number of the website.
 
 **Default**: 8080<br>
 **Required** if **no-web** is not set
+
+***
 
 ### no-web
 
