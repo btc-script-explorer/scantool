@@ -8,8 +8,8 @@ The multisig program was written in 121 lines of code. That includes comments an
 
 ## Ordinals Test Project
 
-The ordinals program was written in C++, in barely more than 100 lines of code not including comments and whitespace.
-The data gathered was written to a PostgreSQL database.
+The ordinals analysis program was written in C++. The data gathered was written to a PostgreSQL database.
+
 For the test, 392 arbitrarily chosen blocks were analyzed. They were all between block 777000 (February 2023) and block 800019 (July 2023).
 A total of 587171 ordinals were found, averaging about 1497 ordinals per block during a peak period of ordinal creation.
 
@@ -102,4 +102,33 @@ audio/mpeg | 1 | 0.02
 A total of 41597 ordinals were encoded as simple text strings. Of these, approximately 2440 were HTML. The content of the HTML was not examined.
 There were 1703 that began with the @ character which appeared to be online handles of some sort.
 
+## Multisig Test Project
+
+The multisig analysis program was written in C++. The data gathered was written to a PostgreSQL database.
+
+For the test, 300 arbitrarily chosen blocks were analyzed. They were all between block 798000 and 798299.
+A total of 120817 multisig serialized scripts were found, averaging about 403 multisig serialized scripts per block.
+
+The results are shown below. The most notable thing about these data is the large number of 1-of-1 multisig scripts found, which is actually normal.
+
+Multisig Type | Count | %
+---|---:|---:
+2 of 3 | 72847 | 60.30
+2 of 2 | 19705 | 16.31
+1 of 1 | 18622 | 15.41
+3 of 4 | 6227 | 5.15
+2 of 4 | 3023 | 2.50
+3 of 5 | 159 | 0.13
+2 of 5 | 90 | 0.07
+5 of 7 | 51 | 0.04
+1 of 3 | 26 | 0.02
+1 of 2 | 25 | 0.02
+3 of 3 | 14 | 0.01
+1 of 4 | 10 | 0.00
+3 of 7 | 4 | 0.00
+4 of 6 | 4 | 0.00
+3 of 6 | 4 | 0.00
+2 of 6 | 3 | 0.00
+4 of 4 | 2 | 0.00
+4 of 5 | 1 | 0.00
 
