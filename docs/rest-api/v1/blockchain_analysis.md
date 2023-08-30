@@ -24,18 +24,20 @@ There were 6187 binary files (including javascript, css and markdown files) enco
 By far the most common file types found were images. The content of the images was not examined.
 The number of each file type found is shown here.
 
-- **image/png** 3944
-- **image/webp** 803
-- **image/jpeg** 529
-- **image/svg+xml** 468
-- **image/avif** 298
-- **image/gif** 121
-- **text/javascript** 13
-- **application/x-gzip** 4
-- **application/octet-stream** 3
-- **text/css** 2
-- **text/markdown** 1
-- **audio/mpeg** 1
+File Type | Count | %
+---|---|---
+image/png | 3944 | 63.75
+image/webp | 803 | 12.98
+image/jpeg | 529 | 8.55
+image/svg+xml | 468 | 7.56
+image/avif | 298 | 4.82
+image/gif | 121 | 1.96
+text/javascript | 13 | 0.21
+application/x-gzip | 4 | 0.06
+application/octet-stream | 3 | 0.05
+text/css | 2 | 0.03
+text/markdown | 1 | 0.02
+audio/mpeg | 1 | 0.02
 
 ## Text Strings in Ordinals
 
@@ -65,19 +67,19 @@ nft-brc-721 | 128 | 0.02
 orc-721 | 102 | 0.02
 brc-20c | 102 | 0.02
 grc-20 | 73 | 0.01
-Ordinals | 11 | < 0.00
-drc-20 | 10 | < 0.00
-grc-137 | 5 | < 0.00
-erc-20 | 5 | < 0.00
-.bitter | 3 | < 0.00
-orcns | 2 | < 0.00
-gen-brc-721 | 2 | < 0.00
-ons | 2 | < 0.00
-urc-20 | 1 | < 0.00
-Brc-20 | 1 | < 0.00
-Others-20 | 1 | < 0.00
-src-20 | 1 | < 0.00
-bitclub | 1 | < 0.00
+Ordinals | 11 | 0
+drc-20 | 10 | 0
+grc-137 | 5 | 0
+erc-20 | 5 | 0
+.bitter | 3 | 0
+orcns | 2 | 0
+gen-brc-721 | 2 | 0
+ons | 2 | 0
+urc-20 | 1 | 0
+Brc-20 | 1 | 0
+Others-20 | 1 | 0
+src-20 | 1 | 0
+bitclub | 1 | 0
 
 
 There are 3 types of serialized scripts:
