@@ -25,7 +25,7 @@ By far the most common file types found were images. The content of the images w
 The number of each file type found is shown here.
 
 File Type | Count | %
----|---|---
+---|---|---:
 image/png | 3944 | 63.75
 image/webp | 803 | 12.98
 image/jpeg | 529 | 8.55
