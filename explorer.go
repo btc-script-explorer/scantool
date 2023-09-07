@@ -45,6 +45,7 @@ func main () {
 		return
 	}
 
+	// used only for testing
 	if app.Settings.GetTestMode () != "" {
 		test.RunTests ()
 		os.Exit (0)

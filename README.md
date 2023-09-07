@@ -18,14 +18,14 @@
 When people discuss transaction types in the bicoin blockchain, they are usually referring to standard output types.
 Bitcoin Core recognizes 7 standard output types.
 
-But inputs do the work of transfering funds and there is very little software, either REST APIs or block explorers, that does a good job of identifying their types.
+Inputs do the work of transfering funds. However, most RPC APIs and block explorers do not distinguish between input types, only output types.
 There are 10 standard input types which we will call spend types.
 Each spend type can redeem exactly one output type, but some output types are redeemable by multiple spend types.
 
 The table below shows which spend types can be used to redeem which output types.
 It also shows the required contents of the input script and segregated witness for each spend type.
-The output types are listed by the names assigned to them by Bitcoin Core. The spend types are listed by their commonly-used "P2" names.
-Since these are all standard methods for redeeming funds, all input data must be exactly as shown in the table below, otherwise the redemption method will be considered non-standard.
+The output types are listed by the names assigned to them by Bitcoin Core. The spend types are listed by their commonly-used "P2" (pay-to) names.
+Since these are all standard methods for redeeming funds, all input data must be exactly as shown in the table below with almost no exceptions, otherwise the redemption method will be considered non-standard.
 
 ![Spend Types](/assets/images/spend-type-table.png)
 

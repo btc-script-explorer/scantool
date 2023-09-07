@@ -9,11 +9,10 @@ import (
 	"strconv"
 )
 
-const VERSION = "0.1.0"
-
 type settingsManager struct {
 
 	alreadyParsed bool
+	versionTag string
 
 	configFile string
 
@@ -165,6 +164,7 @@ func ParseSettings () {
 	if Settings.alreadyParsed { return }
 
 	Settings = getDefaultSettings ()
+	Settings.versionTag = os.Args [0] [strings.LastIndex (os.Args [0], "-") + 1 : ]
 
 	// command line parameters
 	commandLineParameters := make (map [string] string)
@@ -325,3 +325,6 @@ func (s *settingsManager) PrintListeningMessage () {
 	fmt.Println ()
 }
 
+func GetVersion () string {
+	return Settings.versionTag
+}

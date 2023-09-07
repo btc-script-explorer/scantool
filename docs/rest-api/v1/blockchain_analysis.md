@@ -1,13 +1,13 @@
 # Blockchain Analysis
 
 Client applications can easily be created in any programming language.
-Such an application could be used to gather data over a period of time or a specific range of blocks, or even the entire history of the blockchain.
+Such an application could be used to gather data about the blockchain over a period of time or a specific range of blocks, or even the entire history of the blockchain.
 
-As a test case, two programs were written in C++, one to analyze the types and contents of ordinals, and the other to analyze multisig transactions that use serialized scripts.
+As an example, two programs were written in C++, one to analyze the types and contents of ordinals, and the other to analyze multisig transactions that use serialized scripts.
 
-## Ordinals Test Project
+## Ordinals Example Project
 
-The ordinals analysis program was written in C++. The data gathered were written to a PostgreSQL database.
+The ordinals analysis program was written in C++. (Similar programs could be written in many different languages.) The data gathered were written to a PostgreSQL database where they could be analyzed further.
 
 For the test, 392 arbitrarily chosen blocks were analyzed. They were all between block 777000 (February 2023) and block 800019 (July 2023).
 A total of 587171 ordinals were found, averaging about 1497 ordinals per block during a peak period of ordinal creation.
@@ -16,19 +16,19 @@ The ordinals were divided into 4 categories:
 - Standard ordinals, such as the BRC-20 standard
 - Ordinals that encode binary files, including certain text file types.
 - Ordinals defined by only a text string
-- Ordinals that did not fall into any of the above categories. A total of 181 of these were discovered.
+- Ordinals that did not fall into any of the above categories. A total of 181 of these were discovered. For this example, they were removed from the data set.
 
 ### Standard Ordinals
 
 Standard ordinals accounted for slightly more than 93.5% of the ordinals in our sample.
-All of them were type text/plain except for 2.96% of them which were application/json.
+They were type text/plain except for 2.96% of them which were application/json.
 
 It appears as though there are several different applications that use very similar but slightly different formats for creating ordinals.
-The standard ordinals provide a JSON object with metadata about the ordinal. The "p" field indicates which standard is being used. The "op" field is the operation being performed.
+The standard ordinals provide a JSON object with metadata about the ordinal. The "p" field indicates which protocol is being used. The "op" field is the operation being performed.
 
-Here are the different standards found in this test and the number of ordinals found for each standard.
+Here are the different protocols found in this test and the number of ordinals found for each protocol.
 
-Standard | Count | %
+Protocol | Count | %
 ---|---:|---:
 brc-20 | 542265 | 98.74
 orc-20 | 2525 | 0.46
@@ -55,7 +55,7 @@ Others-20 | 1 | 0
 src-20 | 1 | 0
 bitclub | 1 | 0
 
-The vast majority of standard ordinals were mint operations.
+The vast majority of standard ordinals found were performing mint operations.
 
 Operation | Count | %
 ---|---:|---:
@@ -93,22 +93,22 @@ text/javascript | 13 | 0.21
 application/x-gzip | 4 | 0.06
 application/octet-stream | 3 | 0.05
 text/css | 2 | 0.03
-text/markdown | 1 | 0.02
 audio/mpeg | 1 | 0.02
+text/markdown | 1 | 0.02
 
 ### Text Strings in Ordinals
 
 A total of 41597 ordinals were encoded as simple text strings. Of these, approximately 2440 were HTML. The content of the HTML was not examined.
 There were 1703 that began with the @ character which appeared to be online handles of some sort.
 
-## Multisig Test Project
+## Multisig Example Project
 
-The multisig analysis program was written in C++. The data gathered were written to a PostgreSQL database.
+The multisig analysis program was written in C++. (Similar programs could be written in many different languages.) The data gathered were written to a PostgreSQL database where they could be analyzed further.
 
 For the test, all blocks between 798000 and 798299 were analyzed, a total of 300 blocks.
 The test identified 120817 multisig serialized scripts, averaging about 403 per block.
 
-The results are shown below. The most notable thing about these data is the large number of 1-of-1 multisig scripts found, which is actually quite common.
+The results are shown below.
 
 Multisig Type | Count | %
 ---|---:|---:

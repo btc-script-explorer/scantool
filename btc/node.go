@@ -8,17 +8,6 @@ import (
 	"btctx/app"
 )
 
-/*
-Electrum Servers
-
-https://github.com/spesmilo/electrumx (Python)
-https://electrumx-spesmilo.readthedocs.io/en/latest/
-https://electrum.readthedocs.io/en/latest/
-
-https://github.com/romanz/electrs (Rust)
-
-*/
-
 type NodeClient interface {
 	GetNodeType () string
 	GetVersionString () string

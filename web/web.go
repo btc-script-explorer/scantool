@@ -570,7 +570,7 @@ func getTxHtml (txData map [string] interface {}, customJavascript string) strin
 }
 
 func getAboutPageHtml (customJavascript string) string {
-	layoutHtmlData := getLayoutHtmlData (customJavascript, map [string] interface {} { "AppVersion": app.VERSION })
+	layoutHtmlData := getLayoutHtmlData (customJavascript, map [string] interface {} { "AppVersion": app.GetVersion () })
 
 	// parse the files
 	layoutHtmlFiles := [] string {
