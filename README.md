@@ -1,15 +1,9 @@
-# Bitcoin Script Analytics Project
+# Script Analytics Tool
 
 [![AGPL licensed](https://img.shields.io/badge/license-AGPL-blue.svg)](https://github.com/btc-script-explorer/explorer/blob/master/LICENSE)
 
-## What It Is
-
-- a research and learning utility that provides data that other APIs and user interfaces do not
-- intended to be used in a private network, but doesn't necessarily have to be
-
-## What It Is Not
-
-- a wallet application
+The Script Analytics Tool is a web-based block explorer and REST API. It can be used as a research tool and/or a learning utility that provides data that other APIs and user interfaces do not.
+It is intended to be used in a private network, although it doesn't necessarily have to be. It is not intended to be a wallet application.
 
 ## How It Is Different Than Other REST APIs And Block Explorers
 
