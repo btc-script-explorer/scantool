@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"io/fs"
+	"io/ioutil"
 	"bufio"
 	"strings"
 	"strconv"
@@ -164,7 +165,10 @@ func ParseSettings () {
 	if Settings.alreadyParsed { return }
 
 	Settings = getDefaultSettings ()
-	Settings.versionTag = os.Args [0] [strings.LastIndex (os.Args [0], "-") + 1 : ]
+
+	versionBytes, err := ioutil.ReadFile ("./VERSION")
+	if err != nil { fmt.Println (err.Error ()) }
+	Settings.versionTag = string (versionBytes)
 
 	// command line parameters
 	commandLineParameters := make (map [string] string)
