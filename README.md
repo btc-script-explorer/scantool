@@ -62,6 +62,8 @@ The REST API can also be used as a back end for custom user interfaces.
 
 #### Download
 
+#### Build
+
 #### Quick Start (with Bitcoin Core)
 
 For this example, we assume we are running Bitcoin Core on a private network and that the node will make itself available at **192.168.1.99:9999** to connection from **192.168.1.77**.
