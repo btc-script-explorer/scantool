@@ -52,7 +52,7 @@ Having a way to change viewing modes for these fields would be useful for anyone
 
 The REST API can be used as a back end for research projects which might focus on analysis of specific spend types, output types, script types, opcodes or anything else of interest.
 A client application could be written in almost any language in a relatively short period of time and could be used to put large amounts of data into a database where it can be analyzed more thoroughly.
-The REST API can also be used as a back end for custom user interfaces.
+(See the [Blockchain Analysis](/docs/rest-api/v1/blockchain_analysis.md) section for examples.) The REST API can also be used as a back end for custom user interfaces.
 
 ## Usage
 
@@ -62,14 +62,13 @@ The REST API can also be used as a back end for custom user interfaces.
 
 #### Download
 
-#### Build
-
 #### Quick Start (with Bitcoin Core)
 
 For this example, we assume we are running Bitcoin Core on a private network and that the node will make itself available at **192.168.1.99:9999** to connection from **192.168.1.77**.
+Based on these settings, we would do the following 5 steps.
 Obviously, the ip addresses, port numbers, username and password shown here must be replaced by the ones used in your specific setup. **Do not use the example values shown here.**
 
-1. The following Bitcoin Core settings are required.
+1. Make sure the following Bitcoin Core settings are set. Make sure txindex is set to 1 and your IP addresses and port numbers are correct.
 
         txindex=1
         rpcbind=192.168.1.99:9999
@@ -77,7 +76,7 @@ Obviously, the ip addresses, port numbers, username and password shown here must
         rpcuser=node_username
         rpcpassword=node_password
 
-2. Create a file called explorer.conf in the same directory as the explorer executable. (Other locations can also be used.)
+2. Create a file called explorer.conf in the same directory as the explorer executable, and put the following settings in it. (Other file locations can also be used.)
 
         bitcoin-core-addr=192.168.1.99
         bitcoin-core-port=9999
@@ -86,7 +85,7 @@ Obviously, the ip addresses, port numbers, username and password shown here must
         addr=192.168.1.77
         port=8080
 
-3. Run the Explorer
+3. Run the Explorer.
 
         $ ./explorer --config-file=./explorer.conf 
         
@@ -95,11 +94,11 @@ Obviously, the ip addresses, port numbers, username and password shown here must
         *  Explorer: 192.168.1.77:8080                 *
         ************************************************
 
-4. View the Web Interface in a Browser
+4. View the web interface in a browser.
 
         http://192.168.1.77:8080
 
-5. Send a REST Request from the Command Line
+5. Send a REST request from the command line.
 
         $ curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height
         {"Current_block_height":803131}
