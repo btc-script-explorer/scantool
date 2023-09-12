@@ -2,7 +2,7 @@
 
 [![AGPL licensed](https://img.shields.io/badge/license-AGPL-blue.svg)](https://github.com/btc-script-explorer/scantool/blob/master/LICENSE)
 
-The **Sc**ript **An**alytics **Tool** (scantool) is a web-based block explorer and REST API. It can be used as a research tool and/or a learning utility that provides data that other APIs and user interfaces do not.
+The **Sc**ript **An**alytics **Tool** (scantool) is a REST API as well as a web-based block explorer. It can be used as a research tool and/or a learning utility that provides data that other APIs and user interfaces do not.
 It is intended to be used in a private network, although it doesn't necessarily have to be. It is not intended to be a wallet application.
 
 ## How It Is Different Than Other REST APIs And Block Explorers
@@ -62,6 +62,8 @@ A client application could be written in almost any language in a relatively sho
 
 #### Download
 
+Go to the [Releases](https://github.com/btc-script-explorer/scantool/releases/latest) page and download the appropriate file for your system.
+
 #### Quick Start (with Bitcoin Core)
 
 For this example, we assume we are running Bitcoin Core on a private network and that the node will make itself available at **192.168.1.99:9999** to connection from **192.168.1.77**.
@@ -102,6 +104,12 @@ Obviously, the ip addresses, port numbers, username and password shown here must
 
         $ curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height
         {"Current_block_height":803131}
+
+## Build
+
+To build the executable, simply run the following command.
+
+        $ go build ./scantool.go
 
 ## Documentation
 
