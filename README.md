@@ -1,8 +1,8 @@
 # Script Analytics Tool
 
-[![AGPL licensed](https://img.shields.io/badge/license-AGPL-blue.svg)](https://github.com/btc-script-explorer/explorer/blob/master/LICENSE)
+[![AGPL licensed](https://img.shields.io/badge/license-AGPL-blue.svg)](https://github.com/btc-script-explorer/scantool/blob/master/LICENSE)
 
-The Script Analytics Tool is a web-based block explorer and REST API. It can be used as a research tool and/or a learning utility that provides data that other APIs and user interfaces do not.
+The **Sc**ript **An**alytics **Tool** (scantool) is a web-based block explorer and REST API. It can be used as a research tool and/or a learning utility that provides data that other APIs and user interfaces do not.
 It is intended to be used in a private network, although it doesn't necessarily have to be. It is not intended to be a wallet application.
 
 ## How It Is Different Than Other REST APIs And Block Explorers
@@ -76,7 +76,7 @@ Obviously, the ip addresses, port numbers, username and password shown here must
         rpcuser=node_username
         rpcpassword=node_password
 
-2. Create a file called explorer.conf in the same directory as the explorer executable, and put the following settings in it. (Other file locations can also be used.)
+2. Create a file called scantool.conf in the same directory as the scantool executable, and put the following settings in it. (Other file locations can also be used.)
 
         bitcoin-core-addr=192.168.1.99
         bitcoin-core-port=9999
@@ -87,7 +87,7 @@ Obviously, the ip addresses, port numbers, username and password shown here must
 
 3. Run the Explorer.
 
-        $ ./explorer --config-file=./explorer.conf 
+        $ ./scantool --config-file=./scantool.conf 
         
         ************************************************
         *      Node: 192.168.1.99:9999 (Bitcoin Core)  *

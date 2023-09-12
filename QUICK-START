@@ -42,4 +42,4 @@ Script Analytics Tool Setup
         $ curl -X GET http://127.0.0.1:8080/rest/v1/current_block_height
 
 
-For more information, go to https://github.com/btc-script-explorer/explorer.
+For more information, go to https://github.com/btc-script-explorer/scantool.
