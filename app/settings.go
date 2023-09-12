@@ -181,7 +181,7 @@ func ParseSettings () {
 
 		// add the parameter to the map
 		parts := strings.Split (parameter [2:], "=")
-		if len (parts) != 2 { panic (parameter + " is improperly formatted.") }
+		if len (parts) != 2 { panic (parameter + " parameter is improperly formatted.") }
 
 		commandLineParameters [parts [0]] = parts [1]
 	}
