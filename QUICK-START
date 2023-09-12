@@ -9,30 +9,33 @@ Bitcoin Core Setup
 
 Script Analytics Tool Setup
 
-1. Unzip the application and navigate to the application folder. Then copy the config file to another filename.
-   The filename can be anything you choose. In this example, we will use script-analytics-tool.conf.
+1. Unzip the application and navigate to the application folder.
+   Make a copy of the example config file. In this example, we will call it script-analytics-tool.conf.
 
         $ tar zxvf ./script-analytics-tool-<VERSION>.tar.gz
         $ cd ./script-analytics-tool
         $ cp ./script-analytics-tool-<VERSION>-example.conf ./script-analytics-tool.conf
 
-2. Edit the file to connect to your specific node. Uncomment the lines that will not be using the default values and set them to the appropriate values for your setup.
-   The following settings should be set.
 
-            bitcoin-core-addr : Set this to the IP address used in a rpcbind setting in the Bitcoin Core config file.
-            bitcoin-core-port : Set this to the port used in the same rpcbind setting in the Bitcoin Core config file.
-        bitcoin-core-username : Set this to the username in the rpcuser setting in the Bitcoin Core config file.
-        bitcoin-core-password : Set this to the password in the rpcpassword setting in the Bitcoin Core config file.
-                         addr : Set this to the IP address that the web based block explorer should be made available on.
-                         port : Set this to the port that the web based block explorer should be made available on.
+2. Edit the file to connect to your specific node. Uncomment the lines that will not be using the default values and set them to the appropriate values for your setup.
+
+            bitcoin-core-addr : IP address used in a rpcbind setting in the Bitcoin Core config file
+            bitcoin-core-port : port used in the same rpcbind setting in the Bitcoin Core config file
+        bitcoin-core-username : username in the rpcuser setting in the Bitcoin Core config file
+        bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core config file
+                         addr : IP address that the web based block explorer should be made available on
+                         port : port that the web based block explorer should be made available on
+
 
 3. Run the script analytics tool using the settings in the config file created in the steps above.
 
         $ ./script-analytics-tool-<VERSION> --config-file=./script-analytics-tool.conf
 
+
 4. Test the web interface in a browser. Assuming addr was set to 127.0.0.1 and port was set to 8080, the web interface should be available at the following URL.
 
         http://127.0.0.1:8080
+
 
 5. Test the REST API. Assuming addr was set to 127.0.0.1 and port was set to 8080, the REST API can be tested as follows.
 
