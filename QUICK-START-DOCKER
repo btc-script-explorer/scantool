@@ -1,0 +1,36 @@
+Bitcoin Core Setup
+
+1. Run Bitcoin Core with the transaction indexing turned on.
+    If you are turning on transaction indexing for the first time, it may take time for all transactions to be indexed.
+
+        txindex=1
+
+*****************************************************************************
+
+Script Analytics Tool Setup
+
+1. Unzip the application and navigate to the application folder.
+   Make a copy of the example config file. In this example, we will call it script-analytics-tool.conf.
+
+        $ tar zxvf ./script-analytics-tool-<VERSION>-docker.tar.gz
+        $ cd ./script-analytics-tool-<VERSION>
+        $ cp ./scantool-example-docker.conf ./scantool.conf
+
+
+2. Edit scantool.conf to connect to your specific node. Uncomment the lines that will not be using the default values and set them to the appropriate values for your setup.
+
+            bitcoin-core-addr : IP address used in a rpcbind setting in the Bitcoin Core config file
+            bitcoin-core-port : port used in the same rpcbind setting in the Bitcoin Core config file
+        bitcoin-core-username : username in the rpcuser setting in the Bitcoin Core config file
+        bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core config file
+
+
+3. Run the script analytics tool using the settings in the config file created in the steps above.
+
+        $ ./docker-run.sh
+
+
+4. Follow the directions on the screen as for how to use the web interface and REST API.
+
+
+For more information, go to https://github.com/btc-script-explorer/scantool.
