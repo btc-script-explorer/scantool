@@ -13,7 +13,7 @@ Script Analytics Tool Setup
    Make a copy of the example config file. In this example, we will call it script-analytics-tool.conf.
 
         $ tar zxvf ./script-analytics-tool-<VERSION>.tar.gz
-        $ cd ./script-analytics-tool
+        $ cd ./script-analytics-tool-<VERSION>
         $ cp ./script-analytics-tool-<VERSION>-example.conf ./script-analytics-tool.conf
 
 
