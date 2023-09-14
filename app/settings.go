@@ -170,8 +170,9 @@ func ParseSettings () {
 	if err != nil { fmt.Println (err.Error ()) }
 	Settings.versionTag = string (versionBytes)
 
+	parameters := make (map [string] string)
+
 	// command line parameters
-	commandLineParameters := make (map [string] string)
 	commandLineParamCount := len (os.Args)
 	for a := 1; a < commandLineParamCount; a++ {
 
@@ -183,16 +184,15 @@ func ParseSettings () {
 		parts := strings.Split (parameter [2:], "=")
 		if len (parts) != 2 { panic (parameter + " parameter is improperly formatted.") }
 
-		commandLineParameters [parts [0]] = parts [1]
+		if parameters [parts [0]] == "" {
+			parameters [parts [0]] = parts [1]
+		}
 	}
 
-	Settings.setSettings (commandLineParameters)
-
 	// config file parameters
-	if len (Settings.configFile) > 0 {
-		configFileLines := readConfigFile (Settings.configFile)
+	if len (parameters ["config-file"]) > 0 {
+		configFileLines := readConfigFile (parameters ["config-file"])
 
-		configFileParameters := make (map [string] string)
 		for _, line := range configFileLines {
 
 			// get the parameter and its string value
@@ -200,14 +200,13 @@ func ParseSettings () {
 			key := parts [0]
 			value := ""; if len (parts) >= 2 { value = parts [1] }
 
-			// warn the user if a parameter appears more than once
-			if configFileParameters [key] != "" { fmt.Println (key + " setting was provided more than once. Last provided value will be used.") }
-
-			configFileParameters [key] = value
+			if parameters [key] == "" {
+				parameters [key] = value
+			}
 		}
-
-		Settings.setSettings (configFileParameters)
 	}
+
+	Settings.setSettings (parameters)
 
 	if len (Settings.bitcoinCoreAddr) > 0 && Settings.bitcoinCorePort != 0 && len (Settings.bitcoinCoreUsername) > 0 && len (Settings.bitcoinCorePassword) > 0 {
 		Settings.nodeType = "Bitcoin Core"
