@@ -309,7 +309,7 @@ func (s *settingsManager) PrintListeningMessage () {
 	lines = append (lines, s.GetFullUrl () + "/web/")
 	lines = append (lines, "")
 	lines = append (lines, "REST Example:")
-	lines = append (lines, "curl -X POST -d '{}' " + s.GetFullUrl () + "/rest/v1/block")
+	lines = append (lines, "curl -X GET " + s.GetFullUrl () + "/rest/v1/current_block_height")
 	lines = append (lines, "")
 
 	// calculate the width of the message and add padding as necessary
