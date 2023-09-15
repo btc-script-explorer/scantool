@@ -47,4 +47,8 @@ Script Analytics Tool Setup
 6. Follow the instructions on the screen in order to connect to the web interface and the REST API.
 
 
+To stop the scantool, run docker stop <container name>
+To see all running containers, run docker container list
+
+
 For more information, go to https://github.com/btc-script-explorer/scantool.

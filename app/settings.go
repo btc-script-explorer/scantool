@@ -74,7 +74,7 @@ func (s *settingsManager) GetNodePassword () string {
 }
 
 func (s *settingsManager) GetBaseUrl (alwaysIncludePort bool) string {
-	if s.port != 80 {
+	if s.port != 80 || alwaysIncludePort {
 		return fmt.Sprintf ("%s:%d", s.addr, s.port)
 	}
 
@@ -308,7 +308,7 @@ func (s *settingsManager) PrintListeningMessage () {
 	lines = append (lines, "Web Access:")
 	lines = append (lines, s.GetFullUrl () + "/web/")
 	lines = append (lines, "")
-	lines = append (lines, "REST Example:")
+	lines = append (lines, "REST API Example:")
 	lines = append (lines, "curl -X GET " + s.GetFullUrl () + "/rest/v1/current_block_height")
 	lines = append (lines, "")
 

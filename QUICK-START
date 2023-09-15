@@ -49,4 +49,7 @@ Script Analytics Tool Setup
 6. Follow the instructions on the screen in order to connect to the web interface and the REST API.
 
 
+To stop the scantool, use Ctrl+C.
+
+
 For more information, go to https://github.com/btc-script-explorer/scantool.
