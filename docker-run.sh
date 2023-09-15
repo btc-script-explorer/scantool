@@ -89,16 +89,18 @@ if [ ${#RUNNING_CONTAINER} -ne 0 ]; then
 	exit
 fi
 
-# If the container exists, start it up.
+echo ""
+echo "To stop: docker stop $CONTAINER_NAME"
+
 EXISTING_CONTAINER=`echo \`docker container ls -a\` | awk "/$CONTAINER_NAME/"`
 if [ ${#EXISTING_CONTAINER} -ne 0 ]; then
+	# Start the existing container.
 	docker container start -i $CONTAINER_NAME
-	exit
+else
+	# Load the images, create a new container and run it.
+	docker load -i scantool-$VERSION-docker-image.tar > /dev/null
+	docker run --name $CONTAINER_NAME -p 80:80 -v scantool-config-dir:/scantool-config-dir scantool:$VERSION
 fi
-
-# Load the images, create a new container and run it.
-docker load -i scantool-$VERSION-docker-image.tar > /dev/null
-docker run --name $CONTAINER_NAME -p 80:80 -v scantool-config-dir:/scantool-config-dir scantool:$VERSION
 
 #docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' scantool:$VERSION
 #docker inspect -f '{{.Id}}' scantool
