@@ -46,11 +46,13 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 		isP2shWrappedType := !i.segwit.IsEmpty () && inputScriptHasFields
 		isWitnessType := !i.segwit.IsNil () && !inputScriptHasFields
 
-		// a form of duck typing is used here in order to identify the spend type with no knowledge of the previous output type
-		// messages are printed to the screen when there are potential misidentifications
-
+		// a form of "duck typing" is used here in order to identify the spend type with no knowledge of the previous output type
 		// it is impossible to know for sure that a redemption is not non-standard without seeing the previous output script
-		// spend types for legacy output types use the same name as the output type, so there is no reason to identify them at this point
+
+		// spend types for segwit output types use different names and contain different data, so we need to narrow them down to one spend type
+		// therefore, we get the previous output for all segwit inputs if the spend type can not be determined by looking at input data alone
+
+		// spend types for legacy output types use the same name as the output type, so there is no reason to identify their spend types at this point
 		// therefore, we defer identification of these until the previous output is retrieved by the client
 
 		if isP2shWrappedType {
@@ -70,14 +72,14 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 			i.inputScript.SetFieldType (i.inputScript.GetParsedFieldCount () - 1, "SERIALIZED REDEEM SCRIPT")
 
 			// input script
-			if i.inputScript.IsNil () { fmt.Println (i.spendType + " input with no input script.") }
-			parsedFieldCount := i.inputScript.GetParsedFieldCount ()
-			if parsedFieldCount != 1 { fmt.Println (i.spendType + " input script has wrong field count. Found ", parsedFieldCount, ", expected 1.") }
+//			if i.inputScript.IsNil () { fmt.Println (i.spendType + " input with no input script.") }
+//			parsedFieldCount := i.inputScript.GetParsedFieldCount ()
+//			if parsedFieldCount != 1 { fmt.Println (i.spendType + " input script has wrong field count. Found ", parsedFieldCount, ", expected 1.") }
 
 			// redeem script should always exist for these types
-			if i.redeemScript.IsNil () { fmt.Println (i.spendType + " input with no redeem script.") }
-			parsedFieldCount = i.redeemScript.GetParsedFieldCount ()
-			if parsedFieldCount != 2 { fmt.Println (i.spendType + " redeem script has wrong field count. Found ", parsedFieldCount, ", expected 2.") }
+//			if i.redeemScript.IsNil () { fmt.Println (i.spendType + " input with no redeem script.") }
+//			parsedFieldCount = i.redeemScript.GetParsedFieldCount ()
+//			if parsedFieldCount != 2 { fmt.Println (i.spendType + " redeem script has wrong field count. Found ", parsedFieldCount, ", expected 2.") }
 
 			i.redeemScript.SetFieldType (0, "OP_0")
 			if i.spendType == SPEND_TYPE_P2SH_P2WPKH { i.redeemScript.SetFieldType (1, "Witness Program (Public Key Hash)") } else 
@@ -108,7 +110,7 @@ st := ""
 			// set the spend type
 			if possibleSpendTypeCount > 1 {
 
-				// duck typing of the input data has resulted in an ambiguous identification of the spend type
+				// "duck typing" of the input data has resulted in an ambiguous identification of the spend type
 				// get the previous output for exact identification
 
 				i.spendType = SPEND_TYPE_NonStandard

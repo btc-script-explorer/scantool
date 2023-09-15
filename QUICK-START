@@ -1,3 +1,6 @@
+Currently, Bitcoin Core is the only node type that the scantool has been tested with.
+
+
 Bitcoin Core Setup
 
 1. Run Bitcoin Core with the transaction indexing turned on.
@@ -9,11 +12,8 @@ Bitcoin Core Setup
 
 Script Analytics Tool Setup
 
-1. Unzip the application and navigate to the application folder.
-   Make a copy of the example config file. In this example, we will call it script-analytics-tool.conf.
+1. Make a copy of the example config file. In this example, we will call it script-analytics-tool.conf.
 
-        $ tar zxvf ./script-analytics-tool-<VERSION>.tar.gz
-        $ cd ./script-analytics-tool-<VERSION>
         $ cp ./script-analytics-tool-<VERSION>-example.conf ./script-analytics-tool.conf
 
 
@@ -25,6 +25,8 @@ Script Analytics Tool Setup
         bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core config file
                          addr : IP address that the web based block explorer should be made available on
                          port : port that the web based block explorer should be made available on
+
+        Note: There is also a no-web option that allows you to turn off the web interface.
 
 
 3. Run the script analytics tool using the settings in the config file created in the steps above.
