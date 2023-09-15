@@ -18,16 +18,20 @@ fi
 VERSION=`cat ./VERSION`
 CONTAINER_VERSION=`echo "$VERSION" | sed "s/\./_/g"`
 CONTAINER_NAME="scantool_$CONTAINER_VERSION"
-RUNNING_CONTAINER=`echo \`docker container ls -a\` | awk "/$CONTAINER_NAME/"`
+
+RUNNING_CONTAINER=`echo \`docker container ls\` | awk "/$CONTAINER_NAME/"`
 if [ ${#RUNNING_CONTAINER} -ne 0 ]; then
 	docker stop $CONTAINER_NAME > /dev/null
-	docker container rm $CONTAINER_NAME > /dev/null
 fi
 
-docker image rm scantool:latest > /dev/null
+#docker image rm scantool:$VERSION > /dev/null
+#docker image rm scantool:latest > /dev/null
 
-DOCKER_IMAGE_FILE="scantool-$VERSION-docker-image.tar"
-docker load -i $DOCKER_IMAGE_FILE > /dev/null
+EXISTING_CONTAINER=`echo \`docker container ls -a\` | awk "/$CONTAINER_NAME/"`
+if [ ${#EXISTING_CONTAINER} -eq 0 ]; then
+	DOCKER_IMAGE_FILE="scantool-$VERSION-docker-image.tar"
+	docker load -i $DOCKER_IMAGE_FILE > /dev/null
+fi
 
 docker volume create scantool-config-dir > /dev/null
 
