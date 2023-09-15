@@ -66,5 +66,5 @@ func main () {
 
 	mux.HandleFunc ("/rest/", rest.RestHandler)
 
-	log.Fatal (http.ListenAndServe (app.Settings.GetBaseUrl (), mux))
+	log.Fatal (http.ListenAndServe (app.Settings.GetBaseUrl (true), mux))
 }

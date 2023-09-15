@@ -22,7 +22,7 @@ type settingsManager struct {
 	bitcoinCoreUsername string
 	bitcoinCorePassword string
 
-	nodeType string
+	nodeVersionStr string
 
 	addr string
 	port uint16
@@ -54,7 +54,11 @@ func (s *settingsManager) GetConfigFileLocation () string {
 }
 
 func (s *settingsManager) GetNodeType () string {
-	return s.nodeType
+	if len (s.bitcoinCoreAddr) > 0 && s.bitcoinCorePort != 0 && len (s.bitcoinCoreUsername) > 0 && len (s.bitcoinCorePassword) > 0 {
+		return "Bitcoin Core"
+	}
+
+	return ""
 }
 
 func (s *settingsManager) GetNodeFullUrl () string {
@@ -69,12 +73,16 @@ func (s *settingsManager) GetNodePassword () string {
 	return s.bitcoinCorePassword
 }
 
-func (s *settingsManager) GetBaseUrl () string {
-	return fmt.Sprintf ("%s:%d", s.addr, s.port)
+func (s *settingsManager) GetBaseUrl (alwaysIncludePort bool) string {
+	if s.port != 80 {
+		return fmt.Sprintf ("%s:%d", s.addr, s.port)
+	}
+
+	return s.addr
 }
 
 func (s *settingsManager) GetFullUrl () string {
-	return fmt.Sprintf ("http://%s", s.GetBaseUrl ())
+	return fmt.Sprintf ("http://%s", s.GetBaseUrl (false))
 }
 
 func (s *settingsManager) GetAddr () string {
@@ -148,8 +156,6 @@ func getDefaultSettings () settingsManager {
 //								bitcoinCoreUsername: "",
 //								bitcoinCorePassword: "",
 
-//								nodeType: "",
-
 								addr: "127.0.0.1",
 								port: 8080,
 //								noWeb: false,
@@ -169,6 +175,9 @@ func ParseSettings () {
 	versionBytes, err := ioutil.ReadFile ("./VERSION")
 	if err != nil { fmt.Println (err.Error ()) }
 	Settings.versionTag = string (versionBytes)
+	for Settings.versionTag [len (Settings.versionTag) - 1] == '\n' {
+		Settings.versionTag = Settings.versionTag [0 : len (Settings.versionTag) - 1]
+	}
 
 	parameters := make (map [string] string)
 
@@ -207,10 +216,6 @@ func ParseSettings () {
 	}
 
 	Settings.setSettings (parameters)
-
-	if len (Settings.bitcoinCoreAddr) > 0 && Settings.bitcoinCorePort != 0 && len (Settings.bitcoinCoreUsername) > 0 && len (Settings.bitcoinCorePassword) > 0 {
-		Settings.nodeType = "Bitcoin Core"
-	}
 
 	Settings.ExitOnError ()
 	Settings.alreadyParsed = true
@@ -286,18 +291,36 @@ func checkFile (fileName string, requiredPermissions byte) bool {
 	return true
 }
 
+func (s *settingsManager) SetNodeVersionString (nodeVersionStr string) {
+	s.nodeVersionStr = nodeVersionStr
+}
+
 func (s *settingsManager) PrintListeningMessage () {
 
 	// create the data lines of the message
-	lines := make ([] string, 2)
-	lines [0] = "*      Node: " + s.GetNodeFullUrl () + " (" + s.nodeType + ")  "
-	lines [1] = "*  Explorer: " + s.GetBaseUrl () + "  "
+	lines := make ([] string, 0)
+	lines = append (lines, "")
+	lines = append (lines, "SCANTOOL " + GetVersion ())
+	lines = append (lines, "")
+	lines = append (lines, s.nodeVersionStr)
+	lines = append (lines, s.GetNodeFullUrl ())
+	lines = append (lines, "")
+	lines = append (lines, "Web Access:")
+	lines = append (lines, s.GetFullUrl () + "/web/")
+	lines = append (lines, "")
+	lines = append (lines, "REST Example:")
+	lines = append (lines, "curl -X POST -d '{}' " + s.GetFullUrl () + "/rest/v1/block")
+	lines = append (lines, "")
 
 	// calculate the width of the message and add padding as necessary
-	bannerWidth := len (lines [0]) + 1
-	for l := 1; l < len (lines); l++ {
-		if len (lines [l]) + 1 > bannerWidth {
-			bannerWidth = len (lines [l]) + 1
+	bannerWidth := 0
+	for l := 0; l < len (lines); l++ {
+		if len (lines [l]) % 2 != 0 {
+			lines [l] += " "
+		}
+
+		if len (lines [l]) + 6 > bannerWidth {
+			bannerWidth = len (lines [l]) + 6
 		}
 	}
 
@@ -308,21 +331,16 @@ func (s *settingsManager) PrintListeningMessage () {
 
 	// pad the ones that need to be padded
 	for l := 0; l < len (lines); l++ {
-		if len (lines [l]) + 1 < bannerWidth {
-			padLen := bannerWidth - len (lines [l])
-			for a := 1; a < padLen; a++ {
-				lines [l] += " "
-			}
+		for len (lines [l]) < bannerWidth - 2 {
+			lines [l] = " " + lines [l] + " "
 		}
-
-		lines [l] += "*"
 	}
 
 	// print the message
 	fmt.Println ()
 	fmt.Println (topAndBottom)
 	for l := 0; l < len (lines); l++ {
-		fmt.Println (lines [l])
+		fmt.Println ("*" + lines [l] + "*")
 	}
 	fmt.Println (topAndBottom)
 	fmt.Println ()

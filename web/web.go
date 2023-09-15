@@ -396,7 +396,7 @@ func getLayoutHtmlData (customJavascript string, explorerPageData map [string] i
 	layoutData ["ExplorerPage"] = explorerPageData
 
 	nodeClient := btc.GetNodeClient ()
-	layoutData ["NodeVersion"] = template.HTML (nodeClient.GetVersionString ())
+	layoutData ["NodeVersion"] = template.HTML (strings.Replace (nodeClient.GetVersionString (), " ", "&nbsp;", -1))
 	layoutData ["NodeUrl"] = template.HTML (app.Settings.GetNodeFullUrl ())
 
 	return layoutData

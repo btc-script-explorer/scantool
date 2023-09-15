@@ -40,5 +40,7 @@ func getNode () {
 			fmt.Println ("Unsupported node type: " + nodeType)
 			os.Exit (1)
 	}
+
+	app.Settings.SetNodeVersionString (node.GetVersionString ())
 }
 

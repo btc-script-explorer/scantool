@@ -12,12 +12,24 @@ Bitcoin Core Setup
 
 Script Analytics Tool Setup
 
-1. Make a copy of the example config file. In this example, we will call it script-analytics-tool.conf.
+1. Create a directory where scantool releases can be installed and easily deleted in the future.
+   Copy, or download, release files into the new directory.
 
-        $ cp ./script-analytics-tool-<VERSION>-example.conf ./script-analytics-tool.conf
+        $ mkdir scantool
+		$ cd scantool
+
+2. Unzip the file and go to the release directory.
+
+        $ tar zxvf ./scantool-<VERSION>-<PLATFORM>.tar.gz
+        $ cd script-analytics-tool-<VERSION>
+
+3. Make a copy of the example config file. In this example, we will call it scantool.conf.
+   In order to reuse the same config file for subsequent versions of the scantool, it is recommended to store the new config file in the parent directory.
+
+        $ cp ./scantool-<VERSION>-example.conf ../scantool.conf
 
 
-2. Edit the file to connect to your specific node. Uncomment the lines that will not be using the default values and set them to the appropriate values for your setup.
+4. Edit the file to connect to your specific node. Uncomment each line and set the value according to the following instructions.
 
             bitcoin-core-addr : IP address used in a rpcbind setting in the Bitcoin Core config file
             bitcoin-core-port : port used in the same rpcbind setting in the Bitcoin Core config file
@@ -29,19 +41,12 @@ Script Analytics Tool Setup
         Note: There is also a no-web option that allows you to turn off the web interface.
 
 
-3. Run the script analytics tool using the settings in the config file created in the steps above.
+5. Run the script analytics tool using the settings in the config file created in the steps above.
 
-        $ ./script-analytics-tool-<VERSION> --config-file=./script-analytics-tool.conf
-
-
-4. Test the web interface in a browser. Assuming addr was set to 127.0.0.1 and port was set to 8080, the web interface should be available at the following URL.
-
-        http://127.0.0.1:8080
+        $ ./scantool-<VERSION> --config-file=../scantool.conf
 
 
-5. Test the REST API. Assuming addr was set to 127.0.0.1 and port was set to 8080, the REST API can be tested as follows.
-
-        $ curl -X GET http://127.0.0.1:8080/rest/v1/current_block_height
+6. Follow the instructions on the screen in order to connect to the web interface and the REST API.
 
 
 For more information, go to https://github.com/btc-script-explorer/scantool.

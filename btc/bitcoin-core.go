@@ -28,7 +28,7 @@ func (bc *BitcoinCore) GetNodeType () string {
 }
 
 func (bc *BitcoinCore) GetVersionString () string {
-	return bc.GetNodeType () + "&nbsp;" + bc.version
+	return bc.GetNodeType () + " " + bc.version
 }
 
 func (bc *BitcoinCore) GetTx (txId string) Tx {
