@@ -15,17 +15,19 @@ if [ ! -f $CONFIG_FILE ]; then
 	exit
 fi
 
-RUNNING_CONTAINER=`echo \`docker container ls -a\` | awk "/scantool/"`
+VERSION=`cat ./VERSION`
+CONTAINER_VERSION=`echo "$VERSION" | sed "s/\./_/g"`
+CONTAINER_NAME="scantool_$CONTAINER_VERSION"
+RUNNING_CONTAINER=`echo \`docker container ls -a\` | awk "/$CONTAINER_NAME/"`
 if [ ${#RUNNING_CONTAINER} -ne 0 ]; then
-	docker stop scantool > /dev/null
-	docker container rm scantool:latest > /dev/null
+	docker stop $CONTAINER_NAME > /dev/null
+	docker container rm $CONTAINER_NAME > /dev/null
 fi
 
-VERSION=`cat ./VERSION`
-DOCKER_IMAGE_FILE="script-analytics-tool-$VERSION-docker-image.tar"
-docker load -i $DOCKER_IMAGE_FILE
+docker image rm scantool:latest > /dev/null
 
-exit
+DOCKER_IMAGE_FILE="scantool-$VERSION-docker-image.tar"
+docker load -i $DOCKER_IMAGE_FILE > /dev/null
 
 docker volume create scantool-config-dir > /dev/null
 
@@ -88,17 +90,15 @@ if [ ! -d $VOLUME_DATA_DIR ]; then
 fi
 
 cp $CONFIG_FILE $VOLUME_DATA_DIR
-docker run --name scantool -p 80:80 -v scantool-config-dir:/scantool-config-dir scantool
 
-echo ""
-echo "To stop scantool run:"
-echo "docker stop scantool"
+#echo "To stop scantool run:"
+#echo "docker stop scantool"
 
-IP_ADDRESS=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' scantool`
-echo ""
-echo "Web site is at http://$IP_ADDRESS/web/"
-echo "REST API is at http://$IP_ADDRESS/rest/v1/"
-echo ""
+#echo "Web site is at http://$IP_ADDRESS/web/"
+#echo "REST API is at http://$IP_ADDRESS/rest/v1/"
 
+docker run --name $CONTAINER_NAME -p 80:80 -v scantool-config-dir:/scantool-config-dir scantool
+
+#IP_ADDRESS=`docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' scantool:$VERSION`
 #docker inspect -f '{{.Id}}' scantool
 

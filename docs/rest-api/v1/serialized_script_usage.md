@@ -62,7 +62,7 @@
 
 ## Multisig Transactions in Redeem Scripts
 
-        $ curl -X POST -d '{"height":805348,"options":{"redeem":true,"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/serialized_script_usage
+        $ curl -X POST -d '{"height":805348,"options":{"redeem":true,"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/serialized_script_usage
         {
                 "redeem": [
                         {
@@ -82,7 +82,7 @@
 
 ## Ordinals in Tap Scripts
 
-        $ curl -X POST -d '{"height":805348,"options":{"tap":true,"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/serialized_script_usage
+        $ curl -X POST -d '{"height":805348,"options":{"tap":true,"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/serialized_script_usage
         {
                 "ordinals": [
                         {

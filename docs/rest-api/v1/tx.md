@@ -149,7 +149,7 @@ In order to save time, and prevent too many requests being sent to your node all
 **Step 1**: Get the transaction.
 
 
-        $ curl -X POST -d '{"id":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","options":{"HumanReadable":true}}' http://127.0.0.1:8888/rest/v1/tx
+        $ curl -X POST -d '{"id":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","options":{"HumanReadable":true}}' http://127.0.0.1:8080/rest/v1/tx
         {
                 "BlockHash": "00000000000000000000f3d662ff2ad11674c542405a04052ad722be24f59821",
                 "BlockHeight": 804677,
@@ -256,10 +256,10 @@ In this example, there is previous output data to obtain for 2 inputs. These obj
 
 **Step 2**: Send the requests for the previous outputs. See the previous_output API for more information.
 
-        $ curl -X POST -d '{"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":0,"PrevOutTxId":"76e940241753ffe7b97edbce626df8e94ad3789130a48188046d5aa1f3888668","PrevOutIndex":0}' http://127.0.0.1:8888/rest/v1/previous_output
+        $ curl -X POST -d '{"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":0,"PrevOutTxId":"76e940241753ffe7b97edbce626df8e94ad3789130a48188046d5aa1f3888668","PrevOutIndex":0}' http://127.0.0.1:8080/rest/v1/previous_output
         {"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":0,"PrevOut":{"Value":589917,"OutputType":"Taproot","Address":"bc1pvd0gwtvld8tyjc08h3x2zkl2urntzawdr9nwtcalhyhj5vh8sl5qmmudj4","OutputScript":{"Fields":[{"Hex":"OP_1","Type":"OP_1"},{"Hex":"635e872d9f69d64961e7bc4ca15beae0e6b175cd1966e5e3bfb92f2a32e787e8","Type":"Witness Program (Public Key)"}]}}}
 
-        $ curl -X POST -d '{"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":1,"PrevOutTxId":"ba6ce05c8e646b13b41ae44d23281ddcdbafeb64396b7d87855c233685a1400a","PrevOutIndex":0}' http://127.0.0.1:8888/rest/v1/previous_output
+        $ curl -X POST -d '{"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":1,"PrevOutTxId":"ba6ce05c8e646b13b41ae44d23281ddcdbafeb64396b7d87855c233685a1400a","PrevOutIndex":0}' http://127.0.0.1:8080/rest/v1/previous_output
         {"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":1,"PrevOut":{"Value":23248802,"OutputType":"Taproot","Address":"bc1pp2767q84l8ytnftxudxvyfs4y9z34r2dqr8ltj59pg6ysvf607qqcwwgdw","OutputScript":{"Fields":[{"Hex":"OP_1","Type":"OP_1"},{"Hex":"0abdaf00f5f9c8b9a566e34cc2261521451a8d4d00cff5ca850a3448313a7f80","Type":"Witness Program (Public Key)"}]}}}
 
 After these responses have been received, we have all the data for all the previous outputs in the transaction.
