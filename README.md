@@ -80,8 +80,8 @@ Go to the [Releases](https://github.com/btc-script-explorer/scantool/releases/la
 
 **Each build comes with a QUICK START GUIDE and those instructions should be followed.**
 
-For this example, we assume we are setting up the linux, amd64 non-docker release, will be connecting to Bitcoin Core 25.0.0 on a private network
-and the node is available at **192.168.1.99:9999** to connections from **192.168.1.77**.
+For this example, we assume we are setting up the linux, amd64, non-docker release and will be connecting to Bitcoin Core 25.0.0 on a private network.
+Our example node will be available at **192.168.1.99:9999** and must allow connections from **192.168.1.77**.
 (Obviously, the ip addresses, port numbers, username and password shown here must be replaced by the ones used in your specific setup. **Do not use the example values shown here.**)
 
 1. Make sure the following Bitcoin Core settings are set. Make sure txindex is set to 1 and your IP addresses and port numbers are correct.

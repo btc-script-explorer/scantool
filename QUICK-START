@@ -3,16 +3,20 @@ Currently, Bitcoin Core is the only node type that the scantool has been tested 
 
 Bitcoin Core Setup
 
-1. Run Bitcoin Core with the transaction indexing turned on.
-    If you are turning on transaction indexing for the first time, it may take time for all transactions to be indexed.
+1. Run Bitcoin Core with the following settings at a minimum. This sets up transaction indexing and the RPC API that the scantool will
+   use to communicate with the node. If you are turning on transaction indexing for the first time, it may take time for all transactions to be indexed.
 
         txindex=1
+        rpcbind=     [ The address:port that Bitcoin Core broadcasts on. There can be more than one of these. ]
+        rpcallowip=  [ The address of the host that the scantool will run on. (Not the address of the docker container.) ]
+        rpcuser=     [ Your Bitcoin Core username. ]
+        rpcpassword= [ Your Bitcoin Core password. ]
 
 *****************************************************************************
 
 Script Analytics Tool Setup
 
-1. Create a directory where scantool releases can be installed and easily deleted in the future.
+1. Create a directory where scantool releases can be installed.
    Copy, or download, release files into the new directory.
 
         $ mkdir scantool
