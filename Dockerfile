@@ -7,7 +7,7 @@ COPY scantool.conf /scantool.conf
 COPY web/css /web/css
 COPY web/html /web/html
 COPY web/js /web/js
-COPY docker-run-scantool.sh /
+COPY run-scantool-docker.sh /
 
-CMD ./docker-run-scantool.sh
+CMD ./run-scantool-docker.sh
 
