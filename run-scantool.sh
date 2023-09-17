@@ -84,7 +84,7 @@ fi
 
 # Load the images, create a new container and run it.
 docker build -t scantool:$VERSION . > /dev/null
-docker build -t scantool:latest . > /dev/null
+#docker build -t scantool:latest . > /dev/null
 
 echo ""
 echo ""
