@@ -23,7 +23,7 @@ if [ $# -lt 1 ]; then
 	exit
 fi
 
-VERSION=`./scantool --version`
+VERSION=`echo \`./scantool --version\` | awk '{print $2}'`
 
 CONFIG_FILE=$1
 if [ ! -f $CONFIG_FILE ]; then
@@ -76,18 +76,22 @@ if [ ${#RUNNING_CONTAINER} -ne 0 ]; then
 	exit
 fi
 
-echo ""
-echo "To stop: docker stop $CONTAINER_NAME"
-
 # Delete any existing container of the same name.
 EXISTING_CONTAINER=`echo \`docker container ls -a\` | awk "/$CONTAINER_NAME/"`
 if [ ${#EXISTING_CONTAINER} -ne 0 ]; then
-	docker container rm $CONTAINER_NAME
+	docker container rm $CONTAINER_NAME > /dev/null
 fi
 
 # Load the images, create a new container and run it.
-docker build -t scantool:$VERSION .
-docker build -t scantool:latest .
+docker build -t scantool:$VERSION . > /dev/null
+docker build -t scantool:latest . > /dev/null
+
+echo ""
+echo ""
+echo ""
+echo "To stop:"
+echo "    docker stop $CONTAINER_NAME"
+
 docker run --name $CONTAINER_NAME -p 80:80 scantool:$VERSION
 
 #docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' scantool:$VERSION
