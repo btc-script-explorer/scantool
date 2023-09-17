@@ -78,13 +78,17 @@ Go to the [Releases](https://github.com/btc-script-explorer/scantool/releases/la
 
 #### Quick Start (with Bitcoin Core)
 
-**Each build comes with a QUICK START GUIDE and those instructions should be followed.**
+**Each build comes with its own QUICK START GUIDE.**
 
-For this example, we assume we are setting up the linux, amd64, non-docker release and will be connecting to Bitcoin Core 25.0.0 on a private network.
-Our example node will be available at **192.168.1.99:9999** and must allow connections from **192.168.1.77**.
+For this example, we will configure and run the scantool docker image (the recommended way to run the scantool), connecting to Bitcoin Core 25.0.0 on a private network.
+Our example will assume the following:
+- the node will be available at **192.168.1.99:9999**
+- the node will allow connections from **192.168.1.77**.
+
 (Obviously, the ip addresses, port numbers, username and password shown here must be replaced by the ones used in your specific setup. **Do not use the example values shown here.**)
 
 1. Make sure the following Bitcoin Core settings are set. Make sure txindex is set to 1 and your IP addresses and port numbers are correct.
+   **Use the values for your specific system.**
 
         txindex=1
         rpcbind=192.168.1.99:9999
@@ -93,41 +97,40 @@ Our example node will be available at **192.168.1.99:9999** and must allow conne
         rpcpassword=node_password
 
 2. Create a file called scantool.conf in the same directory as the scantool executable, and put the following settings in it. (Other file locations can also be used.)
+   **Use the values for your specific system.**
 
         bitcoin-core-addr=192.168.1.99
         bitcoin-core-port=9999
         bitcoin-core-username=node_username
         bitcoin-core-password=node_password
-        addr=192.168.1.77
-        port=8080
 
-3. Run the Explorer.
+3. Run the scantool docker image.
 
-        $ ./scantool --config-file=./scantool.conf 
+        $ ./run-scantool.sh ./scantool.conf --docker
         
-        ***********************************************************************
-        *                                                                     *
-        *                            SCANTOOL 0.1.1                           *
-        *                                                                     *
-        *                         Bitcoin Core 25.0.0                         *
-        *                          192.168.1.99:9999                          *
-        *                                                                     *
-        *                             Web Access:                             *
-        *                    http://192.168.1.77:8080/web/                    *
-        *                                                                     *
-        *                          REST API Example:                          *
-        *  curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height  *
-        *                                                                     *
-        ***********************************************************************
+        ****************************************************************
+        *                                                              *
+        *                        SCANTOOL 0.1.1                        *
+        *                                                              *
+        *                     Bitcoin Core 25.0.0                      *
+        *                      192.168.1.99:9999                       *
+        *                                                              *
+        *                         Web Access:                          *
+        *                   http://172.17.0.2/web/                     *
+        *                                                              *
+        *                      REST API Example:                       *
+        *  curl -X GET http://172.17.0.2/rest/v1/current_block_height  *
+        *                                                              *
+        ****************************************************************
 
 
 4. View the web interface in a browser.
 
-        http://192.168.1.77:8080
+        http://172.17.0.2/web/
 
 5. Send a REST request from the command line.
 
-        $ curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height
+        $ curl -X GET http://172.17.0.2/rest/v1/current_block_height
         {"Current_block_height":803131}
 
 ## Build

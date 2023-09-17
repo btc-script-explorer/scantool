@@ -149,7 +149,7 @@ var Settings settingsManager
 
 func getDefaultSettings () settingsManager {
 	return settingsManager {
-								versionTag: "0.1.1",
+								versionTag: "0.1.0",
 								versionRequest: false,
 
 //								configFile: "",

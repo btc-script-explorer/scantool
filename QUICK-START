@@ -55,15 +55,24 @@ Script Analytics Tool Setup
                 Note: There is also a no-web option that allows you to turn off the web interface.
 
 
-2. Run the script analytics tool using the settings in the config file created in the steps above.
+2. Run the scantool.
 
-        $ ./scantool-<VERSION> --config-file=../scantool.conf
+        a. Run the docker image (RECOMMENDED):
+
+                $ run-scantool.sh ../scantool.conf --docker
+
+        b. Run the scantool directly:
+
+                i. Use the script provided (RECOMMENDED):
+
+                        $ run-scantool.sh ../scantool.conf
+
+                ii. Run the application directly:
+
+                        $ ./scantool --config-file=../scantool.conf
 
 
 3. Follow the instructions on the screen in order to connect to the web interface and the REST API.
-
-
-To stop the scantool, use Ctrl+C.
 
 
 For more information, go to https://github.com/btc-script-explorer/scantool.
