@@ -37,6 +37,11 @@ func main () {
 
 	app.ParseSettings ()
 
+	if app.Settings.IsVersionRequest () {
+		fmt.Println (fmt.Sprintf ("scantool %s", app.GetVersion ()))
+		return
+	}
+
 	// test the connection
 	restApi := rest.RestApiV1 {}
 	currentBlockJson := restApi.GetCurrentBlockHeight ()

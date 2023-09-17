@@ -16,40 +16,51 @@ Bitcoin Core Setup
 
 Script Analytics Tool Setup
 
-1. Create a directory where scantool releases can be installed.
-   Then copy, or download, the release files into the new directory.
+1. If you already have a config file for scantool, then skip to #2.
 
-        $ mkdir scantool
-		$ cd scantool
+        a. Create a directory where scantool releases can be installed.
 
-2. Unzip the file and go to the release directory.
+                $ mkdir scantool
 
-        $ tar zxvf ./scantool-<VERSION>-<PLATFORM>-docker.tar.gz
-        $ cd script-analytics-tool-<VERSION>-docker
+        b. Copy or download the release file into the newly-create directory.
+           This step can be done in various ways, so we will assume that the release file is now in the scantool directory.
 
-3. Make a copy of the example config file. In this example, we will call it scantool.conf.
-   In order to reuse the same config file for subsequent versions of the scantool, it is recommended to store the new config file in the parent directory.
+        c. Enter the scantool directory.
 
-        $ cp ./scantool-<VERSION>-example-docker.conf ../scantool.conf
+                $ cd scantool
+
+        d. Unzip the release file and enter the release directory.
+
+                $ tar zxvf ./scantool-<VERSION>-<PLATFORM>.tar.gz
+
+        e. Enter the release directory.
+
+                $ cd script-analytics-tool-<VERSION>
+
+        f. Make a copy of the example config file. In this example, we will call it scantool.conf.
+           In order to reuse the same config file for subsequent versions of the scantool, it is recommended to store the new config file in the parent directory (scantool in this example).
+
+                $ cp ./scantool-<VERSION>-example.conf ../scantool.conf
 
 
-4. Edit the file to connect to your specific node. Uncomment each line and set the value according to the following instructions.
-   For this step, we must pick exactly one rpcbind line from our Bitcoin Core config file.
+        g. Edit the file to connect to your specific node. Uncomment each line and set the value according to the following instructions.
 
-            bitcoin-core-addr : IP address from the rpcbind setting in the Bitcoin Core
-            bitcoin-core-port : port from the rpcbind setting in the Bitcoin Core
-        bitcoin-core-username : username in the rpcuser setting in the Bitcoin Core config file
-        bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core
+                    bitcoin-core-addr : IP address used in a rpcbind setting in the Bitcoin Core config file
+                    bitcoin-core-port : port used in the same rpcbind setting in the Bitcoin Core config file
+                bitcoin-core-username : username in the rpcuser setting in the Bitcoin Core config file
+                bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core config file
+                                 addr : IP address that the web based block explorer should be made available on
+                                 port : port that the web based block explorer should be made available on
 
-        Note: There is also a no-web option that allows you to turn off the web interface.
+                Note: There is also a no-web option that allows you to turn off the web interface.
 
 
-5. Run the scantool docker startup script and pass it the path to the config file created in the steps above.
+2. Run the scantool docker startup script and pass it the path to the config file created in the steps above.
 
         $ ./run-scantool-<VERSION>-docker.sh ../scantool.conf
 
 
-6. Follow the instructions on the screen in order to connect to the web interface and the REST API.
+3. Follow the instructions on the screen in order to connect to the web interface and the REST API.
 
 
 To stop the scantool, run docker stop <container name>

@@ -8,7 +8,7 @@ Bitcoin Core Setup
 
         txindex=1
         rpcbind=     [ The address:port that Bitcoin Core broadcasts on. There can be more than one of these. ]
-        rpcallowip=  [ The address of the host that the scantool will run on. (Not the address of the docker container.) ]
+        rpcallowip=  [ The address of the host that the scantool will run on. ]
         rpcuser=     [ Your Bitcoin Core username. ]
         rpcpassword= [ Your Bitcoin Core password. ]
 
@@ -16,41 +16,51 @@ Bitcoin Core Setup
 
 Script Analytics Tool Setup
 
-1. Create a directory where scantool releases can be installed.
-   Copy, or download, release files into the new directory.
+1. If you already have a config file for scantool, then skip to #2.
 
-        $ mkdir scantool
-		$ cd scantool
+        a. Create a directory where scantool releases can be installed.
 
-2. Unzip the file and go to the release directory.
+                $ mkdir scantool
 
-        $ tar zxvf ./scantool-<VERSION>-<PLATFORM>.tar.gz
-        $ cd script-analytics-tool-<VERSION>
+        b. Copy or download the release file into the newly-create directory.
+           This step can be done in various ways, so we will assume that the release file is now in the scantool directory.
 
-3. Make a copy of the example config file. In this example, we will call it scantool.conf.
-   In order to reuse the same config file for subsequent versions of the scantool, it is recommended to store the new config file in the parent directory.
+        c. Enter the scantool directory.
 
-        $ cp ./scantool-<VERSION>-example.conf ../scantool.conf
+                $ cd scantool
 
+        d. Unzip the release file and enter the release directory.
 
-4. Edit the file to connect to your specific node. Uncomment each line and set the value according to the following instructions.
+                $ tar zxvf ./scantool-<VERSION>-<PLATFORM>.tar.gz
 
-            bitcoin-core-addr : IP address used in a rpcbind setting in the Bitcoin Core config file
-            bitcoin-core-port : port used in the same rpcbind setting in the Bitcoin Core config file
-        bitcoin-core-username : username in the rpcuser setting in the Bitcoin Core config file
-        bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core config file
-                         addr : IP address that the web based block explorer should be made available on
-                         port : port that the web based block explorer should be made available on
+        e. Enter the release directory.
 
-        Note: There is also a no-web option that allows you to turn off the web interface.
+                $ cd script-analytics-tool-<VERSION>
+
+        f. Make a copy of the example config file. In this example, we will call it scantool.conf.
+           In order to reuse the same config file for subsequent versions of the scantool, it is recommended to store the new config file in the parent directory (scantool in this example).
+
+                $ cp ./scantool-<VERSION>-example.conf ../scantool.conf
 
 
-5. Run the script analytics tool using the settings in the config file created in the steps above.
+        g. Edit the file to connect to your specific node. Uncomment each line and set the value according to the following instructions.
+
+                    bitcoin-core-addr : IP address used in a rpcbind setting in the Bitcoin Core config file
+                    bitcoin-core-port : port used in the same rpcbind setting in the Bitcoin Core config file
+                bitcoin-core-username : username in the rpcuser setting in the Bitcoin Core config file
+                bitcoin-core-password : password in the rpcpassword setting in the Bitcoin Core config file
+                                 addr : IP address that the web based block explorer should be made available on
+                                 port : port that the web based block explorer should be made available on
+
+                Note: There is also a no-web option that allows you to turn off the web interface.
+
+
+2. Run the script analytics tool using the settings in the config file created in the steps above.
 
         $ ./scantool-<VERSION> --config-file=../scantool.conf
 
 
-6. Follow the instructions on the screen in order to connect to the web interface and the REST API.
+3. Follow the instructions on the screen in order to connect to the web interface and the REST API.
 
 
 To stop the scantool, use Ctrl+C.

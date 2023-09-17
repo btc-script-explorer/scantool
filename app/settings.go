@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"io/fs"
-	"io/ioutil"
 	"bufio"
 	"strings"
 	"strconv"
@@ -14,6 +13,7 @@ type settingsManager struct {
 
 	alreadyParsed bool
 	versionTag string
+	versionRequest bool
 
 	configFile string
 
@@ -149,6 +149,9 @@ var Settings settingsManager
 
 func getDefaultSettings () settingsManager {
 	return settingsManager {
+								versionTag: "0.1.0",
+								versionRequest: false,
+
 //								configFile: "",
 
 								bitcoinCoreAddr: "127.0.0.1",
@@ -172,12 +175,14 @@ func ParseSettings () {
 
 	Settings = getDefaultSettings ()
 
+/*
 	versionBytes, err := ioutil.ReadFile ("./VERSION")
 	if err != nil { fmt.Println (err.Error ()) }
 	Settings.versionTag = string (versionBytes)
 	for Settings.versionTag [len (Settings.versionTag) - 1] == '\n' {
 		Settings.versionTag = Settings.versionTag [0 : len (Settings.versionTag) - 1]
 	}
+*/
 
 	parameters := make (map [string] string)
 
@@ -191,9 +196,17 @@ func ParseSettings () {
 
 		// add the parameter to the map
 		parts := strings.Split (parameter [2:], "=")
-		if len (parts) != 2 { panic (parameter + " parameter is improperly formatted.") }
-
-		if parameters [parts [0]] == "" {
+		if len (parts) != 2 {
+			if len (parts) == 1 {
+				if parts [0] == "version" {
+					Settings.versionRequest = true
+				} else if parts [0] == "no-web" {
+					parameters [parts [0]] = ""
+				}
+			} else {
+				panic (parameter + " parameter is improperly formatted.")
+			}
+		} else if parameters [parts [0]] == "" {
 			parameters [parts [0]] = parts [1]
 		}
 	}
@@ -344,6 +357,10 @@ func (s *settingsManager) PrintListeningMessage () {
 	}
 	fmt.Println (topAndBottom)
 	fmt.Println ()
+}
+
+func (s *settingsManager) IsVersionRequest () bool {
+	return s.versionRequest
 }
 
 func GetVersion () string {
