@@ -20,5 +20,5 @@ if [ ${#IP_ADDRESS} -eq 0 ]; then
 	exit
 fi
 
-./scantool --addr=$IP_ADDRESS --port=80 --config-file=./scantool-config-dir/scantool.conf
+./scantool --addr=$IP_ADDRESS --port=80 --config-file=./scantool.conf
 

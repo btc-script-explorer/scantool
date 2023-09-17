@@ -24,7 +24,6 @@ if [ $# -lt 1 ]; then
 fi
 
 VERSION=`./scantool --version`
-APPNAME="scantool-$VERSION"
 
 CONFIG_FILE=$1
 if [ ! -f $CONFIG_FILE ]; then
@@ -39,7 +38,7 @@ cp $CONFIG_FILE ./scantool.conf
 
 # If we are not running a docker container, we can just start up the application and exit.
 if [ $# -lt 2 ]; then
-	$APPNAME --config-file=./scantool.conf
+	./scantool --config-file=./scantool.conf
 	exit
 fi
 
@@ -87,8 +86,8 @@ if [ ${#EXISTING_CONTAINER} -ne 0 ]; then
 fi
 
 # Load the images, create a new container and run it.
-docker build --build-arg filename=$APPNAME -t scantool:$VERSION .
-docker build --build-arg filename=$APPNAME -t scantool:latest .
+docker build -t scantool:$VERSION .
+docker build -t scantool:latest .
 docker run --name $CONTAINER_NAME -p 80:80 scantool:$VERSION
 
 #docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' scantool:$VERSION
