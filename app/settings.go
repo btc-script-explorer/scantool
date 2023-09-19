@@ -9,6 +9,8 @@ import (
 	"strconv"
 )
 
+const appVersion = "0.1.0"
+
 type settingsManager struct {
 
 	alreadyParsed bool
@@ -93,6 +95,7 @@ func (s *settingsManager) GetPort () uint16 {
 	return s.port
 }
 
+/*
 func (s *settingsManager) GetTestMode () string {
 	return s.testMode
 }
@@ -109,6 +112,7 @@ func (s *settingsManager) GetTestDirectory () string {
 func (s *settingsManager) GetTestSourceFile () string {
 	return s.testSourceFile
 }
+*/
 
 func (s *settingsManager) IsWebOn () bool {
 	return !s.noWeb
@@ -149,7 +153,7 @@ var Settings settingsManager
 
 func getDefaultSettings () settingsManager {
 	return settingsManager {
-								versionTag: "0.1.0",
+								versionTag: appVersion,
 								versionRequest: false,
 
 //								configFile: "",
@@ -302,61 +306,6 @@ func checkFile (fileName string, requiredPermissions byte) bool {
 	}
 
 	return true
-}
-
-func (s *settingsManager) SetNodeVersionString (nodeVersionStr string) {
-	s.nodeVersionStr = nodeVersionStr
-}
-
-func (s *settingsManager) PrintListeningMessage () {
-
-	// create the data lines of the message
-	lines := make ([] string, 0)
-	lines = append (lines, "")
-	lines = append (lines, "SCANTOOL " + GetVersion ())
-	lines = append (lines, "")
-	lines = append (lines, s.nodeVersionStr)
-	lines = append (lines, s.GetNodeFullUrl ())
-	lines = append (lines, "")
-	lines = append (lines, "Web Access:")
-	lines = append (lines, s.GetFullUrl () + "/web/")
-	lines = append (lines, "")
-	lines = append (lines, "REST API Example:")
-	lines = append (lines, "curl -X GET " + s.GetFullUrl () + "/rest/v1/current_block_height")
-	lines = append (lines, "")
-
-	// calculate the width of the message and add padding as necessary
-	bannerWidth := 0
-	for l := 0; l < len (lines); l++ {
-		if len (lines [l]) % 2 != 0 {
-			lines [l] += " "
-		}
-
-		if len (lines [l]) + 6 > bannerWidth {
-			bannerWidth = len (lines [l]) + 6
-		}
-	}
-
-	topAndBottom := ""
-	for a := 0; a < bannerWidth; a++ {
-		topAndBottom += "*"
-	}
-
-	// pad the ones that need to be padded
-	for l := 0; l < len (lines); l++ {
-		for len (lines [l]) < bannerWidth - 2 {
-			lines [l] = " " + lines [l] + " "
-		}
-	}
-
-	// print the message
-	fmt.Println ()
-	fmt.Println (topAndBottom)
-	for l := 0; l < len (lines); l++ {
-		fmt.Println ("*" + lines [l] + "*")
-	}
-	fmt.Println (topAndBottom)
-	fmt.Println ()
 }
 
 func (s *settingsManager) IsVersionRequest () bool {

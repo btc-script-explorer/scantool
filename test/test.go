@@ -5,12 +5,13 @@ import (
 	"os"
 	"strings"
 	"encoding/json"
-	"bufio"
+//	"bufio"
 
-	"btctx/app"
+//	"btctx/app"
 	"btctx/rest"
 )
 
+/*
 func RunTests () {
 
 // TODO: Create TestSettings.PrintTestingMessage ().
@@ -65,6 +66,7 @@ func RunTests () {
 		}
 	}
 }
+*/
 
 func WriteTx (txId string, dir string) bool {
 	restApi := rest.RestApiV1 {}
