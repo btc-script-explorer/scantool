@@ -4,6 +4,7 @@ FROM ubuntu:22.04
 
 COPY scantool /
 COPY scantool.conf /
+COPY VERSION /
 COPY run-scantool-docker.sh /
 
 COPY web/css /web/css

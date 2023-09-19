@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"os"
 	"io/fs"
+	"ioutil"
 	"bufio"
 	"strings"
 	"strconv"
 )
-
-const appVersion = "0.1.0"
 
 type settingsManager struct {
 
@@ -153,7 +152,7 @@ var Settings settingsManager
 
 func getDefaultSettings () settingsManager {
 	return settingsManager {
-								versionTag: appVersion,
+//								versionTag: "",
 								versionRequest: false,
 
 //								configFile: "",
@@ -179,14 +178,12 @@ func ParseSettings () {
 
 	Settings = getDefaultSettings ()
 
-/*
 	versionBytes, err := ioutil.ReadFile ("./VERSION")
 	if err != nil { fmt.Println (err.Error ()) }
 	Settings.versionTag = string (versionBytes)
 	for Settings.versionTag [len (Settings.versionTag) - 1] == '\n' {
 		Settings.versionTag = Settings.versionTag [0 : len (Settings.versionTag) - 1]
 	}
-*/
 
 	parameters := make (map [string] string)
 

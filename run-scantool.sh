@@ -23,8 +23,6 @@ if [ $# -lt 1 ]; then
 	exit
 fi
 
-VERSION=`echo \`./scantool --version\` | awk '{print $2}'`
-
 CONFIG_FILE=$1
 if [ ! -f $CONFIG_FILE ]; then
 	echo ""
@@ -59,6 +57,7 @@ if [ ${#DOCKER_EXEC_FILE} -eq 0 ]; then
 fi
 
 # Create a container name.
+VERSION=`cat ./VERSION`
 CONTAINER_VERSION=`echo "$VERSION" | sed "s/\./_/g"`
 CONTAINER_NAME="scantool_$CONTAINER_VERSION"
 
