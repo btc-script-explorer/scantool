@@ -18,13 +18,9 @@ fi
 
 IP_ADDRESS=`awk "/$SHORT_ID/" /etc/hosts | awk '{print $1}'`
 
-echo "Attempting to get the container IP address based on container ID $CONTAINER_ID, shortened to $SHORT_ID."
-cat /etc/hosts
-
 if [ ${#IP_ADDRESS} -eq 0 ]; then
 	echo ""
 	echo "Failed to get the container IP address based on container ID $CONTAINER_ID, shortened to $SHORT_ID."
-	cat /etc/hosts
 	echo ""
 	exit
 fi

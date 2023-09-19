@@ -386,6 +386,7 @@ func (bc *BitcoinCore) getJson (function string, params [] interface {}) [] byte
 	// return the JSON response
 	json, err := io.ReadAll (response.Body)
 	if err != nil { fmt.Println (err.Error ()) }
+fmt.Println (json)
 
 	return json
 }
