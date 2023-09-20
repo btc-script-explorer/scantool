@@ -377,6 +377,7 @@ func (bc *BitcoinCore) getJson (function string, params [] interface {}) [] byte
 	// get the HTTP response
 	client := &http.Client {}
 	response, err := client.Do (req)
+	if err != nil { fmt.Println (err.Error ()) }
 	if response == nil {
 		fmt.Println ("Node returned empty response.")
 		if err != nil { fmt.Println (err.Error ()) }

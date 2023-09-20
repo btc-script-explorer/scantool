@@ -1,5 +1,11 @@
 # syntax=docker/dockerfile:1
 
+################################################
+#                                              #
+#   docker files are currently not supported   #
+#                                              #
+################################################
+
 FROM ubuntu:22.04
 
 COPY scantool /

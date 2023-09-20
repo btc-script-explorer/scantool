@@ -57,22 +57,15 @@ Script Analytics Tool Setup
 
 2. Run the scantool.
 
-        a. Run the docker image (RECOMMENDED):
+        a. Run the scantool:
 
-                $ run-scantool.sh ../scantool.conf --docker
-
-        b. Run the scantool directly:
-
-                i. Use the script provided (RECOMMENDED):
-
-                        $ run-scantool.sh ../scantool.conf
-
-                ii. Run the application directly:
-
-                        $ ./scantool --config-file=../scantool.conf
+                $ ./scantool --config-file=../scantool.conf
 
 
 3. Follow the instructions on the screen in order to connect to the web interface and the REST API.
+
+
+4. To shut down the server, use Ctrl+C.
 
 
 For more information, go to https://github.com/btc-script-explorer/scantool.

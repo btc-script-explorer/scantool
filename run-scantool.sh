@@ -1,5 +1,11 @@
 #! /bin/bash
 
+################################################
+#                                              #
+#   docker files are currently not supported   #
+#                                              #
+################################################
+
 SCRIPT_NAME=`basename "$0"`
 
 # need a better way to read in parameters
@@ -82,8 +88,8 @@ if [ ${#EXISTING_CONTAINER} -ne 0 ]; then
 fi
 
 # Load the images, create a new container and run it.
-docker build -t scantool:$VERSION . > /dev/null
-#docker build -t scantool:latest . > /dev/null
+docker build -t scantool:$VERSION .
+#docker build -t scantool:latest .
 
 echo ""
 echo ""
