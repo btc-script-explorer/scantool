@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"btctx/app"
+	"github.com/btc-script-explorer/scantool/app"
 )
 
 type BitcoinCore struct {

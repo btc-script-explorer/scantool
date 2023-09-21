@@ -15,9 +15,9 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 
-	"btctx/app"
-	"btctx/btc"
-	"btctx/rest"
+	"github.com/btc-script-explorer/scantool/app"
+	"github.com/btc-script-explorer/scantool/btc"
+	"github.com/btc-script-explorer/scantool/rest"
 )
 
 const WEB_REST_VERSION = 1

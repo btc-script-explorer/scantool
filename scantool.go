@@ -11,10 +11,10 @@ import (
 	"net/http"
 	"log"
 
-	"btctx/app"
-	"btctx/btc"
-	"btctx/rest"
-	"btctx/web"
+	"github.com/btc-script-explorer/scantool/app"
+	"github.com/btc-script-explorer/scantool/btc"
+	"github.com/btc-script-explorer/scantool/rest"
+	"github.com/btc-script-explorer/scantool/web"
 )
 
 func homeHandler (response http.ResponseWriter, request *http.Request) {

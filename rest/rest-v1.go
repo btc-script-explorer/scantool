@@ -6,7 +6,7 @@ import (
 "strings"
 	"encoding/json"
 
-	"btctx/btc"
+	"github.com/btc-script-explorer/scantool/btc"
 )
 
 type RestApiV1 struct {

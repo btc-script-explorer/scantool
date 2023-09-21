@@ -5,7 +5,7 @@ import (
 	"sync"
 	"os"
 
-	"btctx/app"
+	"github.com/btc-script-explorer/scantool/app"
 )
 
 type NodeClient interface {

@@ -1,4 +1,4 @@
-module btctx
+module github.com/btc-script-explorer/scantool
 
 go 1.20
 
