@@ -23,7 +23,7 @@ It also shows the required contents of the input script and segregated witness f
 The output types are listed by the names assigned to them by Bitcoin Core. The spend types are listed by their commonly-used "P2" (pay-to) names.
 Since these are all standard methods for redeeming funds, all input data must be exactly as shown in the table below with almost no exceptions, otherwise the redemption method will be considered non-standard.
 
-![Spend Types](/assets/images/spend-type-table.png)
+![Spend Types](/docs/images/spend-type-table.png)
 
 #### Serialized Scripts
 
@@ -31,7 +31,7 @@ There have been 5 generations of standard bitcoin transaction types, each of whi
 In each of the script-based types, there is a serialized script provided in the input data. The serialized script is parsed and executed, and it must succeed in order for the transaction to succeed.
 The legacy multisig scripts were the ancestors of modern serialized scripts. The "generations" shown here did not necessarily evolve in the order they appear in the table below.
 
-![Transaction Generations](/assets/images/tx-generations.png)
+![Transaction Generations](/docs/images/tx-generations.png)
 
 There are 3 types of serialized scripts:
 - Redeem Script (BIP 16, 2012) is the last field of any input script that redeems a P2SH output.
