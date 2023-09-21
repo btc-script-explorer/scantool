@@ -8,7 +8,6 @@ https://www.lopp.net/bitcoin-information/block-explorers.html
 
 import (
 	"fmt"
-//	"os"
 	"net/http"
 	"log"
 
@@ -16,8 +15,6 @@ import (
 	"btctx/btc"
 	"btctx/rest"
 	"btctx/web"
-
-//	"btctx/test"
 )
 
 func homeHandler (response http.ResponseWriter, request *http.Request) {
@@ -101,14 +98,6 @@ func main () {
 		fmt.Println ("Failed to connect to node.")
 		return
 	}
-
-/*
-	// used only for testing
-	if app.Settings.GetTestMode () != "" {
-		test.RunTests ()
-		os.Exit (0)
-	}
-*/
 
 	printListeningMessage ()
 
