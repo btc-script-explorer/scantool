@@ -140,7 +140,7 @@ Our example will assume the following:
 
 To build the executable, simply run the following command.
 
-        $ go build ./scantool.go
+        $ go build -o ./scantool ./scantool.go
 
 ## Documentation
 
