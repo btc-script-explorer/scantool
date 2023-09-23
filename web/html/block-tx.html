@@ -1,0 +1,60 @@
+{{ define "BlockTx" }}
+
+	<tr onmouseover="$ (this).css ('background-color', '#e0e0e0');" onmouseout="$ (this).css ('background-color', '#f0f0f0');">
+		<td style="text-align:center; padding:0 8px;">{{ $.BlockIndex }}</td>
+		<td style="text-align:center; padding:0 8px;"><a href="{{ $.BaseUrl }}/tx/{{ $.Id }}">{{ $.Id }}</a></td>
+		<td style="text-align:center; padding:0 8px;">{{ if $Bip141 }}&#x2713;{{ end }}</td>
+		<td style="text-align:center; padding:0 8px;">{{ len (Inputs) }}</td>
+		<td style="text-align:center; padding:0 8px;">{{ len (Outputs) }}</td>
+	</tr>
+
+{{ end }}
+
+
+
+{{/*
+
+map[
+
+BlockHash:0000000000000000000146140c9fc04604169e3227fa72eee1432c51f3ee95ca
+BlockHeight:771982
+BlockTime:1673738660
+Id:69114ce23943ea95710b496db051e433ca9b0070b4eab85f53a9223ecc7ce5c9
+Inputs:
+[
+	map[
+
+	Coinbase:true
+	InputIndex:0
+	InputScript:map[
+
+		Fields:
+		[
+			{8ec70b Data (3 Bytes)}
+			{4d696e656420627920416e74506f6f6c393634aa005b02c3d4a7c501 Data (28 Bytes)}
+			{fabe6d6d6b1a4951bf6dc92381e50ab57f5119b7460f5a6446c2f5aab4528f62475a65fb02000000000000000000cb228c25010000000000 Data (56 Bytes)}
+		]
+		ParseError:true
+	]
+	PreviousOutputIndex:0
+	PreviousOutputTxId: Segwit:map
+		[
+			Fields:[{0000000000000000000000000000000000000000000000000000000000000000 }]
+		]
+	Sequence:4294967295
+	SpendType:COINBASE
+	]
+]
+IsCoinbase:true
+LockTime:0
+
+Outputs:
+[
+	{0 P2SH 625047499 38XnPvu9PmonFU9WouPXUjYbW91wa5MerL map[Fields:[{OP_HASH160 OP_HASH160} {4b09d828dfc8baaba5d04ee77397e04b1050cc73 Script Hash} {OP_EQUAL OP_EQUAL}]]}
+	{1 OP_RETURN 0 No Address Format map[Fields:[{OP_RETURN OP_RETURN} {aa21a9ed3a58f0d3355eb55faeab00246914dbfa2b3692cf406ef414cf4c40b19d7e20a3 Data (36 Bytes)}]]}
+	{2 OP_RETURN 0 No Address Format map[Fields:[{OP_RETURN OP_RETURN} {52534b424c4f434b3a639c7942d38cdcfa15d2c648b9fc61478d31edcfc42fefab3fa4912b004bd66a Data (41 Bytes)}]]}
+]
+PreviousOutputRequests:[] SupportsBip141:true]
+
+*/}}
+

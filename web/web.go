@@ -20,8 +20,6 @@ import (
 	"github.com/btc-script-explorer/scantool/rest"
 )
 
-const WEB_REST_VERSION = 1
-
 // html template structs
 
 type ElementTypeHTML struct {
@@ -130,9 +128,12 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	params := requestParts [1:]
 	paramCount := len (params)
 
+	// web site currently using rest version 2
+	restApi := rest.RestApiV2 {}
+
 	html := ""
 	customJavascript := fmt.Sprintf ("var base_url_web = '%s/web';\n", app.Settings.GetFullUrl ())
-	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), WEB_REST_VERSION)
+	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), restApi.GetVersion ())
 
 	// about page
 	if paramCount >= 1 && params [0] == "about" {
@@ -148,8 +149,6 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 		if paramCount < 2 { fmt.Println ("No search parameter provided."); return }
 		possibleQueryTypes = determineQueryTypes (params [1])
 	}
-
-	restApi := rest.RestApiV1 {}
 
 	for _, queryType := range possibleQueryTypes {
 		switch queryType {
@@ -178,11 +177,12 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 					}
 				}
 
-				options := make (map [string] interface {})
-				options ["ScriptUsageStats"] = true
-				blockRequestData ["options"] = options
+//				options := make (map [string] interface {})
+//				options ["ScriptUsageStats"] = true
+//				blockRequestData ["options"] = options
 				blockData := restApi.GetBlockData (blockRequestData)
 
+/*
 				// spend types
 				knownSpendTypes, knownSpendTypeCount := getKnownSpendTypesHtmlData (blockData ["InputCount"].(uint16) - 1, blockData ["KnownSpendTypes"].(map [string] uint16))
 				knownSpendTypeJs := ""
@@ -211,8 +211,38 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				pendingPrevOutJson := string (pendingPrevOutBytes)
 				customJavascript += "var pending_block_spend_types = JSON.parse ('" + pendingPrevOutJson + "');"
+*/
+
+				jsonBytes, err := json.Marshal (blockData ["Txs"].([] string))
+				if err != nil { fmt.Println (err) }
+
+				customJavascript += fmt.Sprintf ("var block_txs = JSON.parse ('%s');\n", string (jsonBytes))
 
 				html = getBlockHtml (blockData, customJavascript)
+
+			// returns html
+			case "block-tx-html":
+
+				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
+
+				if paramCount < 2 { fmt.Println ("2 parameters required for block-tx-html: block index, tx id. Request ignored."); return }
+				if len (params [2]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.", params [1])); return }
+
+				txRequestData := make (map [string] interface {})
+				blockIndex, err := strconv.Atoi (params [1])
+				if err != nil { fmt.Println (err) }
+				txRequestData ["index"] = uint16 (blockIndex)
+				txRequestData ["id"] = params [2]
+				txData := restApi.GetTxData (txRequestData)
+				if txData == nil {
+					// TODO: need better error handling
+					html = "Empty response from server."
+					break
+				}
+
+				html = getBlockTxHtml (txData)
+				fmt.Fprint (response, html)
+				return
 
 			// returns html
 			case "tx":
@@ -224,7 +254,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				txRequestData := make (map [string] interface {})
 				txRequestData ["id"] = params [1]
-				txRequestData ["options"] = map [string] interface {} { "PreviousOutputs": true }
+//				txRequestData ["options"] = map [string] interface {} { "PreviousOutputs": true }
 				txData := restApi.GetTxData (txRequestData)
 				if txData == nil {
 					// TODO: need better error handling
@@ -237,7 +267,8 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 					if err != nil { fmt.Println (err.Error ()) }
 
 					pendingPreviousOutputsJson := string (pendingPreviousOutputsBytes)
-					customJavascript += "var pending_tx_previous_outputs = JSON.parse ('" + pendingPreviousOutputsJson + "');"
+//					customJavascript += "var pending_tx_previous_outputs = JSON.parse ('" + pendingPreviousOutputsJson + "');"
+					customJavascript += fmt.Sprintf ("var pending_tx_previous_outputs = JSON.parse ('%s');", pendingPreviousOutputsJson)
 				}
 
 				html = getTxHtml (txData, customJavascript)
@@ -436,43 +467,16 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 
 	if blockData ["PreviousHash"] != nil { blockHtmlData ["PreviousHash"] = blockData ["PreviousHash"].(string) }
 	if blockData ["NextHash"] != nil { blockHtmlData ["NextHash"] = blockData ["NextHash"].(string) }
-	blockHtmlData ["TxCount"] = uint16 (len (blockData ["Txs"].([] rest.BlockTxData)))
 
-	// get the tx detail
-	if blockData ["RedeemScriptCount"] != nil && blockData ["RedeemScriptMultisigCount"] != nil {
-		redeemScriptCount := blockData ["RedeemScriptCount"].(uint16)
-		if redeemScriptCount > 0 {
-			redeemScriptMultisigCount := blockData ["RedeemScriptMultisigCount"].(uint16)
-			wsMessage:= fmt.Sprintf ("%6.2f%% MultiSig (%d/%d)", float32 (redeemScriptMultisigCount) * 100 / float32 (redeemScriptCount), redeemScriptMultisigCount, redeemScriptCount)
-			blockHtmlData ["RedeemScriptMultiSigMessage"] = template.HTML (strings.Replace (wsMessage, " ", "&nbsp;", -1))
-		}
-	}
+//	blockHtmlData ["TxCount"] = uint16 (len (blockData ["Txs"].([] string)))
+//	blockHtmlData ["TxData"] = blockData ["Txs"].([] string)
 
-	if blockData ["WitnessScriptCount"] != nil && blockData ["WitnessScriptMultisigCount"] != nil {
-		witnessScriptCount := blockData ["WitnessScriptCount"].(uint16)
-		if witnessScriptCount > 0 {
-			witnessScriptMultisigCount := blockData ["WitnessScriptMultisigCount"].(uint16)
-			wsMessage:= fmt.Sprintf ("%6.2f%% MultiSig (%d/%d)", float32 (witnessScriptMultisigCount) * 100 / float32 (witnessScriptCount), witnessScriptMultisigCount, witnessScriptCount)
-			blockHtmlData ["WitnessScriptMultiSigMessage"] = template.HTML (strings.Replace (wsMessage, " ", "&nbsp;", -1))
-		}
-	}
-
-	if blockData ["TapScriptCount"] != nil && blockData ["TapScriptOrdinalCount"] != nil {
-		tapScriptCount := blockData ["TapScriptCount"].(uint16)
-		if tapScriptCount > 0 {
-			tapScriptOrdinalCount := blockData ["TapScriptOrdinalCount"].(uint16)
-			tsMessage:= fmt.Sprintf ("%6.2f%% Ordinals (%d/%d)", float32 (tapScriptOrdinalCount) * 100 / float32 (tapScriptCount), tapScriptOrdinalCount, tapScriptCount)
-			blockHtmlData ["TapScriptOrdinalsMessage"] = template.HTML (strings.Replace (tsMessage, " ", "&nbsp;", -1))
-		}
-	}
-
-	blockHtmlData ["Bip141Message"] = fmt.Sprintf ("%d (%.2f%% BIP 141)", blockHtmlData ["TxCount"].(uint16), float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)))
+//	blockHtmlData ["Bip141Message"] = fmt.Sprintf ("%d (%.2f%% BIP 141)", blockHtmlData ["TxCount"].(uint16), float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)))
 
 	blockHtmlData ["BaseUrl"] = app.Settings.GetFullUrl () + "/web"
-	blockHtmlData ["TxData"] = blockData ["Txs"].([] rest.BlockTxData)
 
-	blockHtmlData ["InputCount"] = blockData ["InputCount"].(uint16)
-	blockHtmlData ["OutputCount"] = blockData ["OutputCount"].(uint16)
+//	blockHtmlData ["InputCount"] = blockData ["InputCount"].(uint16)
+//	blockHtmlData ["OutputCount"] = blockData ["OutputCount"].(uint16)
 
 	// create the html page
 	explorerPageHtmlData := getExplorerPageHtmlData (blockData ["Hash"].(string), blockHtmlData)
@@ -489,6 +493,23 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 	// execute the templates
 	var buff bytes.Buffer
 	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+
+func getBlockTxHtml (txData map [string] interface {}) string {
+
+fmt.Println (txData)
+
+	// parse the file
+	htmlFiles := [] string {
+		GetPath () + "html/block-tx.html" }
+	templ := template.Must (template.ParseFiles (htmlFiles...))
+
+	// execute the template
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "BlockTx", txData); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()

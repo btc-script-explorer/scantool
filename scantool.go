@@ -45,7 +45,7 @@ func printListeningMessage () {
 	lines = append (lines, app.Settings.GetFullUrl () + "/web/")
 	lines = append (lines, "")
 	lines = append (lines, "REST API Example:")
-	lines = append (lines, "curl -X GET " + app.Settings.GetFullUrl () + "/rest/v1/current_block_height")
+	lines = append (lines, "curl -X GET " + app.Settings.GetFullUrl () + "/rest/v2/current_block_height")
 	lines = append (lines, "")
 
 	// calculate the width of the message and add padding as necessary
@@ -92,7 +92,7 @@ func main () {
 	}
 
 	// test the connection
-	restApi := rest.RestApiV1 {}
+	restApi := rest.RestApiV2 {}
 	currentBlockJson := restApi.GetCurrentBlockHeight ()
 	if len (currentBlockJson) == 0 {
 		fmt.Println ("Failed to connect to node.")

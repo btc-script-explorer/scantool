@@ -12,7 +12,7 @@ type NodeClient interface {
 	GetNodeType () string
 	GetVersionString () string
 
-	GetBlock (blockHash string, verbose bool) Block
+	GetBlock (blockHash string) Block
 	GetBlockHash (blockHeight uint32) string
 	GetCurrentBlockHash () string
 	GetTx (txId string) Tx

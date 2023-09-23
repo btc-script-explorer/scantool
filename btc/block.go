@@ -9,10 +9,10 @@ type Block struct {
 	nextHash string
 	height uint32
 	timestamp int64
-	txs [] Tx
+	txs [] string
 }
 
-func NewBlock (hash string, previous string, next string, height uint32, timestamp int64, txs [] Tx) Block {
+func NewBlock (hash string, previous string, next string, height uint32, timestamp int64, txs [] string) Block {
 	return Block { hash: hash, previousHash: previous, nextHash: next, height: height, timestamp: timestamp, txs: txs }
 }
 
@@ -36,44 +36,16 @@ func (b *Block) GetHeight () uint32 {
 	return b.height
 }
 
-func (b *Block) GetTxs () [] Tx {
+func (b *Block) GetTxs () [] string {
 	return b.txs
 }
 
-func (b *Block) GetTx (index int) Tx {
+func (b *Block) GetTxId (index int) string {
+	if index >= len (b.txs) { return "" }
 	return b.txs [index]
 }
 
 func (b *Block) GetTimestamp () int64 {
 	return b.timestamp
-}
-
-// returns inputs, outputs
-func (b *Block) GetInputOutputCounts () (uint16, uint16) {
-
-	inputCount := uint16 (0)
-	outputCount := uint16 (0)
-	for _, tx := range b.txs {
-		inputCount += tx.GetInputCount ()
-		outputCount += tx.GetOutputCount ()
-	}
-	return inputCount, outputCount
-}
-
-func (b *Block) GetUnknownPreviousOutputs () map [string] [] uint32 {
-
-	unknownPreviousOutputTypes := make (map [string] [] uint32)
-	for _, tx := range b.txs {
-		for _, input := range tx.GetInputs () {
-			if input.IsCoinbase () { continue }
-
-			spendType := input.GetSpendType ()
-			if len (spendType) == 0 {
-				unknownPreviousOutputTypes [input.previousOutputTxId] = append (unknownPreviousOutputTypes [input.previousOutputTxId], input.GetPreviousOutputIndex ())
-			}
-		}
-	}
-
-	return unknownPreviousOutputTypes
 }
 

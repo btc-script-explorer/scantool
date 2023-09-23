@@ -47,13 +47,14 @@
 									</tr>
 									<tr>
 										<td class="info-window-label">Inputs:</td>
-										<td id="input-count" style="text-align:left;">{{ .InputCount }}</td>
+										<td id="input-count" style="text-align:left;">0</td>
 									</tr>
 									<tr>
 										<td class="info-window-label">Outputs:</td>
-										<td style="text-align:left;">{{ .OutputCount }}</td>
+										<td style="text-align:left;">0</td>
 									</tr>
 
+{{/*
 									{{ if or (ne .RedeemScriptMultiSigMessage nil) (or (ne .WitnessScriptMultiSigMessage nil) (ne .TapScriptOrdinalsMessage nil)) }}
 										<tr>
 											<td class="info-window-label">&nbsp;</td>
@@ -78,6 +79,7 @@
 											</tr>
 										{{ end }}
 									{{ end }}
+*/}}
 
 								</tbody>
 							</table>
@@ -87,6 +89,7 @@
 			</div>
 		</div>
 
+{{/*
 		<div id="toggle-charts-link" style="margin-top:20px; cursor:pointer; color:blue;" onclick="handle_pending_block_spend_types ();">Get Charts</div>
 
 		<div id="spend-type-status" style="margin-top:20px; position:relative; height:20px; background-color:#e0e0e0; border:1px solid black; display:none;">
@@ -111,6 +114,7 @@
 				</div>
 			</div>
 		</div>
+*/}}
 
 		<div style="margin-top:20px;">
 			<div style="display:inline-block; border:1px solid black;">
@@ -127,7 +131,8 @@
 									<th style="text-align:center; padding:0 8px 6px;">Outputs</th>
 								</tr>
 							</thead>
-							<tbody>
+							<tbody id="txs">
+{{/*
 								{{ range $I, $Tx := .TxData }}
 									<tr onmouseover="$ (this).css ('background-color', '#e0e0e0');" onmouseout="$ (this).css ('background-color', '#f0f0f0');">
 										<td style="text-align:center; padding:0 8px;">{{ $Tx.Index }}</td>
@@ -137,6 +142,7 @@
 										<td style="text-align:center; padding:0 8px;">{{ $Tx.OutputCount }}</td>
 									</tr>
 								{{ end }}
+*/}}
 							</tbody>
 						</table>
 					</div>

@@ -40,14 +40,19 @@ func RestHandler (response http.ResponseWriter, request *http.Request) {
 
 	responseJson := ""
 	if !formatError {
-
 		requestParts := strings.Split (modifiedPath, "/")
 		formatError = requestParts [0] != "rest"
 		if !formatError {
-			switch requestParts [1] {
-				case "v1":
-					restApiV1 := RestApiV1 {}
-					responseJson = restApiV1.HandleRequest (request.Method, requestParts [2], requestParts [3:], request.Body)
+			restAPIVersion := requestParts [1]
+			restAPIEndpoint := requestParts [2]
+			restAPIParamString := requestParts [3:]
+			switch restAPIVersion {
+//				case "v1":
+//					restApiV1 := RestApiV1 {}
+//					responseJson = restApiV1.HandleRequest (request.Method, restAPIEndpoint, restAPIParamString, request.Body)
+				case "v2":
+					restApiV2 := RestApiV2 {}
+					responseJson = restApiV2.HandleRequest (request.Method, restAPIEndpoint, restAPIParamString, request.Body)
 			}
 		}
 	}

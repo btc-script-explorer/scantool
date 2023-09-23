@@ -3,22 +3,12 @@ package rest
 import (
 	"fmt"
 	"io"
-"strings"
 	"encoding/json"
 
 	"github.com/btc-script-explorer/scantool/btc"
 )
 
-type RestApiV1 struct {
-	version uint16
-}
-
-type BlockTxData struct {
-	Index uint16
-	TxId string
-	Bip141 bool
-	InputCount uint16
-	OutputCount uint16
+type RestApiV2 struct {
 }
 
 type FieldData struct {
@@ -54,7 +44,11 @@ type PrevOutJsonResponse struct {
 	PrevOut PreviousOutputResponse
 }
 
-func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, getParams [] string, requestBody io.ReadCloser) string {
+func (api *RestApiV2) GetVersion () uint16 {
+	return 2
+}
+
+func (api *RestApiV2) HandleRequest (httpMethod string, functionName string, getParams [] string, requestBody io.ReadCloser) string {
 
 	errorMessage := ""
 	responseJson := ""
@@ -88,7 +82,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 
 		case "tx":
 
-			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request. %s", functionName, httpMethod); break }
 
 			// unpack the json
 			var requestParams map [string] interface {}
@@ -163,6 +157,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 			responseJson = string (jsonBytes)
 
 
+/*
 		case "serialized_script_usage":
 
 			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
@@ -205,6 +200,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 			if err != nil { fmt.Println (err.Error ()) }
 
 			responseJson = string (resultBytes)
+*/
 
 
 		default:
@@ -220,7 +216,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 	return responseJson
 }
 
-func (api *RestApiV1) addScriptFields (scriptData map [string] interface {}, script btc.Script) {
+func (api *RestApiV2) addScriptFields (scriptData map [string] interface {}, script btc.Script) {
 	fieldData := make ([] FieldData, script.GetFieldCount ())
 	for f, field := range script.GetFields () {
 		fieldData [f] = FieldData { Hex: field.AsHex (), Type: field.AsType () }
@@ -232,7 +228,7 @@ func (api *RestApiV1) addScriptFields (scriptData map [string] interface {}, scr
 	}
 }
 
-func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [string] interface {} {
+func (api *RestApiV2) GetTxData (txRequest map [string] interface {}) map [string] interface {} {
 
 	nodeClient := btc.GetNodeClient ()
 
@@ -337,7 +333,7 @@ func (api *RestApiV1) GetTxData (txRequest map [string] interface {}) map [strin
 
 // handles a single output from a single transaction
 // returns value, output type, address and output script
-func (api *RestApiV1) GetPreviousOutputResponseData (txId string, outputIndex uint32) PreviousOutputResponse {
+func (api *RestApiV2) GetPreviousOutputResponseData (txId string, outputIndex uint32) PreviousOutputResponse {
 	nodeClient := btc.GetNodeClient ()
 	previousOutput := nodeClient.GetPreviousOutput (txId, uint32 (outputIndex))
 
@@ -353,7 +349,7 @@ func (api *RestApiV1) GetPreviousOutputResponseData (txId string, outputIndex ui
 
 // handles multiple outputs in multiple transactions
 // returns outpoints and the output type of each
-func (r *RestApiV1) GetPreviousOutputTypes (previousOutputs map [string] [] uint32) map [string] string {
+func (r *RestApiV2) GetPreviousOutputTypes (previousOutputs map [string] [] uint32) map [string] string {
 
 	nodeClient := btc.GetNodeClient ()
 	prevOutMap := make (map [string] string)
@@ -372,7 +368,7 @@ func (r *RestApiV1) GetPreviousOutputTypes (previousOutputs map [string] [] uint
 	return prevOutMap
 }
 
-func (api *RestApiV1) getPreviousOutputRequestData (tx btc.Tx) [] PreviousOutputRequest {
+func (api *RestApiV2) getPreviousOutputRequestData (tx btc.Tx) [] PreviousOutputRequest {
 
 	if tx.IsCoinbase () { return [] PreviousOutputRequest {} }
 
@@ -387,7 +383,7 @@ func (api *RestApiV1) getPreviousOutputRequestData (tx btc.Tx) [] PreviousOutput
 	return previousOutputs
 }
 
-func (api *RestApiV1) convertToBlockHeight (param interface {}) (uint32, bool) {
+func (api *RestApiV2) convertToBlockHeight (param interface {}) (uint32, bool) {
 	// find an integer type for the height field
 	// this can vary depending on the software used to send the request
 	uint32Test, uint32Okay := param.(uint32)
@@ -403,7 +399,7 @@ func (api *RestApiV1) convertToBlockHeight (param interface {}) (uint32, bool) {
 	return 0xffffffff, false
 }
 
-func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map [string] interface {} {
+func (api *RestApiV2) GetBlockData (blockRequest map [string] interface {}) map [string] interface {} {
 
 	// determine the block hash
 	nodeClient := btc.GetNodeClient ()
@@ -428,16 +424,9 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 		blockHash = nodeClient.GetCurrentBlockHash ()
 	}
 
-	block := nodeClient.GetBlock (blockHash, true)
+	// get the block
+	block := nodeClient.GetBlock (blockHash)
 	if block.IsNil () { return nil }
-
-	// get the options
-	blockRequestOptions := map [string] interface {} {}
-	if blockRequest ["options"] != nil { blockRequestOptions = blockRequest ["options"].(map [string] interface {}) }
-	optionNoTypes := blockRequestOptions ["NoTypes"] != nil && blockRequestOptions ["NoTypes"].(bool)
-	optionNoTxs := blockRequestOptions ["NoTxs"] != nil && blockRequestOptions ["NoTxs"].(bool)
-	optionNoUnknownSpendTypes := blockRequestOptions ["NoUnknownSpendTypes"] != nil && blockRequestOptions ["NoUnknownSpendTypes"].(bool)
-	optionsScriptUsageStats := blockRequestOptions ["ScriptUsageStats"] != nil && blockRequestOptions ["ScriptUsageStats"].(bool)
 
 	// build the JSON response
 	blockData := make (map [string] interface {})
@@ -450,83 +439,13 @@ func (api *RestApiV1) GetBlockData (blockRequest map [string] interface {}) map 
 	blockData ["Hash"] = block.GetHash ()
 	blockData ["Height"] = block.GetHeight ()
 	blockData ["Timestamp"] = block.GetTimestamp ()
-	blockData ["InputCount"], blockData ["OutputCount"] = block.GetInputOutputCounts ()
-
-	// transaction-related data
-	bip141Count := uint16 (0)
-	redeemScriptMultisigCount := uint16 (0)
-	redeemScriptCount := uint16 (0)
-	witnessScriptMultisigCount := uint16 (0)
-	witnessScriptCount := uint16 (0)
-	tapScriptOrdinalCount := uint16 (0)
-	tapScriptCount := uint16 (0)
-	var txs [] BlockTxData
-
-	if optionsScriptUsageStats || !optionNoTxs {
-		for t, tx := range block.GetTxs () {
-
-			if optionsScriptUsageStats {
-				for _, input := range tx.GetInputs () {
-
-					st := input.GetSpendType ()
-					if st == btc.OUTPUT_TYPE_P2WSH || st == btc.SPEND_TYPE_P2SH_P2WSH {
-						witnessScriptCount++
-						if input.HasMultisigWitnessScript () {
-							witnessScriptMultisigCount++
-						}
-					} else if st == btc.SPEND_TYPE_P2TR_Script {
-						tapScriptCount++
-						if input.HasOrdinalTapScript () {
-							tapScriptOrdinalCount++
-						}
-					} else if st == btc.OUTPUT_TYPE_P2SH {
-						redeemScriptCount++
-						if input.HasMultisigRedeemScript () {
-							redeemScriptMultisigCount++
-						}
-					}
-				}
-			}
-
-			if !optionNoTxs {
-				if tx.SupportsBip141 () { bip141Count++ }
-				txs = append (txs, BlockTxData { Index: uint16 (t), TxId: tx.GetTxId (), Bip141: tx.SupportsBip141 (), InputCount: tx.GetInputCount (), OutputCount: tx.GetOutputCount () })
-			}
-		}
-	}
-
-	if !optionNoTxs {
-		blockData ["Bip141Count"] = bip141Count
-		blockData ["Txs"] = txs
-		if !optionNoUnknownSpendTypes {
-			blockData ["UnknownSpendTypes"] = block.GetUnknownPreviousOutputs ()
-		}
-	}
-
-	if !optionNoTypes {
-		blockData ["KnownSpendTypes"] = api.getKnownSpendTypes (block)
-		blockData ["OutputTypes"] = api.getOutputTypes (block)
-	}
-
-	if optionsScriptUsageStats {
-		if redeemScriptCount > 0 {
-			blockData ["RedeemScriptMultisigCount"] = redeemScriptMultisigCount
-			blockData ["RedeemScriptCount"] = redeemScriptCount
-		}
-		if witnessScriptCount > 0 {
-			blockData ["WitnessScriptMultisigCount"] = witnessScriptMultisigCount
-			blockData ["WitnessScriptCount"] = witnessScriptCount
-		}
-		if tapScriptCount > 0 {
-			blockData ["TapScriptOrdinalCount"] = tapScriptOrdinalCount
-			blockData ["TapScriptCount"] = tapScriptCount
-		}
-	}
+	blockData ["Txs"] = block.GetTxs ()
 
 	return blockData
 }
 
-func (api *RestApiV1) getSerializedScriptJson (blockHash string, tap bool, redeem bool, witness bool) map [string] [] map [string] interface {} {
+/*
+func (api *RestApiV2) getSerializedScriptJson (blockHash string, tap bool, redeem bool, witness bool) map [string] [] map [string] interface {} {
 
 	nodeClient := btc.GetNodeClient ()
 	block := nodeClient.GetBlock (blockHash, true)
@@ -627,7 +546,7 @@ func (api *RestApiV1) getSerializedScriptJson (blockHash string, tap bool, redee
 	return results
 }
 
-func (api *RestApiV1) getKnownSpendTypes (block btc.Block) map [string] uint16 {
+func (api *RestApiV2) getKnownSpendTypes (block btc.Block) map [string] uint16 {
 
 	spendTypeMap := make (map [string] uint16)
 	for _, tx := range block.GetTxs () {
@@ -644,7 +563,7 @@ func (api *RestApiV1) getKnownSpendTypes (block btc.Block) map [string] uint16 {
 	return spendTypeMap
 }
 
-func (api *RestApiV1) getOutputTypes (block btc.Block) map [string] uint16 {
+func (api *RestApiV2) getOutputTypes (block btc.Block) map [string] uint16 {
 
 	outputTypeMap := make (map [string] uint16)
 	for _, tx := range block.GetTxs () {
@@ -659,9 +578,7 @@ func (api *RestApiV1) getOutputTypes (block btc.Block) map [string] uint16 {
 
 	return outputTypeMap
 }
-
-
-
+*/
 
 /*
 legacy_spend_types
@@ -697,13 +614,13 @@ The example above would return:
 
 */
 
-func (r *RestApiV1) GetCurrentBlockHeight () string {
+func (r *RestApiV2) GetCurrentBlockHeight () string {
 
 	nodeClient := btc.GetNodeClient ()
 	blockHash := nodeClient.GetCurrentBlockHash ()
 	if len (blockHash) == 0 { return "" }
 
-	block := nodeClient.GetBlock (blockHash, false)
+	block := nodeClient.GetBlock (blockHash)
 
 	blockJsonData := struct { Current_block_height uint32 } { Current_block_height: block.GetHeight () }
 	jsonBytes, err := json.Marshal (blockJsonData)

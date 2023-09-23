@@ -44,23 +44,15 @@ func (bc *BitcoinCore) GetPreviousOutput (txId string, outputIndex uint32) Outpu
 	return bc.parseOutput(outputJson) 
 }
 
-func (bc *BitcoinCore) GetBlock (blockHash string, verbose bool) Block {
+func (bc *BitcoinCore) GetBlock (blockHash string) Block {
 
-	block := bc.getBlock (blockHash, verbose)
+	block := bc.getBlock (blockHash, false)
 	if block == nil { return Block {} }
 
-	txs := make ([] Tx, 0)
-
-	if verbose {
-		txArray := block ["tx"].([] interface {})
-		txs = make ([] Tx, len (txArray))
-		for t, tx := range txArray {
-			parsedTx := bc.parseTx (tx.(map [string] interface {}), false)
-			if parsedTx.IsNil () {
-				return Block {} // should never happen
-			}
-			txs [t] = parsedTx
-		}
+	txArray := block ["tx"].([] interface {})
+	txs := make ([] string, len (txArray))
+	for t, tx := range txArray {
+		txs [t] = tx.(string)
 	}
 
 	previousHash := ""

@@ -1,3 +1,18 @@
+async function get_block_txs ()
+{
+console.log (block_txs.length);
+	for (var t = 0; t < block_txs.length; t++)
+	{
+console.log (block_txs [t]);
+		const headers = new Headers ();
+		var request_data = { method: 'GET', headers: headers };
+		const response = await fetch (base_url_web + '/block-tx-html/' + t + '/' + block_txs [t]);
+		const data = await response;
+$ ('#txs').append (data);
+console.log (data);
+	}
+}
+
 function check_query_id_format (query_id)
 {
 	query_id = query_id.toLowerCase ();
@@ -41,6 +56,7 @@ function get_pending_block_spend_types ()
 	return pending_spend_types;
 }
 
+/*
 async function handle_pending_block_spend_types ()
 {
 	$ ('#toggle-charts-link').css ('display', 'none');
@@ -104,6 +120,7 @@ async function handle_pending_block_spend_types ()
 	$ ('#output-types').html (data.OutputTypeChart);
 	$ ('#type-charts').css ('display', 'block');
 }
+*/
 
 async function handle_pending_tx_previous_outputs ()
 {
@@ -275,7 +292,9 @@ async function check_for_new_block ()
 $ (document).ready (
 function ()
 {
-	if (typeof pending_tx_previous_outputs !== 'undefined' && Array.isArray (pending_tx_previous_outputs))
+	if (typeof block_txs !== 'undefined')
+		get_block_txs ();
+	else if (typeof pending_tx_previous_outputs !== 'undefined' && Array.isArray (pending_tx_previous_outputs))
 		handle_pending_tx_previous_outputs ();
 	else if (typeof unknown_spend_type_count !== 'undefined' && unknown_spend_type_count > 0)
 		$ ('#toggle-charts-link').css ('display', 'block');
