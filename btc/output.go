@@ -4,6 +4,13 @@ import (
 	"fmt"
 )
 
+type PreviousOutputRequest struct {
+	TxId string
+	InputIndex uint32
+	PreviousTxId string
+	PreviousOutputIndex uint32
+}
+
 const OUTPUT_TYPE_P2PK = "P2PK"
 const OUTPUT_TYPE_MultiSig = "MultiSig"
 const OUTPUT_TYPE_P2PKH = "P2PKH"

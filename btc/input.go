@@ -18,27 +18,29 @@ const SPEND_TYPE_NonStandard = "Non-Standard"
 
 type Input struct {
 	previousOutputTxId string
-	previousOutputIndex uint32
+	previousOutputIndex uint16
+	inputScript Script
+	sequence uint32
+
 	coinbase bool
 	spendType string
-	inputScript Script
+
 	redeemScript Script
 	segwit Segwit
-	sequence uint32
 
 	multisigRedeemScript bool
 	multisigWitnessScript bool
 	ordinalTapScript bool
 }
 
-func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uint32, inputScript Script, segwit Segwit, sequence uint32) Input {
+func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uint16, inputScript Script, segwit Segwit, sequence uint32) Input {
 
 	i := Input { coinbase: coinbase, previousOutputTxId: previousOutputTxId, previousOutputIndex: previousOutputIndex, inputScript: inputScript, segwit: segwit, sequence: sequence }
 
 	if i.coinbase {
 		i.spendType = "COINBASE"
 	} else {
-		nodeClient := GetNodeClient ()
+//		nodeClient := GetNodeClient ()
 		i.spendType = ""
 
 		inputScriptHasFields := !inputScript.IsEmpty ()
@@ -88,6 +90,7 @@ func NewInput (coinbase bool, previousOutputTxId string, previousOutputIndex uin
 
 		if isWitnessType {
 
+/*
 			// it looks like one of the witness types
 			possibleWitnessScript := i.segwit.parseWitnessScript ()
 			possibleTapScript, possibleTapScriptIndex := i.segwit.parseTapScript ()
@@ -157,6 +160,7 @@ if i.spendType == SPEND_TYPE_P2TR_Script { fmt.Println (previousOutputTxId, prev
 					i.segwit.SetTapScript (possibleTapScript, possibleTapScriptIndex)
 				}
 			}
+*/
 		}
 
 		// set any segwit field types that aren't already set
@@ -173,7 +177,7 @@ if i.spendType == SPEND_TYPE_P2TR_Script { fmt.Println (previousOutputTxId, prev
 		if len (i.spendType) == 0 {
 			redeemScript := i.inputScript.GetSerializedScript ()
 			if !redeemScript.HasParseError () {
-
+/*
 				previousOutput := nodeClient.GetPreviousOutput (i.GetPreviousOutputTxId (), i.GetPreviousOutputIndex ())
 				correctOutputType := previousOutput.GetOutputType ()
 				if correctOutputType == OUTPUT_TYPE_P2SH {
@@ -193,6 +197,7 @@ if i.spendType == SPEND_TYPE_P2TR_Script { fmt.Println (previousOutputTxId, prev
 						}
 					}
 				}
+*/
 			}
 		}
 
@@ -248,7 +253,7 @@ func (i *Input) GetPreviousOutputTxId () string {
 	return i.previousOutputTxId
 }
 
-func (i *Input) GetPreviousOutputIndex () uint32 {
+func (i *Input) GetPreviousOutputIndex () uint16 {
 	return i.previousOutputIndex
 }
 

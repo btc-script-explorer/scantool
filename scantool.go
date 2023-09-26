@@ -8,6 +8,7 @@ https://www.lopp.net/bitcoin-information/block-explorers.html
 
 import (
 	"fmt"
+//"runtime"
 	"net/http"
 	"log"
 
@@ -33,12 +34,18 @@ func homeHandler (response http.ResponseWriter, request *http.Request) {
 
 func printListeningMessage () {
 
+	nodeProxy, err := btc.GetNodeProxy ()
+	if err != nil {
+		fmt.Println (err.Error ())
+		return
+	}
+
 	// create the data lines of the message
 	lines := make ([] string, 0)
 	lines = append (lines, "")
 	lines = append (lines, "SCANTOOL " + app.GetVersion ())
 	lines = append (lines, "")
-	lines = append (lines, btc.GetNodeClient ().GetVersionString ())
+	lines = append (lines, nodeProxy.GetNodeVersion ())
 	lines = append (lines, app.Settings.GetNodeFullUrl ())
 	lines = append (lines, "")
 	lines = append (lines, "Web Access:")
@@ -85,17 +92,15 @@ func printListeningMessage () {
 func main () {
 
 	app.ParseSettings ()
-
 	if app.Settings.IsVersionRequest () {
 		fmt.Println (fmt.Sprintf ("scantool %s", app.GetVersion ()))
 		return
 	}
 
-	// test the connection
-	restApi := rest.RestApiV2 {}
-	currentBlockJson := restApi.GetCurrentBlockHeight ()
-	if len (currentBlockJson) == 0 {
-		fmt.Println ("Failed to connect to node.")
+	proxy, err := btc.StartNodeProxy ()
+_=proxy
+	if err != nil {
+		fmt.Println (err.Error ())
 		return
 	}
 
@@ -113,6 +118,9 @@ func main () {
 	}
 
 	mux.HandleFunc ("/rest/", rest.RestHandler)
+
+//var buf [] byte
+//runtime.Stack (&buf, true)
 
 	log.Fatal (http.ListenAndServe (app.Settings.GetBaseUrl (true), mux))
 }

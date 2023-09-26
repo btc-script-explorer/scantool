@@ -43,7 +43,7 @@
 
 									<tr>
 										<td class="info-window-label">Transactions:</td>
-										<td style="text-align:left;">{{ .Bip141Message }}</td>
+										<td style="text-align:left;"><span id="tx-count">0</span> (<span id="bip141-percent"></span>% BIP 141)</td>
 									</tr>
 									<tr>
 										<td class="info-window-label">Inputs:</td>
@@ -51,7 +51,7 @@
 									</tr>
 									<tr>
 										<td class="info-window-label">Outputs:</td>
-										<td style="text-align:left;">0</td>
+										<td id="output-count" style="text-align:left;">0</td>
 									</tr>
 
 {{/*

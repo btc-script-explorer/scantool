@@ -9,11 +9,11 @@ type Block struct {
 	nextHash string
 	height uint32
 	timestamp int64
-	txs [] string
+	txCount uint16
 }
 
-func NewBlock (hash string, previous string, next string, height uint32, timestamp int64, txs [] string) Block {
-	return Block { hash: hash, previousHash: previous, nextHash: next, height: height, timestamp: timestamp, txs: txs }
+func NewBlock (hash string, previous string, next string, height uint32, timestamp int64, txCount uint16) Block {
+	return Block { hash: hash, previousHash: previous, nextHash: next, height: height, timestamp: timestamp, txCount: txCount }
 }
 
 func (b *Block) IsNil () bool {
@@ -36,13 +36,8 @@ func (b *Block) GetHeight () uint32 {
 	return b.height
 }
 
-func (b *Block) GetTxs () [] string {
-	return b.txs
-}
-
-func (b *Block) GetTxId (index int) string {
-	if index >= len (b.txs) { return "" }
-	return b.txs [index]
+func (b *Block) GetTxCount () uint16 {
+	return b.txCount
 }
 
 func (b *Block) GetTimestamp () int64 {

@@ -1,15 +1,32 @@
 async function get_block_txs ()
 {
-console.log (block_txs.length);
-	for (var t = 0; t < block_txs.length; t++)
+console.log (block_tx_count);
+
+	var txs_loaded = 0;
+	var bip141_count = 0;
+	var input_count = 1; // coinbase
+	var output_count = 0;
+	for (var t = 0; t < block_tx_count; t++)
 	{
 console.log (block_txs [t]);
 		const headers = new Headers ();
 		var request_data = { method: 'GET', headers: headers };
-		const response = await fetch (base_url_web + '/block-tx-html/' + t + '/' + block_txs [t]);
-		const data = await response;
-$ ('#txs').append (data);
+		const response = await fetch (base_url_web + '/tx/' + block_height + ':' + t);
+//console.log (response);
+		const data = await response.json ();
 console.log (data);
+		$ ('#tx-count').html (++txs_loaded);
+		if (data.bip141)
+			++bip141_count;
+		$ ('#bip141-percent').html (Number ((bip141_count * 100) / txs_loaded).toFixed (2));
+
+		input_count += data.input_count;
+		$ ('#input-count').html (input_count);
+
+		output_count += data.output_count;
+		$ ('#output-count').html (output_count);
+
+		$ ('#txs').append (data.tx_html);
 	}
 }
 
@@ -292,7 +309,7 @@ async function check_for_new_block ()
 $ (document).ready (
 function ()
 {
-	if (typeof block_txs !== 'undefined')
+	if (typeof block_tx_count !== 'undefined')
 		get_block_txs ();
 	else if (typeof pending_tx_previous_outputs !== 'undefined' && Array.isArray (pending_tx_previous_outputs))
 		handle_pending_tx_previous_outputs ();

@@ -3,9 +3,9 @@
 	<tr onmouseover="$ (this).css ('background-color', '#e0e0e0');" onmouseout="$ (this).css ('background-color', '#f0f0f0');">
 		<td style="text-align:center; padding:0 8px;">{{ $.BlockIndex }}</td>
 		<td style="text-align:center; padding:0 8px;"><a href="{{ $.BaseUrl }}/tx/{{ $.Id }}">{{ $.Id }}</a></td>
-		<td style="text-align:center; padding:0 8px;">{{ if $Bip141 }}&#x2713;{{ end }}</td>
-		<td style="text-align:center; padding:0 8px;">{{ len (Inputs) }}</td>
-		<td style="text-align:center; padding:0 8px;">{{ len (Outputs) }}</td>
+		<td style="text-align:center; padding:0 8px;">{{ if $.Bip141 }}&#x2713;{{ end }}</td>
+		<td style="text-align:center; padding:0 8px;">{{ $.InputCount }}</td>
+		<td style="text-align:center; padding:0 8px;">{{ $.OutputCount }}</td>
 	</tr>
 
 {{ end }}

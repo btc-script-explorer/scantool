@@ -5,15 +5,17 @@ import (
 
 type Tx struct {
 	id string
-	blockHeight uint32
-	blockTime int64
-	blockHash string
 	version uint32
-	coinbase bool
-	bip141 bool
 	inputs [] Input
 	outputs [] Output
 	lockTime uint32
+
+	coinbase bool
+	bip141 bool
+
+	blockHeight uint32
+	blockTime int64
+	blockHash string
 }
 
 func (tx *Tx) IsNil () bool {

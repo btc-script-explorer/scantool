@@ -24,7 +24,7 @@ import (
 
 type ElementTypeHTML struct {
 	Label string
-	Count uint32
+	Count uint16
 	Percent string
 }
 
@@ -51,14 +51,14 @@ type ScriptHtmlData struct {
 }
 
 type InputHtmlData struct {
-	InputIndex uint32
+	InputIndex uint16
 	DisplayTypeClassPrefix string
 	IsCoinbase bool
 	SpendType string
 	ValueIn template.HTML
 	BaseUrl string
 	PreviousOutputTxId string
-	PreviousOutputIndex uint32
+	PreviousOutputIndex uint16
 	Sequence uint32
 	InputScript ScriptHtmlData
 	RedeemScript ScriptHtmlData
@@ -69,7 +69,7 @@ type InputHtmlData struct {
 }
 
 type OutputHtmlData struct {
-	OutputIndex uint32
+	OutputIndex uint16
 	DisplayTypeClassPrefix string
 	OutputType string
 	Value template.HTML
@@ -88,7 +88,7 @@ type SegwitHtmlData struct {
 
 type previousOutputJsonOut struct {
 	InputTxId string
-	InputIndex uint32
+	InputIndex uint16
 	PrevOutValue uint64
 	PrevOutType string
 	PrevOutAddress string
@@ -96,10 +96,10 @@ type previousOutputJsonOut struct {
 }
 
 type BlockChartData struct {
-	NonCoinbaseInputCount uint32
-	OutputCount uint32
-	SpendTypes map [string] uint32
-	OutputTypes map [string] uint32
+	NonCoinbaseInputCount uint16
+	OutputCount uint16
+	SpendTypes map [string] uint16
+	OutputTypes map [string] uint16
 }
 
 
@@ -131,6 +131,12 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	// web site currently using rest version 2
 	restApi := rest.RestApiV2 {}
 
+	nodeProxy, err := btc.GetNodeProxy ()
+	if err != nil {
+		fmt.Println (err.Error ())
+		return
+	}
+
 	html := ""
 	customJavascript := fmt.Sprintf ("var base_url_web = '%s/web';\n", app.Settings.GetFullUrl ())
 	customJavascript += fmt.Sprintf ("var base_url_rest = '%s/rest/v%d';\n", app.Settings.GetFullUrl (), restApi.GetVersion ())
@@ -153,86 +159,56 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	for _, queryType := range possibleQueryTypes {
 		switch queryType {
 
-			// returns html
+			// returns json
 			case "block":
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
-				blockRequestData := make (map [string] interface {})
+				blockRequest := btc.BlockRequest {}
 
 				// get the block request data
 				blockParam := ""
 				if paramCount >= 2 {
 					blockParam = params [1]
 					paramLen := len (blockParam)
+
 					if paramLen > 0 {
 						height, err := strconv.Atoi (blockParam)
 						if err == nil {
-							blockRequestData ["height"] = uint32 (height)
+							blockRequest.Height = uint32 (height)
 						} else if paramLen == 64 {
-							blockRequestData ["hash"] = blockParam
-						} else {
-							break // it isn't a block hash or height
+							blockRequest.Hash = blockParam
 						}
 					}
+
 				}
 
 //				options := make (map [string] interface {})
-//				options ["ScriptUsageStats"] = true
 //				blockRequestData ["options"] = options
-				blockData := restApi.GetBlockData (blockRequestData)
+
+				blockResponseChannel := nodeProxy.GetBlock (blockRequest)
+				block := <- blockResponseChannel
+
+				customJavascript += fmt.Sprintf ("var block_height = %d;\n", block.GetHeight ())
+				customJavascript += fmt.Sprintf ("var block_tx_count = %d;\n", block.GetTxCount ())
+				html = getBlockHtml (block, customJavascript)
+
 
 /*
-				// spend types
-				knownSpendTypes, knownSpendTypeCount := getKnownSpendTypesHtmlData (blockData ["InputCount"].(uint16) - 1, blockData ["KnownSpendTypes"].(map [string] uint16))
-				knownSpendTypeJs := ""
-				for _, knownSpendType := range knownSpendTypes {
-					if len (knownSpendTypeJs) > 0 { knownSpendTypeJs += "," }
-					knownSpendTypeJs += fmt.Sprintf ("'%s':%d", knownSpendType.Label, knownSpendType.Count)
-				}
-				customJavascript += fmt.Sprintf ("var known_spend_types = {%s};\n", knownSpendTypeJs)
-				customJavascript += fmt.Sprintf ("var known_spend_type_count = %d;\n", knownSpendTypeCount)
-				customJavascript += fmt.Sprintf ("var unknown_spend_type_count = %d;\n", blockData ["InputCount"].(uint16) - knownSpendTypeCount)
-
-				// output types
-				outputTypes := getOutputTypesHtmlData (blockData ["OutputCount"].(uint16), blockData ["OutputTypes"].(map [string] uint16))
-				outputTypeJs := ""
-				for _, outputType := range outputTypes {
-					if len (outputTypeJs) > 0 { outputTypeJs += "," }
-					outputTypeJs += fmt.Sprintf ("'%s':%d", outputType.Label, outputType.Count)
-				}
-				customJavascript += fmt.Sprintf ("var output_types = {%s};\n", outputTypeJs)
-				customJavascript += fmt.Sprintf ("var output_count = %d;\n", blockData ["OutputCount"].(uint16))
-
-				// unknown spend types
-				pendingPreviousOutputs := blockData ["UnknownSpendTypes"].(map [string] [] uint32)
-				pendingPrevOutBytes, err := json.Marshal (pendingPreviousOutputs)
-				if err != nil { fmt.Println (err.Error ()) }
-
-				pendingPrevOutJson := string (pendingPrevOutBytes)
-				customJavascript += "var pending_block_spend_types = JSON.parse ('" + pendingPrevOutJson + "');"
-*/
-
-				jsonBytes, err := json.Marshal (blockData ["Txs"].([] string))
-				if err != nil { fmt.Println (err) }
-
-				customJavascript += fmt.Sprintf ("var block_txs = JSON.parse ('%s');\n", string (jsonBytes))
-
-				html = getBlockHtml (blockData, customJavascript)
-
-			// returns html
-			case "block-tx-html":
+			// returns json
+			case "block-tx":
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
 				if paramCount < 2 { fmt.Println ("2 parameters required for block-tx-html: block index, tx id. Request ignored."); return }
-				if len (params [2]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.", params [1])); return }
+				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.")); return }
+
+//				blockIndex, err := strconv.Atoi (params [1])
+//				if err != nil { fmt.Println (err) }
 
 				txRequestData := make (map [string] interface {})
-				blockIndex, err := strconv.Atoi (params [1])
-				if err != nil { fmt.Println (err) }
-				txRequestData ["index"] = uint16 (blockIndex)
 				txRequestData ["id"] = params [2]
+
 				txData := restApi.GetTxData (txRequestData)
 				if txData == nil {
 					// TODO: need better error handling
@@ -240,9 +216,15 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 					break
 				}
 
-				html = getBlockTxHtml (txData)
-				fmt.Fprint (response, html)
+				blockTxResponse := getBlockTxData (txData, uint16 (blockIndex))
+
+				jsonBytes, err := json.Marshal (blockTxResponse)
+				if err != nil { fmt.Println (err) }
+
+				fmt.Fprint (response, string (jsonBytes))
+
 				return
+*/
 
 			// returns html
 			case "tx":
@@ -250,37 +232,35 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
 				if paramCount < 2 { fmt.Println ("No id provided for tx. Request ignored."); return }
-				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.", params [1])); return }
+//				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.", params [1])); return }
 
-				txRequestData := make (map [string] interface {})
-				txRequestData ["id"] = params [1]
-//				txRequestData ["options"] = map [string] interface {} { "PreviousOutputs": true }
-				txData := restApi.GetTxData (txRequestData)
-				if txData == nil {
+				txRequest := btc.TxRequest {}
+
+				if len (params [1]) != 64 {
+					txRequest.Id = params [1]
+				} else {
+					txRequest.Key = params [1]
+				}
+
+				responseChannel := nodeProxy.GetTx (txRequest)
+				tx := <- responseChannel
+				if tx.IsNil () {
 					// TODO: need better error handling
 					html = "Empty response from server."
 					break
 				}
 
-				if txData ["PreviousOutputRequests"] != nil {
-					pendingPreviousOutputsBytes, err := json.Marshal (txData ["PreviousOutputRequests"].([] rest.PreviousOutputRequest))
-					if err != nil { fmt.Println (err.Error ()) }
-
-					pendingPreviousOutputsJson := string (pendingPreviousOutputsBytes)
-//					customJavascript += "var pending_tx_previous_outputs = JSON.parse ('" + pendingPreviousOutputsJson + "');"
-					customJavascript += fmt.Sprintf ("var pending_tx_previous_outputs = JSON.parse ('%s');", pendingPreviousOutputsJson)
-				}
-
-				html = getTxHtml (txData, customJavascript)
+				customJavascript += fmt.Sprintf ("var tx_input_count = JSON.parse ('%d');", tx.GetInputCount ())
+				html = getTxHtml (tx, customJavascript)
 
 			case "address":
-				// requires an electrum server
-				break
+				// would probably require an electrum server for implementation
 
 
 			// returns json
 			case "previous_output":
 
+/*
 				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); return }
 
 				// unpack the json
@@ -310,11 +290,13 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				if err != nil { fmt.Println (err) }
 
 				fmt.Fprint (response, string (jsonBytes))
+*/
 				return
 
 			// returns json
 			case "legacy_spend_types":
 
+/*
 				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); return }
 
 				// unpack the json
@@ -335,6 +317,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				if err != nil { fmt.Println (err.Error ()) }
 
 				fmt.Fprint (response, string (prevOutsBytes))
+*/
 				return
 
 			case "block_charts":
@@ -396,7 +379,7 @@ func getKnownSpendTypesHtmlData (nonCoinbaseInputCount uint16, knownSpendTypeMap
 	knownSpendTypeCount := uint16 (1) // starting at 1 because the coinbase input always has a known spend type
 	for spendType, num := range knownSpendTypeMap {
 		knownSpendTypeCount += num
-		knownSpendTypes = append (knownSpendTypes, ElementTypeHTML { Label: spendType, Count: uint32 (num), Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (nonCoinbaseInputCount)) })
+		knownSpendTypes = append (knownSpendTypes, ElementTypeHTML { Label: spendType, Count: uint16 (num), Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (nonCoinbaseInputCount)) })
 	}
 
 	return knownSpendTypes, knownSpendTypeCount
@@ -405,7 +388,7 @@ func getOutputTypesHtmlData (outputCount uint16, outputTypeMap map [string] uint
 
 	var outputTypes [] ElementTypeHTML
 	for outputType, num := range outputTypeMap {
-		outputTypes = append (outputTypes, ElementTypeHTML { Label: outputType, Count: uint32 (num), Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (outputCount)) })
+		outputTypes = append (outputTypes, ElementTypeHTML { Label: outputType, Count: uint16 (num), Percent: fmt.Sprintf ("%9.2f%%", float32 (num * 100) / float32 (outputCount)) })
 	}
 
 	return outputTypes
@@ -426,8 +409,10 @@ func getLayoutHtmlData (customJavascript string, explorerPageData map [string] i
 	layoutData ["CustomJavascript"] = template.HTML (`<script type="text/javascript">` + customJavascript + "</script>")
 	layoutData ["ExplorerPage"] = explorerPageData
 
-	nodeClient := btc.GetNodeClient ()
-	layoutData ["NodeVersion"] = template.HTML (strings.Replace (nodeClient.GetVersionString (), " ", "&nbsp;", -1))
+	nodeProxy, err := btc.GetNodeProxy ()
+	if err != nil { fmt.Println (err.Error ()) }
+
+	layoutData ["NodeVersion"] = template.HTML (strings.Replace (nodeProxy.GetNodeVersion (), " ", "&nbsp;", -1))
 	layoutData ["NodeUrl"] = template.HTML (app.Settings.GetNodeFullUrl ())
 
 	return layoutData
@@ -455,31 +440,26 @@ func getExplorerPageHtml () string {
 	return buff.String ()
 }
 
-func getBlockHtml (blockData map [string] interface {}, customJavascript string) string {
+func getBlockHtml (block btc.Block, customJavascript string) string {
 
 	// get the data
 	blockHtmlData := make (map [string] interface {})
 
+	blockHash := block.GetHash ()
+
 	// get block data
-	blockHtmlData ["Height"] = blockData ["Height"].(uint32)
-	blockHtmlData ["Time"] = time.Unix (blockData ["Timestamp"].(int64), 0).UTC ()
-	blockHtmlData ["Hash"] = blockData ["Hash"].(string)
-
-	if blockData ["PreviousHash"] != nil { blockHtmlData ["PreviousHash"] = blockData ["PreviousHash"].(string) }
-	if blockData ["NextHash"] != nil { blockHtmlData ["NextHash"] = blockData ["NextHash"].(string) }
-
-//	blockHtmlData ["TxCount"] = uint16 (len (blockData ["Txs"].([] string)))
-//	blockHtmlData ["TxData"] = blockData ["Txs"].([] string)
-
-//	blockHtmlData ["Bip141Message"] = fmt.Sprintf ("%d (%.2f%% BIP 141)", blockHtmlData ["TxCount"].(uint16), float32 (blockData ["Bip141Count"].(uint16)) * 100 / float32 (blockHtmlData ["TxCount"].(uint16)))
-
 	blockHtmlData ["BaseUrl"] = app.Settings.GetFullUrl () + "/web"
+	blockHtmlData ["Height"] = block.GetHeight ()
+	blockHtmlData ["Time"] = time.Unix (block.GetTimestamp (), 0).UTC ()
+	blockHtmlData ["Hash"] = blockHash
 
-//	blockHtmlData ["InputCount"] = blockData ["InputCount"].(uint16)
-//	blockHtmlData ["OutputCount"] = blockData ["OutputCount"].(uint16)
+	previousHash := block.GetPreviousHash ()
+	if len (previousHash) > 0 { blockHtmlData ["PreviousHash"] = previousHash }
+	nextHash := block.GetNextHash ()
+	if len (nextHash) > 0 { blockHtmlData ["NextHash"] = nextHash }
 
 	// create the html page
-	explorerPageHtmlData := getExplorerPageHtmlData (blockData ["Hash"].(string), blockHtmlData)
+	explorerPageHtmlData := getExplorerPageHtmlData (blockHash, blockHtmlData)
 	layoutHtmlData := getLayoutHtmlData (customJavascript, explorerPageHtmlData)
 
 	// parse the files
@@ -498,9 +478,32 @@ func getBlockHtml (blockData map [string] interface {}, customJavascript string)
 	return buff.String ()
 }
 
-func getBlockTxHtml (txData map [string] interface {}) string {
+type BlockTxHtmlData struct {
+	Id string
+	Bip141 bool
+	InputCount uint16
+	OutputCount uint16
+	BlockIndex uint16
+	BaseUrl string
+}
 
-fmt.Println (txData)
+type BlockTxResponse struct {
+	Bip141 bool `json:"bip141"`
+	InputCount uint16 `json:"input_count"`
+	OutputCount uint16 `json:"output_count"`
+	TxHtml string `json:"tx_html"`
+}
+
+/*
+func getBlockTxData (txData map [string] interface {}, blockIndex uint16) BlockTxResponse {
+
+	blockTxData := BlockTxHtmlData {
+									Id: txData ["Id"].(string),
+									Bip141: txData ["SupportsBip141"].(bool),
+									InputCount: uint16 (len (txData ["Inputs"].([] map [string] interface {}))),
+									OutputCount: uint16 (len (txData ["Outputs"].([] btc.Output))),
+									BlockIndex: blockIndex,
+									BaseUrl: app.Settings.GetFullUrl () + "/web" }
 
 	// parse the file
 	htmlFiles := [] string {
@@ -509,29 +512,35 @@ fmt.Println (txData)
 
 	// execute the template
 	var buff bytes.Buffer
-	if err := templ.ExecuteTemplate (&buff, "BlockTx", txData); err != nil { panic (err) }
+	if err := templ.ExecuteTemplate (&buff, "BlockTx", blockTxData); err != nil { panic (err) }
 
-	// return the html
-	return buff.String ()
+	blockTxResponse := BlockTxResponse {
+										Bip141: txData ["SupportsBip141"].(bool),
+										InputCount: uint16 (len (txData ["Inputs"].([] map [string] interface {}))),
+										OutputCount: uint16 (len (txData ["Outputs"].([] btc.Output))),
+										TxHtml: buff.String () }
+
+	return blockTxResponse
 }
+*/
 
-func getTxHtml (txData map [string] interface {}, customJavascript string) string {
+func getTxHtml (tx btc.Tx, customJavascript string) string {
 
 	txPageHtmlData := make (map [string] interface {})
 
 	// transaction data
 	txPageHtmlData ["BaseUrl"] = app.Settings.GetFullUrl () + "/web"
-	txPageHtmlData ["BlockHeight"] = txData ["BlockHeight"].(uint32)
-	txPageHtmlData ["BlockTime"] = time.Unix (txData ["BlockTime"].(int64), 0).UTC ()
+	txPageHtmlData ["BlockHeight"] = tx.GetBlockHeight ()
+	txPageHtmlData ["BlockTime"] = time.Unix (tx.GetBlockTime (), 0).UTC ()
 
-	txPageHtmlData ["BlockHash"] = txData ["BlockHash"].(string)
-	txPageHtmlData ["IsCoinbase"] = txData ["IsCoinbase"].(bool)
-	txPageHtmlData ["SupportsBip141"] = txData ["SupportsBip141"].(bool)
-	txPageHtmlData ["LockTime"] = txData ["LockTime"].(uint32)
+	txPageHtmlData ["BlockHash"] = tx.GetBlockHash ()
+	txPageHtmlData ["IsCoinbase"] = tx.IsCoinbase ()
+	txPageHtmlData ["SupportsBip141"] = tx.SupportsBip141 ()
+	txPageHtmlData ["LockTime"] = tx.GetLockTime ()
 
 	// outputs
 	totalOut := uint64 (0)
-	outputs := txData ["Outputs"].([] rest.OutputData)
+	outputs := tx.GetOutputs ()
 	outputCount := len (outputs)
 
 	outputCountLabel := fmt.Sprintf ("%d Output", outputCount)
@@ -540,19 +549,19 @@ func getTxHtml (txData map [string] interface {}, customJavascript string) strin
 
 	outputHtmlData := make ([] OutputHtmlData, outputCount)
 	for o, output := range outputs {
-		totalOut += output.Value
+		totalOut += output.GetValue ()
 		scriptHtmlId := fmt.Sprintf ("output-script-%d", o)
-		outputHtmlData [o] = getOutputHtmlData (outputs [o], scriptHtmlId, "", uint32 (o))
+		outputHtmlData [o] = getOutputHtmlData (outputs [o], scriptHtmlId, "", uint16 (o))
 	}
 	txPageHtmlData ["OutputData"] = outputHtmlData
 
 	// totals for the transaction
 	txPageHtmlData ["ValueOut"] = totalOut
-	txPageHtmlData ["ValueIn"] = 0; if txData ["IsCoinbase"].(bool) { txPageHtmlData ["ValueIn"] = totalOut }
+	txPageHtmlData ["ValueIn"] = 0; if tx.IsCoinbase () { txPageHtmlData ["ValueIn"] = totalOut }
 	txPageHtmlData ["Fee"] = 0
 
 	// inputs
-	inputs := txData ["Inputs"].([] map [string] interface {})
+	inputs := tx.GetInputs ()
 	inputCount := len (inputs)
 
 	inputCountLabel := fmt.Sprintf ("%d Input", inputCount)
@@ -560,14 +569,14 @@ func getTxHtml (txData map [string] interface {}, customJavascript string) strin
 	txPageHtmlData ["InputCountLabel"] = inputCountLabel
 
 	inputHtmlData := make ([] InputHtmlData, inputCount)
-	for i := uint32 (0); i < uint32 (inputCount); i++ {
-		valueIn := uint64 (0); if txData ["IsCoinbase"].(bool) && i == 0 { valueIn = totalOut }
-		inputHtmlData [i] = getInputHtmlData (inputs [i], valueIn, txData ["SupportsBip141"].(bool))
+	for i := uint16 (0); i < uint16 (inputCount); i++ {
+		valueIn := uint64 (0); if tx.IsCoinbase () && i == 0 { valueIn = totalOut }
+		inputHtmlData [i] = getInputHtmlData (inputs [i], i, valueIn, tx.SupportsBip141 ())
 	}
 	txPageHtmlData ["InputData"] = inputHtmlData
 
 	// add the tx html data to the page and layout html data
-	explorerPageHtmlData := getExplorerPageHtmlData (txData ["Id"].(string), txPageHtmlData)
+	explorerPageHtmlData := getExplorerPageHtmlData (tx.GetTxId (), txPageHtmlData)
 	layoutHtmlData := getLayoutHtmlData (customJavascript, explorerPageHtmlData)
 
 	// parse the files
@@ -607,44 +616,44 @@ func getAboutPageHtml (customJavascript string) string {
 	return buff.String ()
 }
 
-func getInputHtmlData (input map [string] interface {}, satoshis uint64, bip141 bool) InputHtmlData {
+func getInputHtmlData (input btc.Input, txIndex uint16, satoshis uint64, bip141 bool) InputHtmlData {
 
-	inputIndex := input ["InputIndex"].(uint32)
-	spendType := input ["SpendType"].(string)
+	displayTypeClassPrefix := fmt.Sprintf ("input-%d", txIndex)
+	htmlData := InputHtmlData { InputIndex: txIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, SpendType: input.GetSpendType (), Sequence: input.GetSequence (), Bip141: bip141 }
 
-	displayTypeClassPrefix := fmt.Sprintf ("input-%d", inputIndex)
-	htmlData := InputHtmlData { InputIndex: inputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, SpendType: spendType, Sequence: input ["Sequence"].(uint32), Bip141: bip141 }
-	htmlId := fmt.Sprintf ("input-script-%d", inputIndex)
+	htmlId := fmt.Sprintf ("input-script-%d", txIndex)
 
-	if input ["Coinbase"].(bool) {
+	if input.IsCoinbase () {
 		htmlData.IsCoinbase = true
 		htmlData.ValueIn = template.HTML (getValueHtml (satoshis))
 	} else {
 		htmlData.BaseUrl = app.Settings.GetFullUrl () + "/web"
-		htmlData.PreviousOutputTxId = input ["PreviousOutputTxId"].(string)
-		htmlData.PreviousOutputIndex = input ["PreviousOutputIndex"].(uint32)
+		htmlData.PreviousOutputTxId = input.GetPreviousOutputTxId ()
+		htmlData.PreviousOutputIndex = input.GetPreviousOutputIndex ()
 	}
-	htmlData.InputScript = getScriptHtmlData (input ["InputScript"].(map [string] interface {}), htmlId, displayTypeClassPrefix)
+	htmlData.InputScript = getScriptHtmlData (input.GetInputScript (), htmlId, displayTypeClassPrefix)
 
 	// redeem script and segwit
-	redeemScript := map [string] interface {} (nil)
-	if input ["RedeemScript"] != nil { redeemScript = input ["RedeemScript"].(map [string] interface {}) }
-	htmlData.RedeemScript = getScriptHtmlData (redeemScript, fmt.Sprintf ("redeem-script-%d", inputIndex), displayTypeClassPrefix)
+	redeemScript := input.GetRedeemScript ()
+	if !redeemScript.IsNil () {
+		htmlData.RedeemScript = getScriptHtmlData (redeemScript, fmt.Sprintf ("redeem-script-%d", txIndex), displayTypeClassPrefix)
+	}
 
-	segwit := map [string] interface {} (nil)
-	if input ["Segwit"] != nil { segwit = input ["Segwit"].(map [string] interface {}) }
-	htmlData.Segwit = getSegwitHtmlData (segwit, inputIndex, displayTypeClassPrefix)
+	segwit := input.GetSegwit ()
+	if !segwit.IsNil () {
+		htmlData.Segwit = getSegwitHtmlData (segwit, txIndex, displayTypeClassPrefix)
+	}
 
 	return htmlData
 }
 
-func getOutputHtmlData (output rest.OutputData, scriptHtmlId string, displayTypeClassPrefix string, outputIndex uint32) OutputHtmlData {
+func getOutputHtmlData (output btc.Output, scriptHtmlId string, displayTypeClassPrefix string, outputIndex uint16) OutputHtmlData {
 
 	if len (displayTypeClassPrefix) == 0 {
 		displayTypeClassPrefix = fmt.Sprintf ("output-%d", outputIndex)
 	}
-	outputScriptHtml := getScriptHtmlData (output.OutputScript, scriptHtmlId, displayTypeClassPrefix)
-	return OutputHtmlData { OutputIndex: outputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, OutputType: output.OutputType, Value: template.HTML (getValueHtml (output.Value)), Address: output.Address, OutputScript: outputScriptHtml }
+	outputScriptHtml := getScriptHtmlData (output.GetOutputScript (), scriptHtmlId, displayTypeClassPrefix)
+	return OutputHtmlData { OutputIndex: outputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, OutputType: output.GetOutputType (), Value: template.HTML (getValueHtml (output.GetValue ())), Address: output.GetAddress (), OutputScript: outputScriptHtml }
 }
 
 func shortenField (fieldText string, length uint, dotCount uint) string {
@@ -672,9 +681,9 @@ func shortenField (fieldText string, length uint, dotCount uint) string {
 const FIELD_MAX_WIDTH = uint (89)
 const FIELD_DOT_COUNT = uint (5)
 
-func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, displayTypeClassPrefix string) SegwitHtmlData {
+func getSegwitHtmlData (segwit btc.Segwit, inputIndex uint16, displayTypeClassPrefix string) SegwitHtmlData {
 
-	if segwit == nil { return SegwitHtmlData { IsEmpty: true} }
+	if segwit.IsNil () { return SegwitHtmlData { IsEmpty: true} }
 
 	htmlId := fmt.Sprintf ("input-%d-segwit", inputIndex)
 
@@ -682,7 +691,7 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 	var textFieldsHtml [] FieldHtmlData
 	var typeFieldsHtml [] FieldHtmlData
 
-	fields := segwit ["Fields"].([] rest.FieldData)
+	fields := segwit.GetFields ()
 	fieldCount := len (fields)
 	if fieldCount > 0 {
 
@@ -693,14 +702,14 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 		for f, field := range fields {
 
 			// hex strings
-			entireHexField := field.Hex
-			hexFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (shortenField (field.Hex, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)), ShowCopyButton: uint (len (field.Hex)) > FIELD_MAX_WIDTH }
+			entireHexField := field.AsHex ()
+			hexFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (shortenField (entireHexField, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)), ShowCopyButton: uint (len (entireHexField)) > FIELD_MAX_WIDTH }
 			if hexFieldsHtml [f].ShowCopyButton {
 				hexFieldsHtml [f].CopyText = entireHexField
 			}
 
 			// text strings
-			bytes, _ := hex.DecodeString (field.Hex)
+			bytes, _ := hex.DecodeString (entireHexField)
 			entireTextField := string (bytes)
 			shortenedField := shortenField (entireTextField, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)
 			finalText := hexToText (shortenedField)
@@ -711,7 +720,7 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 			}
 
 			// field types
-			typeFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (field.Type), ShowCopyButton: false }
+			typeFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (field.AsType ()), ShowCopyButton: false }
 		}
 	}
 
@@ -720,6 +729,7 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 	fieldSet := FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: FIELD_MAX_WIDTH, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl }
 	htmlData := SegwitHtmlData { FieldSet: fieldSet, IsEmpty: fieldCount == 0 }
 
+/*
 	witnessScript := map [string] interface {} (nil)
 	if segwit ["WitnessScript"] != nil { witnessScript = segwit ["WitnessScript"].(map [string] interface {}) }
 	htmlData.WitnessScript = getScriptHtmlData (witnessScript, htmlId + "-witness-script", displayTypeClassPrefix)
@@ -727,17 +737,18 @@ func getSegwitHtmlData (segwit map [string] interface {}, inputIndex uint32, dis
 	tapScript := map [string] interface {} (nil)
 	if segwit ["TapScript"] != nil { tapScript = segwit ["TapScript"].(map [string] interface {}) }
 	htmlData.TapScript = getScriptHtmlData (tapScript, htmlId + "-tap-script", displayTypeClassPrefix)
+*/
 
 	return htmlData
 }
 
-func getScriptHtmlData (script map [string] interface {}, htmlId string, displayTypeClassPrefix string) ScriptHtmlData {
+func getScriptHtmlData (script btc.Script, htmlId string, displayTypeClassPrefix string) ScriptHtmlData {
 
-	if script == nil { return ScriptHtmlData { IsNil: true } }
+	if script.IsNil () { return ScriptHtmlData { IsNil: true } }
 
-	isOrdinal := script ["Ordinal"] != nil && script ["Ordinal"].(bool)
-	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: FIELD_MAX_WIDTH }, IsNil: false, IsOrdinal: isOrdinal }
+	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: FIELD_MAX_WIDTH }, IsNil: false, IsOrdinal: script.IsOrdinal () }
 
+/*
 	scriptFields := script ["Fields"].([] rest.FieldData)
 
 	if len (scriptFields) == 0 {
@@ -799,6 +810,7 @@ func getScriptHtmlData (script map [string] interface {}, htmlId string, display
 	scriptHtmlData.FieldSet.TextFields = textFieldsHtml
 	scriptHtmlData.FieldSet.TypeFields = typeFieldsHtml
 	scriptHtmlData.FieldSet.CopyImageUrl = copyImageUrl
+*/
 
 	return scriptHtmlData
 }
@@ -813,7 +825,7 @@ func hexToText (originalStr string) string {
 	return result
 }
 
-func getPreviousOutputScriptHtml (script map [string] interface {}, htmlId string, displayTypeClassPrefix string) string {
+func getPreviousOutputScriptHtml (script btc.Script, htmlId string, displayTypeClassPrefix string) string {
 
 	// get the data
 	previousOutputHtmlData := getScriptHtmlData (script, htmlId, displayTypeClassPrefix)
@@ -853,7 +865,7 @@ func extractBodyFromHTML (html string) string {
 	return body [bodyBegin :]
 }
 
-func getBlockCharts (nonCoinbaseInputCount uint32, outputCount uint32, spendTypes map [string] uint32, outputTypes map [string] uint32) map [string] string {
+func getBlockCharts (nonCoinbaseInputCount uint16, outputCount uint16, spendTypes map [string] uint16, outputTypes map [string] uint16) map [string] string {
 
 	const pieRadius = 90
 	const verticalPadding = 10

@@ -3,6 +3,7 @@ package btc
 import (
 	"fmt"
 	"io"
+	"errors"
 	"bytes"
 	"strings"
 	"encoding/hex"
@@ -16,11 +17,12 @@ type BitcoinCore struct {
 	version string
 }
 
-func NewBitcoinCore () BitcoinCore {
+func NewBitcoinCore () (*BitcoinCore, error) {
 	
 	bc := BitcoinCore {}
 	bc.version = bc.getVersionStr ()
-	return bc
+	if len (bc.version) == 0 { return nil, errors.New ("Failed to connect to Bitcoin Node.") }
+	return &bc, nil
 }
 
 func (bc *BitcoinCore) GetNodeType () string {
@@ -44,15 +46,20 @@ func (bc *BitcoinCore) GetPreviousOutput (txId string, outputIndex uint32) Outpu
 	return bc.parseOutput(outputJson) 
 }
 
+/*
 func (bc *BitcoinCore) GetBlock (blockHash string) Block {
 
-	block := bc.getBlock (blockHash, false)
+	block := bc.getBlock (blockHash, true)
 	if block == nil { return Block {} }
 
 	txArray := block ["tx"].([] interface {})
-	txs := make ([] string, len (txArray))
+	txs := make ([] interface {}, len (txArray))
 	for t, tx := range txArray {
-		txs [t] = tx.(string)
+//fmt.Println ("getting block: ", blockHash)
+//fmt.Println (tx)
+_=t
+_=tx
+		txs [t] = tx
 	}
 
 	previousHash := ""
@@ -62,6 +69,7 @@ func (bc *BitcoinCore) GetBlock (blockHash string) Block {
 
 	return NewBlock (block ["hash"].(string), previousHash, nextHash, uint32 (block ["height"].(float64)), int64 (block ["time"].(float64)), txs)
 }
+*/
 
 func (bc *BitcoinCore) GetBlockHash (blockHeight uint32) string {
 	return bc.getBlockHash (blockHeight)
@@ -117,7 +125,7 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}, includeBlockHei
 	tx := Tx { id: hashBytes, blockTime: blockTime, blockHash: blockHash, version: version, coinbase: coinbase, bip141: bip141, inputs: inputs, outputs: outputs, lockTime: lockTime }
 
 	if includeBlockHeight {
-		block := bc.getBlock (rawTx ["blockhash"].(string), false)
+		block, _ := bc.getBlock (rawTx ["blockhash"].(string), false)
 		tx.blockHeight = uint32 (block ["height"].(float64))
 	}
 
@@ -158,7 +166,7 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 b
 	}
 
 	// previous output
-	previousOutputIndex := uint32 (inputJson ["vout"].(float64))
+	previousOutputIndex := uint16 (inputJson ["vout"].(float64))
 	previousOutputHash, err := hex.DecodeString (inputJson ["txid"].(string))
 	if err != nil { fmt.Println (err.Error ()); return Input {} }
 
@@ -218,7 +226,7 @@ func (bc *BitcoinCore) getVersionStr () string {
 
 // API functions
 
-func (bc *BitcoinCore) getBlock (blockHash string, withTxData bool) map [string] interface {} {
+func (bc *BitcoinCore) getBlock (blockHash string, withTxData bool) (map [string] interface {}, error) {
 
 	verbosityLevel := 1
 	if withTxData { verbosityLevel = 2 }
@@ -226,15 +234,12 @@ func (bc *BitcoinCore) getBlock (blockHash string, withTxData bool) map [string]
 
 	var rawResponse map [string] interface {}
 	err := json.Unmarshal (jsonResult, &rawResponse)
-	if err != nil { fmt.Println (err.Error ()) }
+	if err != nil { return nil, errors.New ("JSON ERROR: " + err.Error ()) }
 
-	// check for error from node in json
-	if rawResponse ["error"] != nil {
-		fmt.Println (rawResponse ["error"].(map [string] interface {}) ["message"])
-		return nil
-	}
+	if rawResponse ["error"] != nil { return nil, errors.New ("BITCOIN CORE ERROR: " + rawResponse ["error"].(map [string] interface {}) ["message"].(string)) }
+	if rawResponse ["result"] == nil { return nil, errors.New ("BITCOIN CORE ERROR: No response from node.") }
 
-	return rawResponse ["result"].(map [string] interface {})
+	return rawResponse ["result"].(map [string] interface {}), nil
 }
 
 func (bc *BitcoinCore) getBestBlockHash () string {
