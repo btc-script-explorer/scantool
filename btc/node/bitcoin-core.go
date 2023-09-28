@@ -1,4 +1,4 @@
-package btc
+package node
 
 import (
 	"fmt"
@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/btc-script-explorer/scantool/app"
+"github.com/btc-script-explorer/scantool/btc"
 )
 
 type BitcoinCore struct {
@@ -33,14 +34,16 @@ func (bc *BitcoinCore) GetVersionString () string {
 	return bc.GetNodeType () + " " + bc.version
 }
 
+/*
 func (bc *BitcoinCore) GetTx (txId string) Tx {
 	rawTx := bc.getRawTransaction (txId)
 	if rawTx == nil { return Tx {} }
 	return bc.parseTx (rawTx, true)
 }
+*/
 
-func (bc *BitcoinCore) GetPreviousOutput (txId string, outputIndex uint32) Output {
-	rawTx := bc.getRawTransaction (txId)
+func (bc *BitcoinCore) GetPreviousOutput (txId string, outputIndex uint32) btc.Output {
+	rawTx, _ := bc.getTx (txId)
 	vout := rawTx ["vout"].([] interface {})
 	outputJson := vout [outputIndex].(map [string] interface {})
 	return bc.parseOutput(outputJson) 
@@ -75,14 +78,11 @@ func (bc *BitcoinCore) GetBlockHash (blockHeight uint32) string {
 	return bc.getBlockHash (blockHeight)
 }
 
-func (bc *BitcoinCore) GetCurrentBlockHash () string {
-	return bc.getBestBlockHash ()
-}
+func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}, includeBlockHeight bool) btc.Tx {
 
-func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}, includeBlockHeight bool) Tx {
-
+/*
 	if rawTx ["txid"] == nil {
-		return Tx {}
+		return btc.Tx {}
 	}
 
 	hashBytes := rawTx ["txid"].(string)
@@ -105,7 +105,7 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}, includeBlockHei
 	// inputs
 	vin := rawTx ["vin"].([] interface {})
 	inputCount := len (vin)
-	inputs := make ([] Input, inputCount)
+	inputs := make ([] btc.Input, inputCount)
 	for i := 0; i < int (inputCount); i++ {
 		inputJson := vin [i].(map [string] interface {})
 		inputs [i] = bc.parseInput (inputJson, bip141)
@@ -116,13 +116,13 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}, includeBlockHei
 	// outputs
 	vout := rawTx ["vout"].([] interface {})
 	outputCount := len (vout)
-	outputs := make ([] Output, outputCount)
+	outputs := make ([] btc.Output, outputCount)
 	for o := 0; o < int (outputCount); o++ {
 		outputJson := vout [o].(map [string] interface {})
 		outputs [o] = bc.parseOutput (outputJson)
 	}
 
-	tx := Tx { id: hashBytes, blockTime: blockTime, blockHash: blockHash, version: version, coinbase: coinbase, bip141: bip141, inputs: inputs, outputs: outputs, lockTime: lockTime }
+	tx := btc.Tx { id: hashBytes, blockTime: blockTime, blockHash: blockHash, version: version, coinbase: coinbase, bip141: bip141, inputs: inputs, outputs: outputs, lockTime: lockTime }
 
 	if includeBlockHeight {
 		block, _ := bc.getBlock (rawTx ["blockhash"].(string), false)
@@ -130,9 +130,11 @@ func (bc *BitcoinCore) parseTx (rawTx map [string] interface {}, includeBlockHei
 	}
 
 	return tx
+*/
+return btc.Tx {}
 }
 
-func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 bool) Input {
+func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 bool) btc.Input {
 
 	coinbase := inputJson ["coinbase"] != nil
 	sequence := uint32 (inputJson ["sequence"].(float64))
@@ -146,12 +148,12 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 b
 		scriptSig := inputJson ["scriptSig"].(map [string] interface {})
 		inputScriptBytes, err = hex.DecodeString (scriptSig ["hex"].(string))
 	}
-	if err != nil { fmt.Println (err.Error ()); return Input {} }
+	if err != nil { fmt.Println (err.Error ()); return btc.Input {} }
 
-	inputScript := NewScript (inputScriptBytes)
+	inputScript := btc.NewScript (inputScriptBytes)
 
 	// segregated witness
-	segwit := Segwit {}
+	segwit := btc.Segwit {}
 	if bip141 {
 		if inputJson ["txinwitness"] != nil {
 			segwit = bc.parseSegwit (inputJson ["txinwitness"].([] interface {}))
@@ -162,27 +164,27 @@ func (bc *BitcoinCore) parseInput (inputJson map [string] interface {}, bip141 b
 
 	// if this is a coinbase input, we have everything we need
 	if coinbase {
-		return NewInput (coinbase, "", 0, inputScript, segwit, sequence)
+		return btc.NewInput (coinbase, "", 0, inputScript, segwit, sequence)
 	}
 
 	// previous output
 	previousOutputIndex := uint16 (inputJson ["vout"].(float64))
 	previousOutputHash, err := hex.DecodeString (inputJson ["txid"].(string))
-	if err != nil { fmt.Println (err.Error ()); return Input {} }
+	if err != nil { fmt.Println (err.Error ()); return btc.Input {} }
 
-	return NewInput (coinbase, hex.EncodeToString (previousOutputHash), previousOutputIndex, inputScript, segwit, sequence)
+	return btc.NewInput (coinbase, hex.EncodeToString (previousOutputHash), previousOutputIndex, inputScript, segwit, sequence)
 }
 
-func (bc *BitcoinCore) parseOutput (outputJson map [string] interface {}) Output {
+func (bc *BitcoinCore) parseOutput (outputJson map [string] interface {}) btc.Output {
 
 	value := uint64 (outputJson ["value"].(float64) * 100000000)
 
 	// output script
 	outputScript := outputJson ["scriptPubKey"].(map [string] interface {})
 	outputScriptBytes, err := hex.DecodeString (outputScript ["hex"].(string))
-	if err != nil { fmt.Println (err.Error ()); return Output {} }
+	if err != nil { fmt.Println (err.Error ()); return btc.Output {} }
 
-	script := NewScript (outputScriptBytes)
+	script := btc.NewScript (outputScriptBytes)
 
 	// address
 	address := ""
@@ -190,10 +192,10 @@ func (bc *BitcoinCore) parseOutput (outputJson map [string] interface {}) Output
 		address = outputScript ["address"].(string)
 	}
 
-	return NewOutput (value, script, address)
+	return btc.NewOutput (value, script, address)
 }
 
-func (bc *BitcoinCore) parseSegwit (segwitFieldsHex [] interface {}) Segwit {
+func (bc *BitcoinCore) parseSegwit (segwitFieldsHex [] interface {}) btc.Segwit {
 
 	fieldCount := len (segwitFieldsHex)
 
@@ -202,7 +204,7 @@ func (bc *BitcoinCore) parseSegwit (segwitFieldsHex [] interface {}) Segwit {
 		fields [s], _ = hex.DecodeString (segwitFieldsHex [s].(string))
 	}
 
-	return NewSegwit (fields)
+	return btc.NewSegwit (fields)
 }
 
 func (bc *BitcoinCore) getVersionStr () string {
@@ -275,7 +277,7 @@ func (bc *BitcoinCore) getBlockHash (blockHeight uint32) string {
 	return rawResponse ["result"].(string)
 }
 
-func (bc *BitcoinCore) getRawTransaction (txId string) map [string] interface {} {
+func (bc *BitcoinCore) getTx (txId string) (map [string] interface {}, error) {
 
 	jsonResult := [] byte (nil)
 
@@ -319,19 +321,22 @@ func (bc *BitcoinCore) getRawTransaction (txId string) map [string] interface {}
 		jsonResult = [] byte (rawJson)
 	}
 
-	if len (jsonResult) == 0 { return nil }
+	if len (jsonResult) == 0 {
+		return nil, errors.New ("No result from node.")
+	}
 
 	var rawResponse map [string] interface {}
-	err := json.Unmarshal (jsonResult, &rawResponse)
-	if err != nil { fmt.Println (err.Error ()) }
+	jsonError := json.Unmarshal (jsonResult, &rawResponse)
+	if jsonError != nil {
+		return nil, jsonError
+	}
 
 	// check for error from node in json
 	if rawResponse ["error"] != nil {
-		fmt.Println (rawResponse ["error"].(map [string] interface {}) ["message"])
-		return nil
+		return nil, errors.New ("NODE ERROR: " + rawResponse ["error"].(map [string] interface {}) ["message"].(string))
 	}
 
-	return rawResponse ["result"].(map [string] interface {})
+	return rawResponse ["result"].(map [string] interface {}), nil
 }
 
 func (bc *BitcoinCore) getNetworkInfo () map [string] interface {} {

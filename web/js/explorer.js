@@ -1,17 +1,18 @@
 async function get_block_txs ()
 {
-console.log (block_tx_count);
+console.log (block_tx_ids);
 
 	var txs_loaded = 0;
 	var bip141_count = 0;
 	var input_count = 1; // coinbase
 	var output_count = 0;
-	for (var t = 0; t < block_tx_count; t++)
+	for (var t = 0; t < block_tx_ids.length; t++)
 	{
-console.log (block_txs [t]);
 		const headers = new Headers ();
-		var request_data = { method: 'GET', headers: headers };
-		const response = await fetch (base_url_web + '/tx/' + block_height + ':' + t);
+		headers.append ("Content-Type", "application/json");
+		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ id: block_tx_ids [t] }) };
+//console.log (base_url_rest + '/tx/' + block_tx_ids [t])
+		const response = await fetch (base_url_rest + '/tx', request_data);
 //console.log (response);
 		const data = await response.json ();
 console.log (data);
@@ -309,7 +310,7 @@ async function check_for_new_block ()
 $ (document).ready (
 function ()
 {
-	if (typeof block_tx_count !== 'undefined')
+	if (typeof block_tx_ids !== 'undefined')
 		get_block_txs ();
 	else if (typeof pending_tx_previous_outputs !== 'undefined' && Array.isArray (pending_tx_previous_outputs))
 		handle_pending_tx_previous_outputs ();

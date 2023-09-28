@@ -13,7 +13,7 @@ import (
 	"log"
 
 	"github.com/btc-script-explorer/scantool/app"
-	"github.com/btc-script-explorer/scantool/btc"
+	"github.com/btc-script-explorer/scantool/btc/node"
 	"github.com/btc-script-explorer/scantool/rest"
 	"github.com/btc-script-explorer/scantool/web"
 )
@@ -34,7 +34,7 @@ func homeHandler (response http.ResponseWriter, request *http.Request) {
 
 func printListeningMessage () {
 
-	nodeProxy, err := btc.GetNodeProxy ()
+	nodeProxy, err := node.GetNodeProxy ()
 	if err != nil {
 		fmt.Println (err.Error ())
 		return
@@ -97,7 +97,7 @@ func main () {
 		return
 	}
 
-	proxy, err := btc.StartNodeProxy ()
+	proxy, err := node.StartNodeProxy ()
 _=proxy
 	if err != nil {
 		fmt.Println (err.Error ())

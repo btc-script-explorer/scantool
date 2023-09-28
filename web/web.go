@@ -17,6 +17,7 @@ import (
 
 	"github.com/btc-script-explorer/scantool/app"
 	"github.com/btc-script-explorer/scantool/btc"
+	"github.com/btc-script-explorer/scantool/btc/node"
 	"github.com/btc-script-explorer/scantool/rest"
 )
 
@@ -131,7 +132,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	// web site currently using rest version 2
 	restApi := rest.RestApiV2 {}
 
-	nodeProxy, err := btc.GetNodeProxy ()
+	nodeProxy, err := node.GetNodeProxy ()
 	if err != nil {
 		fmt.Println (err.Error ())
 		return
@@ -164,33 +165,25 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
-				blockRequest := btc.BlockRequest {}
+				blockRequest := node.BlockRequest {}
 
 				// get the block request data
-				blockParam := ""
-				if paramCount >= 2 {
-					blockParam = params [1]
-					paramLen := len (blockParam)
-
-					if paramLen > 0 {
-						height, err := strconv.Atoi (blockParam)
-						if err == nil {
-							blockRequest.Height = uint32 (height)
-						} else if paramLen == 64 {
-							blockRequest.Hash = blockParam
-						}
-					}
-
+				if paramCount >= 2 && len (params [1]) > 0 {
+					blockRequest.BlockKey = params [1]
 				}
 
 //				options := make (map [string] interface {})
 //				blockRequestData ["options"] = options
 
-				blockResponseChannel := nodeProxy.GetBlock (blockRequest)
-				block := <- blockResponseChannel
+				block := nodeProxy.GetBlock (blockRequest)
 
-				customJavascript += fmt.Sprintf ("var block_height = %d;\n", block.GetHeight ())
-				customJavascript += fmt.Sprintf ("var block_tx_count = %d;\n", block.GetTxCount ())
+				txIds := block.GetTxIds ()
+
+				var txIdsBytes [] byte
+				txIdsBytes, err = json.Marshal (txIds)
+				if err != nil { fmt.Println (err.Error ()) }
+
+				customJavascript += fmt.Sprintf ("var block_tx_ids = JSON.parse ('%s');\n", string (txIdsBytes))
 				html = getBlockHtml (block, customJavascript)
 
 
@@ -200,31 +193,39 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
-				if paramCount < 2 { fmt.Println ("2 parameters required for block-tx-html: block index, tx id. Request ignored."); return }
-				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.")); return }
-
-//				blockIndex, err := strconv.Atoi (params [1])
-//				if err != nil { fmt.Println (err) }
-
-				txRequestData := make (map [string] interface {})
-				txRequestData ["id"] = params [2]
-
-				txData := restApi.GetTxData (txRequestData)
-				if txData == nil {
-					// TODO: need better error handling
-					html = "Empty response from server."
-					break
+				// determine the tx key and block index
+				txKey := ""
+				blockIndex := -1
+				if paramCount < 2 {
+					fmt.Println ("tx key required for block-tx. Request ignored.")
+					fmt.Fprint (response, "")
+					return
+				} else if paramCount == 2 {
+					txKey = params [1]
+					keyParts := strings.Split (txKey, ":")
+					if len (keyParts) == 2 {
+						blockIndex, err = strconv.Atoi (keyParts [1])
+						if err != nil { fmt.Println (err.Error ()) }
+					} else {
+						fmt.Println ("malformed tx key in block-tx request")
+					}
+				} else if paramCount > 2 {
+					txKey = params [1] + ":" + params [2]
+					blockIndex, err = strconv.Atoi (params [2])
+					if err != nil { fmt.Println (err.Error ()) }
 				}
 
-				blockTxResponse := getBlockTxData (txData, uint16 (blockIndex))
+				txRequest := node.TxRequest { TxId: txId }
+				tx := nodeProxy.GetTx (txRequest)
+
+				blockTxResponse := getBlockTxResponse (tx, uint16 (blockIndex))
 
 				jsonBytes, err := json.Marshal (blockTxResponse)
-				if err != nil { fmt.Println (err) }
+				if err != nil { fmt.Println (err.Error ()) }
 
 				fmt.Fprint (response, string (jsonBytes))
 
 				return
-*/
 
 			// returns html
 			case "tx":
@@ -234,16 +235,9 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				if paramCount < 2 { fmt.Println ("No id provided for tx. Request ignored."); return }
 //				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.", params [1])); return }
 
-				txRequest := btc.TxRequest {}
+				txRequest := node.TxRequest { TxId: params [1] }
 
-				if len (params [1]) != 64 {
-					txRequest.Id = params [1]
-				} else {
-					txRequest.Key = params [1]
-				}
-
-				responseChannel := nodeProxy.GetTx (txRequest)
-				tx := <- responseChannel
+				tx := nodeProxy.GetTx (txRequest)
 				if tx.IsNil () {
 					// TODO: need better error handling
 					html = "Empty response from server."
@@ -252,6 +246,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				customJavascript += fmt.Sprintf ("var tx_input_count = JSON.parse ('%d');", tx.GetInputCount ())
 				html = getTxHtml (tx, customJavascript)
+*/
 
 			case "address":
 				// would probably require an electrum server for implementation
@@ -409,7 +404,7 @@ func getLayoutHtmlData (customJavascript string, explorerPageData map [string] i
 	layoutData ["CustomJavascript"] = template.HTML (`<script type="text/javascript">` + customJavascript + "</script>")
 	layoutData ["ExplorerPage"] = explorerPageData
 
-	nodeProxy, err := btc.GetNodeProxy ()
+	nodeProxy, err := node.GetNodeProxy ()
 	if err != nil { fmt.Println (err.Error ()) }
 
 	layoutData ["NodeVersion"] = template.HTML (strings.Replace (nodeProxy.GetNodeVersion (), " ", "&nbsp;", -1))
@@ -494,35 +489,29 @@ type BlockTxResponse struct {
 	TxHtml string `json:"tx_html"`
 }
 
-/*
-func getBlockTxData (txData map [string] interface {}, blockIndex uint16) BlockTxResponse {
+func getBlockTxResponse (tx btc.Tx, blockIndex uint16) BlockTxResponse {
 
-	blockTxData := BlockTxHtmlData {
-									Id: txData ["Id"].(string),
-									Bip141: txData ["SupportsBip141"].(bool),
-									InputCount: uint16 (len (txData ["Inputs"].([] map [string] interface {}))),
-									OutputCount: uint16 (len (txData ["Outputs"].([] btc.Output))),
-									BlockIndex: blockIndex,
-									BaseUrl: app.Settings.GetFullUrl () + "/web" }
+	blockTxData := BlockTxHtmlData {	Id: tx.GetTxId (),
+										Bip141: tx.SupportsBip141 (),
+										InputCount: tx.GetInputCount (),
+										OutputCount: tx.GetOutputCount (),
+										BlockIndex: blockIndex,
+										BaseUrl: app.Settings.GetFullUrl () + "/web" }
 
 	// parse the file
-	htmlFiles := [] string {
-		GetPath () + "html/block-tx.html" }
+	htmlFiles := [] string { GetPath () + "html/block-tx.html" }
 	templ := template.Must (template.ParseFiles (htmlFiles...))
 
 	// execute the template
 	var buff bytes.Buffer
 	if err := templ.ExecuteTemplate (&buff, "BlockTx", blockTxData); err != nil { panic (err) }
 
-	blockTxResponse := BlockTxResponse {
-										Bip141: txData ["SupportsBip141"].(bool),
-										InputCount: uint16 (len (txData ["Inputs"].([] map [string] interface {}))),
-										OutputCount: uint16 (len (txData ["Outputs"].([] btc.Output))),
-										TxHtml: buff.String () }
-
+	blockTxResponse := BlockTxResponse {	Bip141: tx.SupportsBip141 (),
+											InputCount: tx.GetInputCount (),
+											OutputCount: tx.GetOutputCount (),
+											TxHtml: buff.String () }
 	return blockTxResponse
 }
-*/
 
 func getTxHtml (tx btc.Tx, customJavascript string) string {
 

@@ -2,10 +2,12 @@ package rest
 
 import (
 	"fmt"
+	"strconv"
 	"io"
 	"encoding/json"
 
 	"github.com/btc-script-explorer/scantool/btc"
+	"github.com/btc-script-explorer/scantool/btc/node"
 )
 
 type RestApiV2 struct {
@@ -23,7 +25,7 @@ func (api *RestApiV2) GetVersion () uint16 {
 
 func (api *RestApiV2) HandleRequest (httpMethod string, functionName string, getParams [] string, requestBody io.ReadCloser) string {
 
-	nodeProxy, err := btc.GetNodeProxy ()
+	nodeProxy, err := node.GetNodeProxy ()
 	if err != nil {
 		fmt.Println (err.Error ())
 		return ""
@@ -67,32 +69,39 @@ if requestParams ["hash"] != nil {
 
 			// get the block request options
 
-			blockRequestOptions := btc.BlockRequestOptions {}
+			blockRequestOptions := node.BlockRequestOptions {}
 			if requestParams ["options"] != nil {
 				requestOptions := requestParams ["options"].(map [string] interface {})
-				blockRequestOptions = btc.BlockRequestOptions { HumanReadable: requestOptions ["HumanReadable"] != nil && requestOptions ["HumanReadable"].(bool) }
+				blockRequestOptions = node.BlockRequestOptions { HumanReadable: requestOptions ["HumanReadable"] != nil && requestOptions ["HumanReadable"].(bool) }
 			}
 
 			// create the block request
 
-			blockRequest := btc.BlockRequest { Options: blockRequestOptions }
+			// try to determine whether the hash or height parameters are the right type
+			blockRequest := node.BlockRequest { Options: blockRequestOptions }
 			if requestParams ["hash"] != nil {
-				blockRequest.Hash = requestParams ["hash"].(string)
-			}
-			if requestParams ["height"] != nil {
-				blockHeight, isNumeric := api.convertToBlockHeight (requestParams ["height"])
-				if !isNumeric {
-					blockRequest.Height = blockHeight
+				switch requestParams ["hash"].(type) {
+					case float64:
+						fmt.Println ("malformed request: parameter hash is formatted as a number, ignoring request")
+						return ""
+					case string:
+						blockRequest.BlockKey = requestParams ["hash"].(string)
+				}
+			} else if requestParams ["height"] != nil {
+				switch requestParams ["height"].(type) {
+					case float64:
+						blockRequest.BlockKey = strconv.Itoa (int (requestParams ["height"].(float64)))
+					case string:
+						fmt.Println ("malformed request: parameter height is formatted as a string, ignoring request")
+						return ""
 				}
 			}
 
-			// send the block request to the node proxy and wait for a response
-
-			blockResponseChannel := nodeProxy.GetBlock (blockRequest)
-			block := <- blockResponseChannel
+			block := nodeProxy.GetBlock (blockRequest)
 
 			// create the JSON response
 
+/*
 			blockJson := struct {
 				Hash string
 				PreviousHash string
@@ -107,12 +116,15 @@ if requestParams ["hash"] != nil {
 				Height: block.GetHeight (),
 				Timestamp: block.GetTimestamp (),
 				TxCount: block.GetTxCount () }
+*/
 
 			var blockBytes [] byte
 			if blockRequestOptions.HumanReadable {
-				blockBytes, err = json.MarshalIndent (blockJson, "", "\t")
+//				blockBytes, err = json.MarshalIndent (blockJson, "", "\t")
+blockBytes, err = json.MarshalIndent (block, "", "\t")
 			} else {
-				blockBytes, err = json.Marshal (blockJson)
+//				blockBytes, err = json.Marshal (blockJson)
+blockBytes, err = json.Marshal (block)
 			}
 			if err != nil { fmt.Println (err.Error ()) }
 
@@ -121,25 +133,24 @@ if requestParams ["hash"] != nil {
 
 		case "tx":
 
-			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request. %s", functionName, httpMethod); break }
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
 
 			// unpack the json
 			var requestParams map [string] interface {}
 			err := json.NewDecoder (requestBody).Decode (&requestParams)
 			if err != nil { errorMessage = err.Error (); break }
 
-			txRequest := btc.TxRequest { Id: requestParams ["id"].(string) }
-			txResponseChannel := nodeProxy.GetTx (txRequest)
-txData := <- txResponseChannel
+			txRequest := node.TxRequest { TxId: requestParams ["id"].(string) }
+			tx := nodeProxy.GetTx (txRequest)
 
 			txRequestOptions := map [string] interface {} {}
 			if requestParams ["options"] != nil { txRequestOptions = requestParams ["options"].(map [string] interface {}) }
 
 			var txBytes [] byte
 			if txRequestOptions ["HumanReadable"] != nil && txRequestOptions ["HumanReadable"].(bool) {
-				txBytes, err = json.MarshalIndent (txData, "", "\t")
+				txBytes, err = json.MarshalIndent (tx, "", "\t")
 			} else {
-				txBytes, err = json.Marshal (txData)
+				txBytes, err = json.Marshal (tx)
 			}
 			if err != nil { fmt.Println (err.Error ()) }
 
@@ -150,8 +161,7 @@ txData := <- txResponseChannel
 
 			if httpMethod != "GET" { errorMessage = fmt.Sprintf ("%s must be sent as a GET request.", functionName); break }
 
-			responseChannel := nodeProxy.GetCurrentBlockHeight ()
-height := <- responseChannel
+			height := nodeProxy.GetCurrentBlockHeight ()
 
 	blockJsonData := struct { H int32 `json:"current_block_height"` } { H: height }
 	jsonBytes, err := json.Marshal (blockJsonData)
@@ -268,6 +278,7 @@ inputTxId := previousOutputJsonIn.TxId
 	return responseJson
 }
 
+/*
 func (api *RestApiV2) convertToBlockHeight (param interface {}) (uint32, bool) {
 	// find an integer type for the height field
 	// this can vary depending on the software used to send the request
@@ -283,6 +294,7 @@ func (api *RestApiV2) convertToBlockHeight (param interface {}) (uint32, bool) {
 	// none of the types worked, it isn't a valid height or it is a different numeric type
 	return 0xffffffff, false
 }
+*/
 
 /*
 // handles multiple outputs in multiple transactions

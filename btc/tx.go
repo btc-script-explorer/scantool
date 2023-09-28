@@ -13,9 +13,12 @@ type Tx struct {
 	coinbase bool
 	bip141 bool
 
-	blockHeight uint32
-	blockTime int64
 	blockHash string
+	blockTime int64
+}
+
+func NewTx (id string, version uint32, inputs [] Input, outputs [] Output, lockTime uint32, coinbase bool, bip141 bool, blockHash string, blockTime int64) Tx {
+	return Tx { id: id, version: version, inputs: inputs, outputs: outputs, lockTime: lockTime, coinbase: coinbase, bip141: bip141, blockHash: blockHash, blockTime: blockTime }
 }
 
 func (tx *Tx) IsNil () bool {
@@ -32,10 +35,6 @@ func (tx *Tx) GetTxId () string {
 
 func (tx *Tx) GetBlockHash () string {
 	return tx.blockHash
-}
-
-func (tx *Tx) GetBlockHeight () uint32 {
-	return tx.blockHeight
 }
 
 func (tx *Tx) GetBlockTime () int64 {
