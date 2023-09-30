@@ -53,12 +53,20 @@ func (tx *Tx) GetInputCount () uint16 {
 	return uint16 (len (tx.inputs))
 }
 
+func (tx *Tx) GetInput (index uint16) Input {
+	return tx.inputs [index]
+}
+
 func (tx *Tx) GetInputs () [] Input {
 	return tx.inputs
 }
 
 func (tx *Tx) GetOutputCount () uint16 {
 	return uint16 (len (tx.outputs))
+}
+
+func (tx *Tx) GetOutput (index uint16) Output {
+	return tx.outputs [index]
 }
 
 func (tx *Tx) GetOutputs () [] Output {

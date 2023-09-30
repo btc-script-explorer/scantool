@@ -13,11 +13,119 @@ import (
 type RestApiV2 struct {
 }
 
+type binaryFieldJson struct {	Hex string `json:"hex"`
+								Type string `json:"type"` }
+
+type scriptJson struct {	Hex string `json:"hex"`
+							Fields [] binaryFieldJson `json:"fields"`
+							ParseError bool `json:"parse_error"` }
+
+type outputJson struct {	Value uint64 `json:"value"`
+							OutputScript scriptJson `json:"output_script"`
+							OutputType string `json:"output_type"`
+							Address string `json:"address"` }
+
+func scriptToJson (script btc.Script) scriptJson {
+
+	fields := make ([] binaryFieldJson, script.GetFieldCount ())
+	for f, field := range script.GetFields () {
+		fields [f] = binaryFieldJson { Hex: field.AsHex (), Type: field.AsType () }
+	}
+
+	return scriptJson {	Hex: script.AsHex (),
+						Fields: fields,
+						ParseError: script.HasParseError () }
+}
+
+func segwitToJson (segwit btc.Segwit) map [string] interface {} {
+
+	json := make (map [string] interface {})
+
+	fields := make ([] binaryFieldJson, segwit.GetFieldCount ())
+	for f, field := range segwit.GetFields () {
+		fields [f] = binaryFieldJson { Hex: field.AsHex (), Type: field.AsType () }
+	}
+
+	json ["fields"] = fields
+
+	witnessScript := segwit.GetWitnessScript ()
+	if !witnessScript.IsNil () { json ["WitnessScript"] = scriptToJson (witnessScript) }
+
+	tapScript, _ := segwit.GetTapScript ()
+	if !tapScript.IsNil () { json ["TapScript"] = scriptToJson (tapScript) }
+
+	return json
+}
+
+func inputToJson (input btc.Input) map [string] interface {} {
+
+	json := make (map [string] interface {})
+
+	if input.IsCoinbase () { json ["coinbase"] = true }
+	json ["previous_output_tx_id"] = input.GetPreviousOutputTxId ()
+	json ["previous_output_index"] = input.GetPreviousOutputIndex ()
+	inputScript := input.GetInputScript ()
+	if !inputScript.IsEmpty () { json ["input_script"] = scriptToJson (inputScript) }
+	json ["sequence"] = input.GetSequence ()
+
+	previousOutput := input.GetPreviousOutput ()
+	previousOutputIncluded := len (previousOutput.GetOutputType ()) > 0
+	if previousOutputIncluded {
+		json ["previous_output"] = outputJson {	Value: previousOutput.GetValue (),
+												OutputScript: scriptToJson (previousOutput.GetOutputScript ()),
+												OutputType: previousOutput.GetOutputType (),
+												Address: previousOutput.GetAddress () }
+
+		if input.HasRedeemScript () { json ["redeem_script"] = scriptToJson (input.GetRedeemScript ()) }
+
+		json ["spend_type"] = input.GetSpendType ()
+
+		segwit := input.GetSegwit ()
+		if !segwit.IsNil () {
+			json ["segwit"] = segwitToJson (segwit)
+		}
+	}
+
+	return json
+}
+
+func txToJson (tx btc.Tx) map [string] interface {} {
+
+	inputs := make ([] map [string] interface {}, tx.GetInputCount ())
+	for i, input := range tx.GetInputs () {
+		inputs [i] = inputToJson (input)
+	}
+
+	outputs := make ([] outputJson, tx.GetOutputCount ())
+	for o, output := range tx.GetOutputs () {
+		outputs [o] = outputJson {	Value: output.GetValue (),
+									OutputScript: scriptToJson (output.GetOutputScript ()),
+									OutputType: output.GetOutputType (),
+									Address: output.GetAddress () }
+	}
+
+	json := make (map [string] interface {})
+
+	json ["id"] = tx.GetTxId ()
+	json ["version"] = tx.GetVersion ()
+	json ["inputs"] = inputs
+	json ["outputs"] = outputs
+	json ["locktime"] = tx.GetLockTime ()
+	if tx.IsCoinbase () { json ["coinbase"] = true }
+	json ["bip141"] = tx.SupportsBip141 ()
+	json ["blockhash"] = tx.GetBlockHash ()
+	json ["blocktime"] = tx.GetBlockTime ()
+
+	return json
+}
+
+/*
 type PrevOutJsonResponse struct {
 	InputTxId string
 	InputIndex uint32
 	PrevOut btc.Output
 }
+*/
 
 func (api *RestApiV2) GetVersion () uint16 {
 	return 2
@@ -101,30 +209,26 @@ if requestParams ["hash"] != nil {
 
 			// create the JSON response
 
-/*
 			blockJson := struct {
-				Hash string
-				PreviousHash string
-				NextHash string
-				Height uint32
-				Timestamp int64
-				TxCount uint16
+				Hash string `json:"hash"`
+				PreviousHash string `json:"previous_hash"`
+				NextHash string `json:"next_hash"`
+				Height uint32 `json:"height"`
+				Timestamp int64 `json:"timestamp"`
+				TxIds [] string `json:"tx_ids"`
 			} {
 				Hash: block.GetHash (),
 				PreviousHash: block.GetPreviousHash (),
 				NextHash: block.GetNextHash (),
 				Height: block.GetHeight (),
 				Timestamp: block.GetTimestamp (),
-				TxCount: block.GetTxCount () }
-*/
+				TxIds: block.GetTxIds () }
 
 			var blockBytes [] byte
 			if blockRequestOptions.HumanReadable {
-//				blockBytes, err = json.MarshalIndent (blockJson, "", "\t")
-blockBytes, err = json.MarshalIndent (block, "", "\t")
+				blockBytes, err = json.MarshalIndent (blockJson, "", "\t")
 			} else {
-//				blockBytes, err = json.Marshal (blockJson)
-blockBytes, err = json.Marshal (block)
+				blockBytes, err = json.Marshal (blockJson)
 			}
 			if err != nil { fmt.Println (err.Error ()) }
 
@@ -140,21 +244,71 @@ blockBytes, err = json.Marshal (block)
 			err := json.NewDecoder (requestBody).Decode (&requestParams)
 			if err != nil { errorMessage = err.Error (); break }
 
-			txRequest := node.TxRequest { TxId: requestParams ["id"].(string) }
-			tx := nodeProxy.GetTx (txRequest)
-
+			// get the request options
 			txRequestOptions := map [string] interface {} {}
 			if requestParams ["options"] != nil { txRequestOptions = requestParams ["options"].(map [string] interface {}) }
 
+			txRequest := node.TxRequest {	TxId: requestParams ["id"].(string),
+											InputsVerbose: txRequestOptions ["InputsVerbose"] != nil && txRequestOptions ["InputsVerbose"].(bool) }
+			tx := nodeProxy.GetTx (txRequest)
+			txJsonObj := txToJson (tx)
+
 			var txBytes [] byte
 			if txRequestOptions ["HumanReadable"] != nil && txRequestOptions ["HumanReadable"].(bool) {
-				txBytes, err = json.MarshalIndent (tx, "", "\t")
+				txBytes, err = json.MarshalIndent (txJsonObj, "", "\t")
 			} else {
-				txBytes, err = json.Marshal (tx)
+				txBytes, err = json.Marshal (txJsonObj)
 			}
 			if err != nil { fmt.Println (err.Error ()) }
 
 			responseJson = string (txBytes)
+
+
+		case "output":
+
+			if httpMethod != "POST" { errorMessage = fmt.Sprintf ("%s must be sent as a POST request.", functionName); break }
+
+			// unpack the json
+			var requestParams map [string] interface {}
+			err := json.NewDecoder (requestBody).Decode (&requestParams)
+			if err != nil { errorMessage = err.Error (); break }
+
+			// get the request options
+			outputRequestOptions := map [string] interface {} {}
+			if requestParams ["options"] != nil { outputRequestOptions = requestParams ["options"].(map [string] interface {}) }
+
+			outputRequest := node.OutputRequest { TxId: requestParams ["id"].(string), OutputIndex: uint16 (requestParams ["output_index"].(float64)) }
+			output := nodeProxy.GetOutput (outputRequest)
+			outputJsonObj := outputJson {	Value: output.GetValue (),
+											OutputScript: scriptToJson (output.GetOutputScript ()),
+											OutputType: output.GetOutputType (),
+											Address: output.GetAddress () }
+
+			var outputBytes [] byte
+			if outputRequestOptions ["HumanReadable"] != nil && outputRequestOptions ["HumanReadable"].(bool) {
+				outputBytes, err = json.MarshalIndent (outputJsonObj, "", "\t")
+			} else {
+				outputBytes, err = json.Marshal (outputJsonObj)
+			}
+			if err != nil { fmt.Println (err.Error ()) }
+
+			responseJson = string (outputBytes)
+
+
+
+/*
+previous output
+spend type
+input script
+redeem script
+
+segwit fields
+witness script
+tap script
+*/
+
+
+
 
 
 		case "current_block_height":
@@ -163,9 +317,9 @@ blockBytes, err = json.Marshal (block)
 
 			height := nodeProxy.GetCurrentBlockHeight ()
 
-	blockJsonData := struct { H int32 `json:"current_block_height"` } { H: height }
-	jsonBytes, err := json.Marshal (blockJsonData)
-	if err != nil { fmt.Println (err) }
+			blockJsonData := struct { H int32 `json:"current_block_height"` } { H: height }
+			jsonBytes, err := json.Marshal (blockJsonData)
+			if err != nil { fmt.Println (err) }
 
 			responseJson = string (jsonBytes)
 
@@ -188,7 +342,7 @@ blockBytes, err = json.Marshal (block)
 			responseJson = string (prevOutsBytes)
 */
 
-
+/*
 		// called when the tx id and input index need to be returned with the response
 		case "previous_output":
 
@@ -217,6 +371,7 @@ inputTxId := previousOutputJsonIn.TxId
 			if err != nil { fmt.Println (err) }
 
 			responseJson = string (jsonBytes)
+*/
 
 
 /*
@@ -266,7 +421,7 @@ inputTxId := previousOutputJsonIn.TxId
 
 
 		default:
-			errorMessage = fmt.Sprintf ("Unknown REST v1 function: %s", functionName)
+			errorMessage = fmt.Sprintf ("Unknown REST v%d function: %s", api.GetVersion (), functionName)
 	}
 
 	if len (errorMessage) > 0 {

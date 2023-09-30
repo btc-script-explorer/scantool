@@ -10,9 +10,9 @@ console.log (block_tx_ids);
 	{
 		const headers = new Headers ();
 		headers.append ("Content-Type", "application/json");
-		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ id: block_tx_ids [t] }) };
+//		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ id: block_tx_ids [t] }) };
 //console.log (base_url_rest + '/tx/' + block_tx_ids [t])
-		const response = await fetch (base_url_rest + '/tx', request_data);
+		const response = await fetch (base_url_web + '/block-tx/' + block_tx_ids [t] + '/' + t);
 //console.log (response);
 		const data = await response.json ();
 console.log (data);

@@ -3,18 +3,21 @@
 				onmouseover="$ (this).css ('background-color', '#c0cfc0');"
 				onmouseout="$ (this).css ('background-color', '#f0fff0');"
 				onclick="
-for (var i = 0; i < $ ('#inputs').children ().length; i++)
+if ($ ('#input-maximized-{{ .InputIndex }}').children ().length > 0)
 {
-	$ ('#input-maximized-' + i).css ('display', 'none');
-	$ ('#input-minimized-' + i).css ('display', 'block');
-}
+	for (var i = 0; i < $ ('#inputs').children ().length; i++)
+	{
+		$ ('#input-maximized-' + i).css ('display', 'none');
+		$ ('#input-minimized-' + i).css ('display', 'block');
+	}
 
-$ (this).css ('display', 'none');
-$ ('#input-maximized-{{ .InputIndex }}').css ('display', 'block');
+	$ (this).css ('display', 'none');
+	$ ('#input-maximized-{{ .InputIndex }}').css ('display', 'block');
+}
 ">
 		<div class="tx-part-minimized" style="width:7ch;">{{ .InputIndex }}</div>
-		<div id="input-minimized-{{ .InputIndex }}-spend-type" class="tx-part-minimized" style="width:25ch;">{{ .SpendType }}</div>
-		<div id="input-minimized-{{ .InputIndex }}-value" class="tx-part-minimized" style="width:18ch; text-align:right;">{{ .ValueIn }}</div>
+		<div id="input-minimized-{{ .InputIndex }}-spend-type" class="tx-part-minimized" style="width:25ch;"></div>
+		<div id="input-minimized-{{ .InputIndex }}-value" class="tx-part-minimized" style="width:18ch; text-align:right;"></div>
 		<div class="tx-part-minimized" style="width:2ch;" ></div>
 		<div id="input-minimized-{{ .InputIndex }}-address" class="tx-part-minimized" style="width:68ch; text-align:left;"></div>
 	</div>

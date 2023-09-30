@@ -104,6 +104,25 @@ type BlockChartData struct {
 }
 
 
+// return an array of possible query types based on the search parameter
+func determineQueryTypes (queryParam string) [] string {
+
+	paramLen := len (queryParam)
+	if paramLen == 64 {
+		// it is a block or transaction hash
+		_, err := hex.DecodeString (queryParam)
+		if err != nil { fmt.Println (queryParam + " is not a valid hex string."); return [] string {} }
+		return [] string { "tx", "block" }
+	} else {
+		// it could be a block height
+		_, err := strconv.ParseUint (queryParam, 10, 32)
+		if err != nil { fmt.Println (queryParam + " is not a valid block height."); return [] string {} }
+		return [] string { "block" }
+	}
+
+	return [] string {}
+}
+
 func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 	modifiedPath := request.URL.Path
@@ -187,35 +206,20 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				html = getBlockHtml (block, customJavascript)
 
 
-/*
+			// block-tx is for the web interface to get HTML segments in real time
 			// returns json
 			case "block-tx":
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
-				// determine the tx key and block index
-				txKey := ""
-				blockIndex := -1
-				if paramCount < 2 {
-					fmt.Println ("tx key required for block-tx. Request ignored.")
-					fmt.Fprint (response, "")
-					return
-				} else if paramCount == 2 {
-					txKey = params [1]
-					keyParts := strings.Split (txKey, ":")
-					if len (keyParts) == 2 {
-						blockIndex, err = strconv.Atoi (keyParts [1])
-						if err != nil { fmt.Println (err.Error ()) }
-					} else {
-						fmt.Println ("malformed tx key in block-tx request")
-					}
-				} else if paramCount > 2 {
-					txKey = params [1] + ":" + params [2]
-					blockIndex, err = strconv.Atoi (params [2])
-					if err != nil { fmt.Println (err.Error ()) }
-				}
+				// check the parameters
+				if paramCount < 3 { fmt.Println ("No id provided for tx. Request ignored."); return }
+				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("%s is not a valid tx id", params [1])); return }
 
-				txRequest := node.TxRequest { TxId: txId }
+				blockIndex, err := strconv.Atoi (params [2])
+				if err != nil { fmt.Println (fmt.Sprintf ("block index (%s) not formatted correctly, error: %s", params [2], err.Error ())); return }
+
+				txRequest := node.TxRequest { TxId: params [1] }
 				tx := nodeProxy.GetTx (txRequest)
 
 				blockTxResponse := getBlockTxResponse (tx, uint16 (blockIndex))
@@ -227,26 +231,31 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				return
 
+
 			// returns html
 			case "tx":
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
 				if paramCount < 2 { fmt.Println ("No id provided for tx. Request ignored."); return }
-//				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("Parameter %s is not a valid tx id.", params [1])); return }
+				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("%s is not a valid tx id", params [1])); return }
 
 				txRequest := node.TxRequest { TxId: params [1] }
 
 				tx := nodeProxy.GetTx (txRequest)
 				if tx.IsNil () {
-					// TODO: need better error handling
 					html = "Empty response from server."
 					break
 				}
 
-				customJavascript += fmt.Sprintf ("var tx_input_count = JSON.parse ('%d');", tx.GetInputCount ())
+				javascriptInputs := ""
+				for i := 0; i < int (tx.GetInputCount ()); i++ {
+					if len (javascriptInputs) > 0 { javascriptInputs += "," }
+					javascriptInputs += fmt.Sprintf ("\"%s:%d\"", params [1], i)
+				}
+
+				customJavascript += fmt.Sprintf ("var tx_inputs = JSON.parse ([%s]);", javascriptInputs)
 				html = getTxHtml (tx, customJavascript)
-*/
 
 			case "address":
 				// would probably require an electrum server for implementation
@@ -288,33 +297,8 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 */
 				return
 
-			// returns json
-			case "legacy_spend_types":
 
 /*
-				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); return }
-
-				// unpack the json
-				var requestedPreviousOutputs map [string] [] uint32
-				err := json.NewDecoder (request.Body).Decode (&requestedPreviousOutputs)
-				if err != nil { fmt.Println (err.Error()) }
-
-				prevOutMap := restApi.GetPreviousOutputTypes (requestedPreviousOutputs)
-
-				// if this is not a legacy type, it must be a non-standard input
-				for outpoint, outputType := range prevOutMap {
-					if outputType != btc.OUTPUT_TYPE_P2PK && outputType != btc.OUTPUT_TYPE_MultiSig && outputType != btc.OUTPUT_TYPE_P2PKH && outputType != btc.OUTPUT_TYPE_P2SH {
-						prevOutMap [outpoint] = btc.SPEND_TYPE_NonStandard
-					}
-				}
-
-				prevOutsBytes, err := json.Marshal (prevOutMap)
-				if err != nil { fmt.Println (err.Error ()) }
-
-				fmt.Fprint (response, string (prevOutsBytes))
-*/
-				return
-
 			case "block_charts":
 
 				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); return }
@@ -331,6 +315,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				fmt.Fprint (response, string (chartsBytes))
 				return
+*/
 		}
 
 		if len (html) > 0 { break }
@@ -347,25 +332,6 @@ func ServeFile (response http.ResponseWriter, request *http.Request) {
 
 	if request.URL.Path == "/favicon.ico" { return }
 	http.ServeFile (response, request, GetPath () + request.URL.Path)
-}
-
-// return an array of possible query types based on the search parameter
-func determineQueryTypes (queryParam string) [] string {
-
-	paramLen := len (queryParam)
-	if paramLen == 64 {
-		// it is a block or transaction hash
-		_, err := hex.DecodeString (queryParam)
-		if err != nil { fmt.Println (queryParam + " is not a valid hex string."); return [] string {} }
-		return [] string { "tx", "block" }
-	} else {
-		// it could be a block height
-		_, err := strconv.ParseUint (queryParam, 10, 32)
-		if err != nil { fmt.Println (queryParam + " is not a valid block height."); return [] string {} }
-		return [] string { "block" }
-	}
-
-	return [] string {}
 }
 
 func getKnownSpendTypesHtmlData (nonCoinbaseInputCount uint16, knownSpendTypeMap map [string] uint16) ([] ElementTypeHTML, uint16) {
@@ -519,7 +485,6 @@ func getTxHtml (tx btc.Tx, customJavascript string) string {
 
 	// transaction data
 	txPageHtmlData ["BaseUrl"] = app.Settings.GetFullUrl () + "/web"
-	txPageHtmlData ["BlockHeight"] = tx.GetBlockHeight ()
 	txPageHtmlData ["BlockTime"] = time.Unix (tx.GetBlockTime (), 0).UTC ()
 
 	txPageHtmlData ["BlockHash"] = tx.GetBlockHash ()
@@ -737,8 +702,9 @@ func getScriptHtmlData (script btc.Script, htmlId string, displayTypeClassPrefix
 
 	scriptHtmlData := ScriptHtmlData { FieldSet: FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: FIELD_MAX_WIDTH }, IsNil: false, IsOrdinal: script.IsOrdinal () }
 
-/*
-	scriptFields := script ["Fields"].([] rest.FieldData)
+	scriptFields := script.GetFields ()
+	fieldCount := len (scriptFields)
+	if script.HasParseError () { fieldCount++ }
 
 	if len (scriptFields) == 0 {
 		scriptHtmlData.FieldSet.HexFields = [] FieldHtmlData { FieldHtmlData { DisplayText: "Empty", ShowCopyButton: false } }
@@ -747,19 +713,15 @@ func getScriptHtmlData (script btc.Script, htmlId string, displayTypeClassPrefix
 		return scriptHtmlData
 	}
 
-	fields := script ["Fields"].([] rest.FieldData)
-	fieldCount := len (fields)
-	if script ["ParseError"] != nil && script ["ParseError"].(bool) { fieldCount++ }
-
 	hexFieldsHtml := make ([] FieldHtmlData, fieldCount)
 	textFieldsHtml := make ([] FieldHtmlData, fieldCount)
 	typeFieldsHtml := make ([] FieldHtmlData, fieldCount)
 
-	for f, field := range fields {
+	for f, field := range scriptFields {
 
 		// hex strings
-		entireHexField := field.Hex
-		shortenedHex := shortenField (field.Hex, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)
+		entireHexField := field.AsHex ()
+		shortenedHex := shortenField (entireHexField, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)
 		hexFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (shortenedHex), ShowCopyButton: uint (len (entireHexField)) > FIELD_MAX_WIDTH }
 		if shortenedHex != entireHexField {
 			hexFieldsHtml [f].ShowCopyButton = true
@@ -767,12 +729,12 @@ func getScriptHtmlData (script btc.Script, htmlId string, displayTypeClassPrefix
 		}
 
 		// text strings
-		bytes, err := hex.DecodeString (field.Hex)
+		bytes, err := hex.DecodeString (entireHexField)
 		isOpcode := err != nil
 
 		entireTextField := string (bytes)
 		shortenedField := shortenField (entireTextField, FIELD_MAX_WIDTH, FIELD_DOT_COUNT)
-		finalText := field.Hex
+		finalText := entireHexField
 		if !isOpcode {
 			finalText = hexToText (shortenedField)
 		}
@@ -783,10 +745,10 @@ func getScriptHtmlData (script btc.Script, htmlId string, displayTypeClassPrefix
 		}
 
 		// field types
-		typeFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (field.Type), ShowCopyButton: false }
+		typeFieldsHtml [f] = FieldHtmlData { DisplayText: template.HTML (field.AsType ()), ShowCopyButton: false }
 	}
 
-	if script ["ParseError"] != nil && script ["ParseError"].(bool) {
+	if script.HasParseError () {
 		parseErrorStr := template.HTML ("<<< PARSE ERROR >>>")
 		hexFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
 		textFieldsHtml [fieldCount - 1] = FieldHtmlData { DisplayText: parseErrorStr, ShowCopyButton: false }
@@ -799,7 +761,6 @@ func getScriptHtmlData (script btc.Script, htmlId string, displayTypeClassPrefix
 	scriptHtmlData.FieldSet.TextFields = textFieldsHtml
 	scriptHtmlData.FieldSet.TypeFields = typeFieldsHtml
 	scriptHtmlData.FieldSet.CopyImageUrl = copyImageUrl
-*/
 
 	return scriptHtmlData
 }
