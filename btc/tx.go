@@ -61,6 +61,12 @@ func (tx *Tx) GetInputs () [] Input {
 	return tx.inputs
 }
 
+func (tx *Tx) SetPreviousOutput (inputIndex uint16, previousOutput Output) {
+	if inputIndex < tx.GetInputCount () {
+		tx.inputs [inputIndex].SetPreviousOutput (previousOutput)
+	}
+}
+
 func (tx *Tx) GetOutputCount () uint16 {
 	return uint16 (len (tx.outputs))
 }

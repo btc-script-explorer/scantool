@@ -201,6 +201,14 @@ func (s *Segwit) parseTapScript () (Script, uint32) {
 	return tapScript, tapScriptIndex
 }
 
+func (s *Segwit) DeleteWitnessScript () {
+	s.witnessScript = Script {}
+}
+
+func (s *Segwit) DeleteTapScript () {
+	s.tapScript = Script {}
+}
+
 func (s *Segwit) SetTapScript (ts Script, i uint32) {
 	s.tapScript = ts
 	s.tapScriptIndex = i

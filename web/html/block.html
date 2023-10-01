@@ -53,40 +53,17 @@
 										<td class="info-window-label">Outputs:</td>
 										<td id="output-count" style="text-align:left;">0</td>
 									</tr>
-
-{{/*
-									{{ if or (ne .RedeemScriptMultiSigMessage nil) (or (ne .WitnessScriptMultiSigMessage nil) (ne .TapScriptOrdinalsMessage nil)) }}
-										<tr>
-											<td class="info-window-label">&nbsp;</td>
-											<td style="text-align:left;">&nbsp;</td>
-										</tr>
-										{{ if ne .RedeemScriptMultiSigMessage nil }}
-											<tr>
-												<td class="info-window-label">Redeem Scripts:</td>
-												<td style="text-align:left;">{{ .RedeemScriptMultiSigMessage }}</td>
-											</tr>
-										{{ end }}
-										{{ if ne .WitnessScriptMultiSigMessage nil }}
-											<tr>
-												<td class="info-window-label">Witness Scripts:</td>
-												<td style="text-align:left;">{{ .WitnessScriptMultiSigMessage }}</td>
-											</tr>
-										{{ end }}
-										{{ if ne .TapScriptOrdinalsMessage nil }}
-											<tr>
-												<td class="info-window-label">Tap Scripts:</td>
-												<td style="text-align:left;">{{ .TapScriptOrdinalsMessage }}</td>
-											</tr>
-										{{ end }}
-									{{ end }}
-*/}}
-
 								</tbody>
 							</table>
 						</div>
 					</div>
 				</div>
 			</div>
+		</div>
+
+		<div id="block-load-status" style="margin-top:20px; position:relative; height:20px; background-color:#e0e0e0; border:1px solid black;">
+			<div id="block-load-status-bar" style="height:20px; position:absolute; background-color:#b0b0b0; width:0;"></div>
+			<div id="block-load-status-percent" style="height:20px; position:absolute; width:100%;"></div>
 		</div>
 
 {{/*
@@ -132,17 +109,6 @@
 								</tr>
 							</thead>
 							<tbody id="txs">
-{{/*
-								{{ range $I, $Tx := .TxData }}
-									<tr onmouseover="$ (this).css ('background-color', '#e0e0e0');" onmouseout="$ (this).css ('background-color', '#f0f0f0');">
-										<td style="text-align:center; padding:0 8px;">{{ $Tx.Index }}</td>
-										<td style="text-align:center; padding:0 8px;"><a href="{{ $.BaseUrl }}/tx/{{ $Tx.TxId }}">{{ $Tx.TxId }}</a></td>
-										<td style="text-align:center; padding:0 8px;">{{ if $Tx.Bip141 }}&#x2713;{{ end }}</td>
-										<td style="text-align:center; padding:0 8px;">{{ $Tx.InputCount }}</td>
-										<td style="text-align:center; padding:0 8px;">{{ $Tx.OutputCount }}</td>
-									</tr>
-								{{ end }}
-*/}}
 							</tbody>
 						</table>
 					</div>

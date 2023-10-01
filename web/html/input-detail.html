@@ -1,0 +1,128 @@
+{{ define "InputDetail" }}
+
+	<div style="padding-top:6px; margin-left:4px;">
+
+		<table style="">
+			<tbody>
+
+				<tr>
+					<td class="maximized-section maximized-section-name">
+						<div style="font-size:x-large; font-weight:bold; margin-bottom:8px;">Input {{ .InputIndex }}</div>
+						<div style="display:inline-block; padding:3px 6px; border-radius:5px; border:1px solid; font-weight:bold; cursor:pointer; background-color:#00b000; color:white;"
+								onclick="$ ('#input-maximized-{{ .InputIndex }}').css ('display', 'none'); $ ('#input-minimized-{{ .InputIndex }}').css ('display', 'block');">Close</div>
+					</td>
+
+					<td class="maximized-section maximized-section-data">
+						<div id="input-maximized-{{ .InputIndex }}-spend-type" style="font-family:sans-serif; font-size:x-large; font-weight:bold; margin-bottom:8px;">{{ .SpendType }}</div>
+						<div style="">
+							<table>
+								<tbody>
+									{{ if .IsCoinbase }}
+										<tr>
+											<td style="text-align:right; padding-right:8px; font-weight:bold;">Value In:</td>
+											<td style="text-align:left;">{{ .ValueIn }}</td>
+										</tr>
+									{{ end }}
+									<tr>
+										<td style="text-align:right; padding-right:8px; font-weight:bold;">Sequence:</td>
+										<td style="text-align:left;">{{ .Sequence }}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</td>
+				</tr>
+
+				{{ if not .IsCoinbase }}
+					<tr>
+						<td class="maximized-section maximized-section-name">Previous Output</td>
+
+						<td class="maximized-section maximized-section-data">
+							<div id="input-maximized-{{ .InputIndex }}-previous-output-type" style="font-family:sans-serif; font-size:x-large; font-weight:bold; margin-bottom:8px;"></div>
+
+							<div style="">
+								<table>
+									<tbody>
+										<tr>
+											<td style="text-align:right; padding-right:8px; font-weight:bold;">Value:</td>
+											<td style="text-align:left;">{{ .ValueIn }}</td>
+										</tr>
+										<tr>
+											<td style="text-align:right; padding-right:8px; font-weight:bold;">Outpoint:</td>
+											<td style="text-align:left;"><a href="{{ .BaseUrl }}/tx/{{ .PreviousOutputTxId }}">{{ .PreviousOutputTxId }}</a> : {{ .PreviousOutputIndex }}</td>
+										</tr>
+										<tr>
+											<td style="text-align:right; padding-right:8px; font-weight:bold;">Address:</td>
+											<td style="text-align:left;">{{ .PreviousOutputAddress }}</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</td>
+					</tr>
+				{{ end }}
+
+				<tr>
+					<td class="maximized-section maximized-section-name" style="border:none; background-color: #e0ffe0;"></td>
+
+					<td class="maximized-section maximized-section-data" style="border:none; background-color: #e0ffe0; padding:16px 0 6px;">
+							<div id="input-{{ .InputIndex }}-as-hex-button" class="view-toggle-button view-toggle-button-on" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', 'view-toggle-button-off', 'view-toggle-button-on', 'hex');">View Hex</div>
+							<div id="input-{{ .InputIndex }}-as-type-button" class="view-toggle-button view-toggle-button-off" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', 'view-toggle-button-off', 'view-toggle-button-on', 'type');">View Types</div>
+							<div id="input-{{ .InputIndex }}-as-text-button" class="view-toggle-button view-toggle-button-off" style="margin-left:2ch;" onclick="toggle_script_view ('{{ .DisplayTypeClassPrefix }}-as-', 'view-toggle-button-off', 'view-toggle-button-on', 'text');">View Text</div>
+					</td>
+				</tr>
+
+				{{ if not .InputScript.IsNil }}
+					<tr id="input-maximized-{{ .InputIndex }}-input-script">
+						<td class="maximized-section maximized-section-name">{{ if .IsCoinbase }}Coinbase{{ else }}Input{{ end }} Script</td>
+						<td class="maximized-section maximized-section-data">{{ template "FieldSet" .InputScript.FieldSet }}</td>
+					</tr>
+				{{ end }}
+
+				{{ if not .RedeemScript.IsNil }}
+					<tr>
+						<td class="maximized-section maximized-section-name">Redeem Script</td>
+						<td class="maximized-section maximized-section-data">{{ template "FieldSet" .RedeemScript.FieldSet }}</td>
+					</tr>
+				{{ end }}
+
+				{{ if and (not .IsCoinbase) (not .Segwit.IsEmpty) }}
+					<tr>
+						<td class="maximized-section maximized-section-name">Segregated Witness</td>
+						<td class="maximized-section maximized-section-data">{{ template "FieldSet" .Segwit.FieldSet }}</td>
+					</tr>
+
+					{{ if not .Segwit.WitnessScript.IsNil }}
+						<tr>
+							<td class="maximized-section maximized-section-name">Witness Script</td>
+							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .Segwit.WitnessScript.FieldSet }}</td>
+						</tr>
+					{{ end }}
+
+					{{ if not .Segwit.TapScript.IsNil }}
+						<tr>
+							<td class="maximized-section maximized-section-name">
+								<div>Tap Script</div>
+								{{ if .Segwit.TapScript.IsOrdinal }}
+									<div style="margin-top:8px; color:red;">[&nbsp;ORDINAL&nbsp;]</div>
+								{{ end }}
+							</td>
+							<td class="maximized-section maximized-section-data">{{ template "FieldSet" .Segwit.TapScript.FieldSet }}</td>
+						</tr>
+					{{ end }}
+				{{ end }}
+
+				{{ if not .IsCoinbase }}
+					<tr>
+						<td class="maximized-section maximized-section-name">Previous Output Script</td>
+						<td class="maximized-section maximized-section-data">{{ template "FieldSet" .PreviousOutputScript.FieldSet }}</td>
+					</tr>
+				{{ end }}
+
+			</tbody>
+		</table>
+
+	</div>
+
+{{ end }}
+

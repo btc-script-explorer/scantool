@@ -67,25 +67,26 @@ func (np *NodeProxy) GetCurrentBlockHeight () int32 {
 	return <- responseChannel
 }
 
+/*
 func (np *NodeProxy) GetPreviousOutput (requestChannel <-chan btc.PreviousOutputRequest) <-chan btc.Output {
 
-/*
-	previousOutputRequest := <- requestChannel
 
-	previousOutput := np.cache.GetPreviousOutput (previousOutputRequest.PreviousTxId, previousOutputRequest.PreviousOutputIndex)
+//	previousOutputRequest := <- requestChannel
 
-outputScript := previousOutput.GetOutputScript ()
-scriptFields := outputScript.GetFields ()
-fieldData := make ([] FieldData, len (scriptFields))
-for f, field := range scriptFields {
-	fieldData [f] = FieldData { Hex: field.AsHex (), Type: field.AsType () }
-}
-*/
+//	previousOutput := np.cache.GetPreviousOutput (previousOutputRequest.PreviousTxId, previousOutputRequest.PreviousOutputIndex)
+
+//outputScript := previousOutput.GetOutputScript ()
+//scriptFields := outputScript.GetFields ()
+//fieldData := make ([] FieldData, len (scriptFields))
+//for f, field := range scriptFields {
+//	fieldData [f] = FieldData { Hex: field.AsHex (), Type: field.AsType () }
+//}
 
 	poc := make (chan btc.Output)
 //	poc <- previousOutput
 	return poc
 }
+*/
 
 func (np *NodeProxy) GetBlock (blockRequest BlockRequest) btc.Block {
 

@@ -4,14 +4,15 @@ console.log (block_tx_ids);
 
 	var txs_loaded = 0;
 	var bip141_count = 0;
-	var input_count = 1; // coinbase
+	var input_count = 1; // starting with 1 for the coinbase input
 	var output_count = 0;
-	for (var t = 0; t < block_tx_ids.length; t++)
+	var tx_count = block_tx_ids.length;
+	for (var t = 0; t < tx_count; t++)
 	{
 		const headers = new Headers ();
 		headers.append ("Content-Type", "application/json");
 //		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ id: block_tx_ids [t] }) };
-//console.log (base_url_rest + '/tx/' + block_tx_ids [t])
+console.log (base_url_rest + '/tx/' + block_tx_ids [t])
 		const response = await fetch (base_url_web + '/block-tx/' + block_tx_ids [t] + '/' + t);
 //console.log (response);
 		const data = await response.json ();
@@ -28,7 +29,52 @@ console.log (data);
 		$ ('#output-count').html (output_count);
 
 		$ ('#txs').append (data.tx_html);
+
+		var block_load_percent = Number (((t + 1) * 100) / tx_count).toFixed (2);
+		$ ('#block-load-status-bar').css ('width', block_load_percent + '%');
+		$ ('#block-load-status-percent').html (block_load_percent + '%');
 	}
+
+	$ ('#block-load-status').css ('display', 'none')
+}
+
+async function get_tx_inputs ()
+{
+	var input_count = tx_inputs.length;
+//console.log ($ ('#tx-value-out').html ());
+	var tx_value_out = Number ($ ('#tx-value-out').html ());
+	for (var i = 0; i < input_count; i++)
+	{
+		const headers = new Headers ();
+		headers.append ("Content-Type", "application/json");
+		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ tx_id: tx_inputs [i].tx_id, input_index: tx_inputs [i].input_index }) };
+		const response = await fetch (base_url_web + '/input', request_data);
+		const data = await response.json ();
+//console.log (data);
+
+		$ ('#input-minimized-' + i + '-spend-type').html (data.spend_type)
+		$ ('#input-minimized-' + i + '-value').html (get_value_html (data.value_in))
+		$ ('#input-minimized-' + i + '-address').html (data.address)
+		$ ('#input-maximized-' + i).html (data.input_html)
+
+//console.log (tx_value_out);
+		if (data.spend_type != 'COINBASE')
+		{
+			var tx_value_in = Number ($ ('#tx-value-in').text ()) + Number (data.value_in);
+//console.log (data.value_in);
+//console.log ($ ('#tx-value-in').text ());
+//console.log (tx_value_in);
+			$ ('#tx-value-in').text (tx_value_in);
+			var tx_fee = Number ($ ('#tx-fee').text ());
+//console.log (tx_fee);
+			if (tx_value_in >= tx_value_out)
+				$ ('#tx-fee').html (tx_value_in - tx_value_out);
+		}
+	}
+
+	$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').text ()));
+	$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').text ()));
+	$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').text ()));
 }
 
 function check_query_id_format (query_id)
@@ -138,7 +184,6 @@ async function handle_pending_block_spend_types ()
 	$ ('#output-types').html (data.OutputTypeChart);
 	$ ('#type-charts').css ('display', 'block');
 }
-*/
 
 async function handle_pending_tx_previous_outputs ()
 {
@@ -179,24 +224,11 @@ async function handle_pending_tx_previous_outputs ()
 			$ ('#input-minimized-' + data.InputIndex + '-spend-type').html (data.PrevOutType);
 			$ ('#input-maximized-' + data.InputIndex + '-spend-type').html (data.PrevOutType);
 
-/*
-			if (data.PrevOutType == 'P2SH')
+			if (data.PrevOutType != 'P2PK' && data.PrevOutType != 'MultiSig' && data.PrevOutType != 'P2PKH')
 			{
-				console.log ('Displaying alternate script for P2SH redemption: tx ' + $ ('#query-box').val () + ', input ' + data.InputIndex);
-				var show_type = $ ('#input-maximized-' + data.InputIndex + '-input-script').css ('display');
-				$ ('#input-maximized-' + data.InputIndex + '-input-script').css ('display', 'none');
-				$ ('#input-maximized-' + data.InputIndex + '-input-script-alternate').css ('display', show_type);
-				$ ('#input-maximized-' + data.InputIndex + '-redeem-script').css ('display', show_type);
+				$ ('#input-minimized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
+				$ ('#input-maximized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
 			}
-			else
-			{
-*/
-				if (data.PrevOutType != 'P2PK' && data.PrevOutType != 'MultiSig' && data.PrevOutType != 'P2PKH')
-				{
-					$ ('#input-minimized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
-					$ ('#input-maximized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
-				}
-//			}
 		}
 
 		// update the tx value in
@@ -217,6 +249,7 @@ async function handle_pending_tx_previous_outputs ()
 	$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').html ()))
 	$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').html ()))
 }
+*/
 
 function get_value_html (value)
 {
@@ -304,7 +337,7 @@ async function check_for_new_block ()
 	const response = await fetch (base_url_rest + '/current_block_height', request_data);
 	const data = await response.json ();
 
-	$ ('#current-block').html (data.Current_block_height);
+	$ ('#current-block').html (data.current_block_height);
 }
 
 $ (document).ready (
@@ -312,10 +345,8 @@ function ()
 {
 	if (typeof block_tx_ids !== 'undefined')
 		get_block_txs ();
-	else if (typeof pending_tx_previous_outputs !== 'undefined' && Array.isArray (pending_tx_previous_outputs))
-		handle_pending_tx_previous_outputs ();
-	else if (typeof unknown_spend_type_count !== 'undefined' && unknown_spend_type_count > 0)
-		$ ('#toggle-charts-link').css ('display', 'block');
+	else if (typeof tx_inputs !== 'undefined')
+		get_tx_inputs ()
 	else
 	{
 		// for coinbase transactions

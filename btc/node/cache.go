@@ -293,7 +293,6 @@ fmt.Println (fmt.Sprintf ("NOT FOUND: block %s", blockKey))
 				blockHash = c.btcNode.getBlockHash (uint32 (blockHeight))
 			}
 			if len (blockHash) == 0 {
-fmt.Println (fmt.Sprintf ("block %s does not seem to exist", blockKey))
 				r <- block
 				return
 			}
@@ -307,7 +306,6 @@ fmt.Println (fmt.Sprintf ("REQUESTING: block %s", blockHash))
 		blockExists := rawBlock != nil
 
 		if !succeeded { fmt.Println (fmt.Sprintf ("NODE ERROR: %s", err.Error ())) }
-//		if !blockExists { fmt.Println (fmt.Sprintf ("block %s does not seem to exist", blockHash)) }
 		if succeeded && blockExists {
 
 			// create the block and cache it
@@ -336,14 +334,13 @@ fmt.Println (fmt.Sprintf ("REQUESTING: block %s", blockHash))
 
 func (c *btcCache) threadTxFromNode (txId string, withPreviousOutputs bool, r chan<- btc.Tx) {
 
-fmt.Println (fmt.Sprintf ("REQUESTING: tx %s", txId))
+//fmt.Println (fmt.Sprintf ("REQUESTING: tx %s", txId))
 	rawTx, err := c.btcNode.getTx (txId)
 
 	succeeded := err == nil
 	txExists := rawTx != nil
 
 	if !succeeded { fmt.Println (fmt.Sprintf ("NODE ERROR: %s", err.Error ())) }
-//			if !txExists { fmt.Println (fmt.Sprintf ("tx %s does not seem to exist", txId)) }
 
 	tx := btc.Tx {}
 
@@ -391,13 +388,34 @@ func (c *btcCache) getTx (txId string, withPreviousOutputs bool) btc.Tx {
 	// is it already cached?
 	t, found := txMap.Load (txId)
 	if found {
-		tx := t.(cachedTx).tx
+
+		txCacheObj := t.(cachedTx)
+		tx := txCacheObj.tx
+
 		if !tx.IsNil () {
 fmt.Println (fmt.Sprintf ("FOUND: tx %s", tx.GetTxId ()))
 
+			includesPreviousOutputs := tx.IsCoinbase ()
+			if !tx.IsCoinbase () {
+				firstInput := tx.GetInput (0)
+				firstPrevOut := firstInput.GetPreviousOutput ()
+				includesPreviousOutputs = len (firstPrevOut.GetOutputType ()) != 0
+			}
 
+			now := time.Now ().Unix ()
+			updatedTx := cachedTx { timestampCreated: txCacheObj.timestampCreated, timestampLastUsed: now }
 
+			if withPreviousOutputs && !includesPreviousOutputs {
 
+				// get the previous outputs, re-evaluate the inputs and re-cache the transaction
+				for i, input := range tx.GetInputs () {
+					previousOutput := c.getOutput (input.GetPreviousOutputTxId (), input.GetPreviousOutputIndex ())
+					tx.SetPreviousOutput (uint16 (i), previousOutput)
+				}
+			}
+
+			updatedTx.tx = tx
+			txMap.Swap (txId, updatedTx)
 			return tx
 		}
 	}
@@ -411,30 +429,11 @@ fmt.Println (fmt.Sprintf ("NOT FOUND: tx %s", txId))
 
 func (c *btcCache) getOutput (txId string, outputIndex uint16) btc.Output {
 
-	output := btc.Output {}
-
 	// is it already cached?
-	tx := btc.Tx {}
-	t, found := txMap.Load (txId)
-	if found {
-		tx = t.(cachedTx).tx
-		if tx.IsNil () {
-fmt.Println (fmt.Sprintf ("FOUND: NIL tx %s", txId))
-			r := make (chan btc.Tx)
-			go c.threadTxFromNode (txId, false, r)
-			tx = <- r
-		}
-	} else {
-		r := make (chan btc.Tx)
-		go c.threadTxFromNode (txId, false, r)
-		tx = <- r
-	}
-
+	tx := c.getTx (txId, false)
 	if tx.IsNil () || outputIndex >= tx.GetOutputCount () {
-		return output
+		return btc.Output {}
 	}
-
-	// the transaction exists
 
 	return tx.GetOutput (outputIndex)
 }
@@ -465,7 +464,7 @@ func (c *btcCache) run (channel cacheThreadChannelPack) {
 				// does it already exist?
 				_, found := blockMap.Load (blockHeight)
 				if found {
-fmt.Println (fmt.Sprintf ("IGNORING: block %d (already cached)", blockHeight))
+//fmt.Println (fmt.Sprintf ("IGNORING: block %d (already cached)", blockHeight))
 					break
 				}
 
@@ -487,7 +486,7 @@ fmt.Println (fmt.Sprintf ("CACHING: block %d", blockHeight))
 				// does it already exist?
 				_, found := txMap.Load (txId)
 				if found {
-fmt.Println (fmt.Sprintf ("IGNORING: tx %s (already cached)", txId))
+//fmt.Println (fmt.Sprintf ("IGNORING: tx %s (already cached)", txId))
 					break
 				}
 

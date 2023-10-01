@@ -64,26 +64,33 @@ func inputToJson (input btc.Input) map [string] interface {} {
 	if input.IsCoinbase () { json ["coinbase"] = true }
 	json ["previous_output_tx_id"] = input.GetPreviousOutputTxId ()
 	json ["previous_output_index"] = input.GetPreviousOutputIndex ()
-	inputScript := input.GetInputScript ()
-	if !inputScript.IsEmpty () { json ["input_script"] = scriptToJson (inputScript) }
-	json ["sequence"] = input.GetSequence ()
 
 	previousOutput := input.GetPreviousOutput ()
 	previousOutputIncluded := len (previousOutput.GetOutputType ()) > 0
 	if previousOutputIncluded {
+		// previous output
 		json ["previous_output"] = outputJson {	Value: previousOutput.GetValue (),
 												OutputScript: scriptToJson (previousOutput.GetOutputScript ()),
 												OutputType: previousOutput.GetOutputType (),
 												Address: previousOutput.GetAddress () }
 
+		// input script
+		inputScript := input.GetInputScript ()
+//		if !inputScript.IsEmpty () { json ["input_script"] = scriptToJson (inputScript) }
+		json ["input_script"] = scriptToJson (inputScript)
+
+		// redeem script, if there is one
 		if input.HasRedeemScript () { json ["redeem_script"] = scriptToJson (input.GetRedeemScript ()) }
 
-		json ["spend_type"] = input.GetSpendType ()
-
+		// segwit
 		segwit := input.GetSegwit ()
 		if !segwit.IsNil () {
 			json ["segwit"] = segwitToJson (segwit)
 		}
+
+		// other data
+		json ["spend_type"] = input.GetSpendType ()
+		json ["sequence"] = input.GetSequence ()
 	}
 
 	return json

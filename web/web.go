@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"sort"
+	"io"
+//	"sort"
 	"strings"
 	"strconv"
 	"encoding/json"
@@ -12,8 +13,8 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/go-echarts/go-echarts/v2/charts"
-	"github.com/go-echarts/go-echarts/v2/opts"
+//	"github.com/go-echarts/go-echarts/v2/charts"
+//	"github.com/go-echarts/go-echarts/v2/opts"
 
 	"github.com/btc-script-explorer/scantool/app"
 	"github.com/btc-script-explorer/scantool/btc"
@@ -60,6 +61,8 @@ type InputHtmlData struct {
 	BaseUrl string
 	PreviousOutputTxId string
 	PreviousOutputIndex uint16
+	PreviousOutputAddress string
+	PreviousOutputScript ScriptHtmlData
 	Sequence uint32
 	InputScript ScriptHtmlData
 	RedeemScript ScriptHtmlData
@@ -86,7 +89,7 @@ type SegwitHtmlData struct {
 }
 
 // JSON structs
-
+/*
 type previousOutputJsonOut struct {
 	InputTxId string
 	InputIndex uint16
@@ -102,7 +105,7 @@ type BlockChartData struct {
 	SpendTypes map [string] uint16
 	OutputTypes map [string] uint16
 }
-
+*/
 
 // return an array of possible query types based on the search parameter
 func determineQueryTypes (queryParam string) [] string {
@@ -249,52 +252,113 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				}
 
 				javascriptInputs := ""
-				for i := 0; i < int (tx.GetInputCount ()); i++ {
+				for i := uint16 (0); i < tx.GetInputCount (); i++ {
 					if len (javascriptInputs) > 0 { javascriptInputs += "," }
-					javascriptInputs += fmt.Sprintf ("\"%s:%d\"", params [1], i)
+					javascriptInputs += fmt.Sprintf ("{tx_id:\"%s\",input_index:%d}", params [1], i)
 				}
 
-				customJavascript += fmt.Sprintf ("var tx_inputs = JSON.parse ([%s]);", javascriptInputs)
+				customJavascript += fmt.Sprintf ("var tx_inputs = [%s];", javascriptInputs)
 				html = getTxHtml (tx, customJavascript)
 
-			case "address":
-				// would probably require an electrum server for implementation
+
+//			case "address": // would probably require an electrum server for implementation
 
 
 			// returns json
-			case "previous_output":
+			case "input":
 
-/*
-				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); return }
+				if request.Method != "POST" { fmt.Println (fmt.Sprintf ("%s must be sent as a POST request.", queryType)); break }
 
-				// unpack the json
-				var previousOutputJsonIn rest.PreviousOutputRequest
-				err := json.NewDecoder (request.Body).Decode (&previousOutputJsonIn)
-				if err != nil { fmt.Println (err.Error()) }
+				// get the parameters
+				var params map [string] interface {}
+				paramsBytes, err := io.ReadAll (request.Body)
+				if err != nil {
+					fmt.Println (err.Error ())
+					fmt.Fprint (response, "")
+					return
+				}
 
-				txId := previousOutputJsonIn.PrevOutTxId
-				outputIndex := previousOutputJsonIn.PrevOutIndex
-				inputIndex := previousOutputJsonIn.InputIndex
-				inputTxId := previousOutputJsonIn.InputTxId
+				err = json.Unmarshal (paramsBytes, &params)
+				if err != nil {
+					fmt.Println (err.Error ())
+					fmt.Fprint (response, "")
+					return
+				}
 
-				previousOutput := restApi.GetPreviousOutputResponseData (txId, uint32 (outputIndex))
-				idPrefix := fmt.Sprintf ("previous-output-%d", inputIndex)
-				classPrefix := fmt.Sprintf ("input-%d", inputIndex)
-				previousOutputScriptHtml := getPreviousOutputScriptHtml (previousOutput.OutputScript, idPrefix, classPrefix)
+				if params ["tx_id"] == nil {
+					fmt.Println ("tx_id parameter not found")
+					fmt.Fprint (response, "")
+					return
+				}
 
-				// return the json response
-				previousOutputResponse := previousOutputJsonOut { InputTxId: inputTxId,
-																	InputIndex: uint32 (inputIndex),
-																	PrevOutValue: previousOutput.Value,
-																	PrevOutType: previousOutput.OutputType,
-																	PrevOutAddress: previousOutput.Address,
-																	PrevOutScriptHtml: previousOutputScriptHtml }
+				if params ["input_index"] == nil {
+					fmt.Println ("input_index parameter not found")
+					fmt.Fprint (response, "")
+					return
+				}
 
-				jsonBytes, err := json.Marshal (previousOutputResponse)
+				txId := params ["tx_id"].(string)
+				inputIndex := uint16 (params ["input_index"].(float64))
+
+				// check for error from node in json
+				if len (txId) != 64 {
+					fmt.Println (fmt.Sprintf ("No tx id provided for input. Request ignored."))
+					fmt.Fprint (response, "")
+					return
+				}
+
+				// get the tx
+				txRequest := node.TxRequest { TxId: txId }
+				tx := nodeProxy.GetTx (txRequest)
+
+				// check for errors
+				if tx.IsNil () {
+					fmt.Println (fmt.Sprintf ("Tx %s could not be found.", txId))
+					fmt.Fprint (response, "")
+					return
+				}
+
+
+				if inputIndex >= tx.GetInputCount () {
+					fmt.Println (fmt.Sprintf ("Tx %s does not have an input %d.", txId, inputIndex))
+					fmt.Fprint (response, "")
+					return
+				}
+
+				// get the input
+				input := tx.GetInput (inputIndex)
+				var valueIn uint64
+				var address string
+				if input.IsCoinbase () {
+					// value in is the total of all outputs for coinbase inputs
+					valueIn = 0
+					for _, output := range tx.GetOutputs () {
+						valueIn += output.GetValue ()
+					}
+				} else {
+					outputRequest := node.OutputRequest { TxId: input.GetPreviousOutputTxId (), OutputIndex: input.GetPreviousOutputIndex () }
+					previousOutput := nodeProxy.GetOutput (outputRequest)
+					input.SetPreviousOutput (previousOutput)
+					address = previousOutput.GetAddress ()
+
+					// value in comes from the previous output for non-coinbase inputs
+					valueIn = previousOutput.GetValue ()
+				}
+
+				// return the response
+				inputHtmlData := getInputHtmlData (input, inputIndex, valueIn, tx.SupportsBip141 ())
+				inputHtml := getInputHtml (inputHtmlData)
+
+				jsonInput := make (map [string] interface {})
+				jsonInput ["spend_type"] = input.GetSpendType ()
+				jsonInput ["address"] = address
+				jsonInput ["value_in"] = valueIn
+				jsonInput ["input_html"] = inputHtml
+
+				jsonBytes, err := json.Marshal (jsonInput)
 				if err != nil { fmt.Println (err) }
 
 				fmt.Fprint (response, string (jsonBytes))
-*/
 				return
 
 
@@ -511,7 +575,10 @@ func getTxHtml (tx btc.Tx, customJavascript string) string {
 
 	// totals for the transaction
 	txPageHtmlData ["ValueOut"] = totalOut
-	txPageHtmlData ["ValueIn"] = 0; if tx.IsCoinbase () { txPageHtmlData ["ValueIn"] = totalOut }
+	txPageHtmlData ["ValueIn"] = 0
+	if tx.IsCoinbase () {
+		txPageHtmlData ["ValueIn"] = totalOut
+	}
 	txPageHtmlData ["Fee"] = 0
 
 	// inputs
@@ -524,8 +591,9 @@ func getTxHtml (tx btc.Tx, customJavascript string) string {
 
 	inputHtmlData := make ([] InputHtmlData, inputCount)
 	for i := uint16 (0); i < uint16 (inputCount); i++ {
-		valueIn := uint64 (0); if tx.IsCoinbase () && i == 0 { valueIn = totalOut }
-		inputHtmlData [i] = getInputHtmlData (inputs [i], i, valueIn, tx.SupportsBip141 ())
+//		valueIn := uint64 (0); if tx.IsCoinbase () && i == 0 { valueIn = totalOut }
+//		inputHtmlData [i] = getInputHtmlData (inputs [i], i, valueIn, tx.SupportsBip141 ())
+		inputHtmlData [i] = InputHtmlData { InputIndex: i }
 	}
 	txPageHtmlData ["InputData"] = inputHtmlData
 
@@ -548,6 +616,20 @@ func getTxHtml (tx btc.Tx, customJavascript string) string {
 	// execute the templates
 	var buff bytes.Buffer
 	if err := templ.ExecuteTemplate (&buff, "Layout", layoutHtmlData); err != nil { panic (err) }
+
+	// return the html
+	return buff.String ()
+}
+
+func getInputHtml (htmlData InputHtmlData) string {
+
+	htmlFiles := [] string {
+		GetPath () + "html/input-detail.html",
+		GetPath () + "html/field-set.html" }
+	templ := template.Must (template.ParseFiles (htmlFiles...))
+
+	var buff bytes.Buffer
+	if err := templ.ExecuteTemplate (&buff, "InputDetail", htmlData); err != nil { panic (err) }
 
 	// return the html
 	return buff.String ()
@@ -577,6 +659,8 @@ func getInputHtmlData (input btc.Input, txIndex uint16, satoshis uint64, bip141 
 
 	htmlId := fmt.Sprintf ("input-script-%d", txIndex)
 
+	previousOutput := input.GetPreviousOutput ()
+
 	if input.IsCoinbase () {
 		htmlData.IsCoinbase = true
 		htmlData.ValueIn = template.HTML (getValueHtml (satoshis))
@@ -584,19 +668,22 @@ func getInputHtmlData (input btc.Input, txIndex uint16, satoshis uint64, bip141 
 		htmlData.BaseUrl = app.Settings.GetFullUrl () + "/web"
 		htmlData.PreviousOutputTxId = input.GetPreviousOutputTxId ()
 		htmlData.PreviousOutputIndex = input.GetPreviousOutputIndex ()
+		htmlData.ValueIn = template.HTML (getValueHtml (previousOutput.GetValue ()))
 	}
 	htmlData.InputScript = getScriptHtmlData (input.GetInputScript (), htmlId, displayTypeClassPrefix)
 
-	// redeem script and segwit
-	redeemScript := input.GetRedeemScript ()
-	if !redeemScript.IsNil () {
-		htmlData.RedeemScript = getScriptHtmlData (redeemScript, fmt.Sprintf ("redeem-script-%d", txIndex), displayTypeClassPrefix)
+	// previous output
+	if len (previousOutput.GetAddress ()) > 0 {
+		htmlData.PreviousOutputScript = getScriptHtmlData (previousOutput.GetOutputScript (), fmt.Sprintf ("previous-output-script-%d", txIndex), displayTypeClassPrefix)
+		htmlData.PreviousOutputAddress = previousOutput.GetAddress ()
 	}
 
+	// redeem script and segwit
+	redeemScript := input.GetRedeemScript ()
+	htmlData.RedeemScript = getScriptHtmlData (redeemScript, fmt.Sprintf ("redeem-script-%d", txIndex), displayTypeClassPrefix)
+
 	segwit := input.GetSegwit ()
-	if !segwit.IsNil () {
-		htmlData.Segwit = getSegwitHtmlData (segwit, txIndex, displayTypeClassPrefix)
-	}
+	htmlData.Segwit = getSegwitHtmlData (segwit, txIndex, displayTypeClassPrefix)
 
 	return htmlData
 }
@@ -683,15 +770,11 @@ func getSegwitHtmlData (segwit btc.Segwit, inputIndex uint16, displayTypeClassPr
 	fieldSet := FieldSetHtmlData { HtmlId: htmlId, DisplayTypeClassPrefix: displayTypeClassPrefix, CharWidth: FIELD_MAX_WIDTH, HexFields: hexFieldsHtml, TextFields: textFieldsHtml, TypeFields: typeFieldsHtml, CopyImageUrl: copyImageUrl }
 	htmlData := SegwitHtmlData { FieldSet: fieldSet, IsEmpty: fieldCount == 0 }
 
-/*
-	witnessScript := map [string] interface {} (nil)
-	if segwit ["WitnessScript"] != nil { witnessScript = segwit ["WitnessScript"].(map [string] interface {}) }
+	witnessScript := segwit.GetWitnessScript ()
 	htmlData.WitnessScript = getScriptHtmlData (witnessScript, htmlId + "-witness-script", displayTypeClassPrefix)
 
-	tapScript := map [string] interface {} (nil)
-	if segwit ["TapScript"] != nil { tapScript = segwit ["TapScript"].(map [string] interface {}) }
+	tapScript, _ := segwit.GetTapScript ()
 	htmlData.TapScript = getScriptHtmlData (tapScript, htmlId + "-tap-script", displayTypeClassPrefix)
-*/
 
 	return htmlData
 }
@@ -775,24 +858,6 @@ func hexToText (originalStr string) string {
 	return result
 }
 
-func getPreviousOutputScriptHtml (script btc.Script, htmlId string, displayTypeClassPrefix string) string {
-
-	// get the data
-	previousOutputHtmlData := getScriptHtmlData (script, htmlId, displayTypeClassPrefix)
-	
-	// parse the file
-	layoutHtmlFiles := [] string {
-		GetPath () + "html/field-set.html" }
-	templ := template.Must (template.ParseFiles (layoutHtmlFiles...))
-
-	// execute the template
-	var buff bytes.Buffer
-	if err := templ.ExecuteTemplate (&buff, "FieldSet", previousOutputHtmlData.FieldSet); err != nil { panic (err) }
-
-	// return the html
-	return buff.String ()
-}
-
 func getValueHtml (satoshis uint64) string {
 	satoshisStr := strconv.FormatUint (satoshis, 10)
 	digitCount := len (satoshisStr)
@@ -815,6 +880,7 @@ func extractBodyFromHTML (html string) string {
 	return body [bodyBegin :]
 }
 
+/*
 func getBlockCharts (nonCoinbaseInputCount uint16, outputCount uint16, spendTypes map [string] uint16, outputTypes map [string] uint16) map [string] string {
 
 	const pieRadius = 90
@@ -938,6 +1004,7 @@ func getBlockCharts (nonCoinbaseInputCount uint16, outputCount uint16, spendType
 
 	return htmlData
 }
+*/
 
 // TODO: this needs to be replaced by a web-dir setting
 func GetPath () string {
