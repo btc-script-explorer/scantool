@@ -66,9 +66,18 @@ The port number of the website.
 
 ***
 
+## Other Settings
+
 ### no-web
 
-Turns off the web server. It does not take a value. If it is present, the web server will be turned off. Otherwise, it will be turned on.
+Turns off the web server.
+
+**Default**: off<br>
+**Optional**
+
+### caching
+
+Turns on caching for better efficiency.
 
 **Default**: off<br>
 **Optional**
