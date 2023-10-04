@@ -78,7 +78,7 @@ Mint | 1 | 0.00
 ### Binary Files in Ordinals
 
 There were 6187 binary files (including javascript, css and markdown files) encoded among the ordinals analyzed. They ranged in file size from 35 bytes to 396484 bytes.
-By far the most common file types found were images. The content of the images was not examined.
+The vast majority of files found were images. The content of the images was not examined.
 The number of each file type found is shown here.
 
 File Type | Count | %
@@ -105,7 +105,7 @@ There were 1703 that began with the @ character which appeared to be online hand
 
 The multisig analysis program was written in C++. (Similar programs could be written in many different languages.) The data gathered were written to a PostgreSQL database where they could be analyzed further.
 
-For the test, all blocks between 798000 and 798299 were analyzed, a total of 300 blocks.
+For the test, all blocks between and including blocks 798000 and 798299 were analyzed, a total of 300 blocks.
 The test identified 120817 multisig serialized scripts, averaging about 403 per block.
 
 The results are shown below.

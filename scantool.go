@@ -8,7 +8,6 @@ https://www.lopp.net/bitcoin-information/block-explorers.html
 
 import (
 	"fmt"
-//"runtime"
 	"net/http"
 	"log"
 
@@ -34,36 +33,64 @@ func homeHandler (response http.ResponseWriter, request *http.Request) {
 
 func printListeningMessage () {
 
-	nodeProxy, err := node.GetNodeProxy ()
-	if err != nil {
-		fmt.Println (err.Error ())
-		return
-	}
+	nodeProxy, _ := node.GetNodeProxy ()
 
 	// create the data lines of the message
-	lines := make ([] string, 0)
-	lines = append (lines, "")
-	lines = append (lines, "SCANTOOL " + app.GetVersion ())
-	lines = append (lines, "")
-	lines = append (lines, nodeProxy.GetNodeVersion ())
-	lines = append (lines, app.Settings.GetNodeFullUrl ())
-	lines = append (lines, "")
-	lines = append (lines, "Web Access:")
-	lines = append (lines, app.Settings.GetFullUrl () + "/web/")
-	lines = append (lines, "")
-	lines = append (lines, "REST API Example:")
-	lines = append (lines, "curl -X GET " + app.Settings.GetFullUrl () + "/rest/v2/current_block_height")
-	lines = append (lines, "")
+	messageLines := make ([] string, 0)
+
+	messageLines = append (messageLines, "")
+	messageLines = append (messageLines, "SCANTOOL " + app.GetVersion ())
+	messageLines = append (messageLines, "")
+
+	messageLines = append (messageLines, "Node: " + nodeProxy.GetNodeVersion ())
+	messageLines = append (messageLines, "      " + app.Settings.GetNodeFullUrl ())
+	messageLines = append (messageLines, "")
+
+	webLine := " Web: "; if app.Settings.IsWebOn () { webLine += app.Settings.GetFullUrl () + "/web/" } else { webLine += "Off" }
+	messageLines = append (messageLines, webLine)
+	messageLines = append (messageLines, "")
+
+	messageLines = append (messageLines, "REST: curl -X GET " + app.Settings.GetFullUrl () + "/rest/v1/current_block_height")
+	messageLines = append (messageLines, "      curl -X POST -d '{}' " + app.Settings.GetFullUrl () + "/rest/v1/block")
+	messageLines = append (messageLines, "")
+
+	settingsLineCaching := "Caching: O"; if app.Settings.IsCachingOn () { settingsLineCaching += "n" } else { settingsLineCaching += "ff" }
+	messageLines = append (messageLines, settingsLineCaching)
+	messageLines = append (messageLines, "")
+
+	// first make sure every line is an even number of characters
+	for l := 0; l < len (messageLines); l++ {
+		if len (messageLines [l]) % 2 != 0 {
+			messageLines [l] += " "
+		}
+	}
+
+	// get the maximum length, starting with the fourth line
+	maxLineLen := 0
+	for l := 3; l < len (messageLines); l++ {
+		if len (messageLines [l]) > maxLineLen {
+			maxLineLen = len (messageLines [l])
+		}
+	}
+
+	// add padding so the lines are all the same length, starting with the fourth line
+	for l := 3; l < len (messageLines); l++ {
+		for c := len (messageLines [l]) - 1; c < maxLineLen; c++ {
+			messageLines [l] += " "
+		}
+	}
 
 	// calculate the width of the message and add padding as necessary
 	bannerWidth := 0
-	for l := 0; l < len (lines); l++ {
-		if len (lines [l]) % 2 != 0 {
-			lines [l] += " "
+	for l := 0; l < len (messageLines); l++ {
+
+		// make sure every line is an even number of characters
+		if len (messageLines [l]) % 2 != 0 {
+			messageLines [l] += " "
 		}
 
-		if len (lines [l]) + 6 > bannerWidth {
-			bannerWidth = len (lines [l]) + 6
+		if len (messageLines [l]) + 6 > bannerWidth {
+			bannerWidth = len (messageLines [l]) + 6
 		}
 	}
 
@@ -73,17 +100,17 @@ func printListeningMessage () {
 	}
 
 	// pad the ones that need to be padded
-	for l := 0; l < len (lines); l++ {
-		for len (lines [l]) < bannerWidth - 2 {
-			lines [l] = " " + lines [l] + " "
+	for l := 0; l < len (messageLines); l++ {
+		for len (messageLines [l]) < bannerWidth - 2 {
+			messageLines [l] = " " + messageLines [l] + " "
 		}
 	}
 
 	// print the message
 	fmt.Println ()
 	fmt.Println (topAndBottom)
-	for l := 0; l < len (lines); l++ {
-		fmt.Println ("*" + lines [l] + "*")
+	for l := 0; l < len (messageLines); l++ {
+		fmt.Println ("*" + messageLines [l] + "*")
 	}
 	fmt.Println (topAndBottom)
 	fmt.Println ()
@@ -97,8 +124,8 @@ func main () {
 		return
 	}
 
-	proxy, err := node.StartNodeProxy ()
-_=proxy
+	// make sure the node is connected and start the cache if it is being used
+	_, err := node.GetNodeProxy ()
 	if err != nil {
 		fmt.Println (err.Error ())
 		return
@@ -118,9 +145,6 @@ _=proxy
 	}
 
 	mux.HandleFunc ("/rest/", rest.RestHandler)
-
-//var buf [] byte
-//runtime.Stack (&buf, true)
 
 	log.Fatal (http.ListenAndServe (app.Settings.GetBaseUrl (true), mux))
 }

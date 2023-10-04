@@ -61,6 +61,7 @@ type InputHtmlData struct {
 	BaseUrl string
 	PreviousOutputTxId string
 	PreviousOutputIndex uint16
+	PreviousOutputType string
 	PreviousOutputAddress string
 	PreviousOutputScript ScriptHtmlData
 	Sequence uint32
@@ -88,44 +89,6 @@ type SegwitHtmlData struct {
 	IsEmpty bool
 }
 
-// JSON structs
-/*
-type previousOutputJsonOut struct {
-	InputTxId string
-	InputIndex uint16
-	PrevOutValue uint64
-	PrevOutType string
-	PrevOutAddress string
-	PrevOutScriptHtml string
-}
-
-type BlockChartData struct {
-	NonCoinbaseInputCount uint16
-	OutputCount uint16
-	SpendTypes map [string] uint16
-	OutputTypes map [string] uint16
-}
-*/
-
-// return an array of possible query types based on the search parameter
-func determineQueryTypes (queryParam string) [] string {
-
-	paramLen := len (queryParam)
-	if paramLen == 64 {
-		// it is a block or transaction hash
-		_, err := hex.DecodeString (queryParam)
-		if err != nil { fmt.Println (queryParam + " is not a valid hex string."); return [] string {} }
-		return [] string { "tx", "block" }
-	} else {
-		// it could be a block height
-		_, err := strconv.ParseUint (queryParam, 10, 32)
-		if err != nil { fmt.Println (queryParam + " is not a valid block height."); return [] string {} }
-		return [] string { "block" }
-	}
-
-	return [] string {}
-}
-
 func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 	modifiedPath := request.URL.Path
@@ -151,8 +114,8 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	params := requestParts [1:]
 	paramCount := len (params)
 
-	// web site currently using rest version 2
-	restApi := rest.RestApiV2 {}
+	// current web site rest version
+	restApi := rest.RestApiV1 {}
 
 	nodeProxy, err := node.GetNodeProxy ()
 	if err != nil {
@@ -171,12 +134,43 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 	}
 
 	// here, a determination is made as to what the user is requesting by examining the parameters received
-	possibleQueryTypes := [] string { "block" } // default query type
-	if paramCount >= 1 { possibleQueryTypes [0] = params [0] }
 
-	if possibleQueryTypes [0] == "search" {
-		if paramCount < 2 { fmt.Println ("No search parameter provided."); return }
-		possibleQueryTypes = determineQueryTypes (params [1])
+	possibleQueryTypes := make ([] string, 0)
+
+	if paramCount < 1 {
+		possibleQueryTypes = append (possibleQueryTypes, "block")
+	} else {
+
+		requestType := params [0]
+		if requestType != "search" {
+			possibleQueryTypes = append (possibleQueryTypes, requestType)
+		} else {
+
+			if paramCount < 2 {
+				fmt.Println ("No search parameter provided.")
+			}
+
+			searchParam := params [1]
+			paramLen := len (searchParam)
+			if paramLen == 64 {
+				// it is a block or transaction hash
+				_, err := hex.DecodeString (searchParam)
+				if err != nil {
+					fmt.Println (searchParam + " is not a valid hex string.")
+				}
+
+				possibleQueryTypes = append (possibleQueryTypes, "tx")
+				possibleQueryTypes = append (possibleQueryTypes, "block")
+			} else {
+				// it could be a block height
+				_, err := strconv.ParseUint (params [1], 10, 32)
+				if err != nil {
+					fmt.Println (params [1] + " is not a valid block height.")
+				}
+
+				possibleQueryTypes = append (possibleQueryTypes, "block")
+			}
+		}
 	}
 
 	for _, queryType := range possibleQueryTypes {
@@ -198,6 +192,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 //				blockRequestData ["options"] = options
 
 				block := nodeProxy.GetBlock (blockRequest)
+				if block.IsNil () { break }
 
 				txIds := block.GetTxIds ()
 
@@ -216,14 +211,15 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
 				// check the parameters
-				if paramCount < 3 { fmt.Println ("No id provided for tx. Request ignored."); return }
-				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("%s is not a valid tx id", params [1])); return }
+				if paramCount < 3 { fmt.Println ("No id provided for tx. Request ignored."); break }
+				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("%s is not a valid tx id", params [1])); break }
 
 				blockIndex, err := strconv.Atoi (params [2])
-				if err != nil { fmt.Println (fmt.Sprintf ("block index (%s) not formatted correctly, error: %s", params [2], err.Error ())); return }
+				if err != nil { fmt.Println (fmt.Sprintf ("block index (%s) not formatted correctly, error: %s", params [2], err.Error ())); break }
 
 				txRequest := node.TxRequest { TxId: params [1] }
 				tx := nodeProxy.GetTx (txRequest)
+				if tx.IsNil () { break }
 
 				blockTxResponse := getBlockTxResponse (tx, uint16 (blockIndex))
 
@@ -240,16 +236,13 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 
 				if request.Method != "GET" { fmt.Println (fmt.Sprintf ("%s must be sent as a GET request.", queryType)); break }
 
-				if paramCount < 2 { fmt.Println ("No id provided for tx. Request ignored."); return }
-				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("%s is not a valid tx id", params [1])); return }
+				if paramCount < 2 { fmt.Println ("No id provided for tx. Request ignored."); break }
+				if len (params [1]) != 64 { fmt.Println (fmt.Sprintf ("%s is not a valid tx id", params [1])); break }
 
 				txRequest := node.TxRequest { TxId: params [1] }
 
 				tx := nodeProxy.GetTx (txRequest)
-				if tx.IsNil () {
-					html = "Empty response from server."
-					break
-				}
+				if tx.IsNil () { break }
 
 				javascriptInputs := ""
 				for i := uint16 (0); i < tx.GetInputCount (); i++ {
@@ -340,6 +333,7 @@ func WebHandler (response http.ResponseWriter, request *http.Request) {
 					previousOutput := nodeProxy.GetOutput (outputRequest)
 					input.SetPreviousOutput (previousOutput)
 					address = previousOutput.GetAddress ()
+					if len (address) == 0 { address = "No Address Format" }
 
 					// value in comes from the previous output for non-coinbase inputs
 					valueIn = previousOutput.GetValue ()
@@ -673,9 +667,12 @@ func getInputHtmlData (input btc.Input, txIndex uint16, satoshis uint64, bip141 
 	htmlData.InputScript = getScriptHtmlData (input.GetInputScript (), htmlId, displayTypeClassPrefix)
 
 	// previous output
-	if len (previousOutput.GetAddress ()) > 0 {
+	previousOutputType := previousOutput.GetOutputType ()
+	if len (previousOutputType) > 0 {
+		htmlData.PreviousOutputType = previousOutputType
 		htmlData.PreviousOutputScript = getScriptHtmlData (previousOutput.GetOutputScript (), fmt.Sprintf ("previous-output-script-%d", txIndex), displayTypeClassPrefix)
 		htmlData.PreviousOutputAddress = previousOutput.GetAddress ()
+		if len (htmlData.PreviousOutputAddress) == 0 { htmlData.PreviousOutputAddress = "No Address Format" }
 	}
 
 	// redeem script and segwit
@@ -694,7 +691,10 @@ func getOutputHtmlData (output btc.Output, scriptHtmlId string, displayTypeClass
 		displayTypeClassPrefix = fmt.Sprintf ("output-%d", outputIndex)
 	}
 	outputScriptHtml := getScriptHtmlData (output.GetOutputScript (), scriptHtmlId, displayTypeClassPrefix)
-	return OutputHtmlData { OutputIndex: outputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, OutputType: output.GetOutputType (), Value: template.HTML (getValueHtml (output.GetValue ())), Address: output.GetAddress (), OutputScript: outputScriptHtml }
+
+	address := output.GetAddress ()
+	if len (address) == 0 { address = "No Address Format" }
+	return OutputHtmlData { OutputIndex: outputIndex, DisplayTypeClassPrefix: displayTypeClassPrefix, OutputType: output.GetOutputType (), Value: template.HTML (getValueHtml (output.GetValue ())), Address: address, OutputScript: outputScriptHtml }
 }
 
 func shortenField (fieldText string, length uint, dotCount uint) string {

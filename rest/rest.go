@@ -7,21 +7,6 @@ import (
 	"net/http"
 )
 
-/*
-type PreviousOutput struct {
-	InputTxId string
-	InputIndex uint32
-
-	Value uint64
-	OutputType string
-	Address string
-
-	ScriptFieldsHex [] string
-	ScriptFieldsType [] string
-	ScriptFieldsText [] string
-}
-*/
-
 type RestError struct {
 	Error string
 }
@@ -47,12 +32,9 @@ func RestHandler (response http.ResponseWriter, request *http.Request) {
 			restAPIEndpoint := requestParts [2]
 			restAPIParamString := requestParts [3:]
 			switch restAPIVersion {
-//				case "v1":
-//					restApiV1 := RestApiV1 {}
-//					responseJson = restApiV1.HandleRequest (request.Method, restAPIEndpoint, restAPIParamString, request.Body)
-				case "v2":
-					restApiV2 := RestApiV2 {}
-					responseJson = restApiV2.HandleRequest (request.Method, restAPIEndpoint, restAPIParamString, request.Body)
+				case "v1":
+					restApiV1 := RestApiV1 {}
+					responseJson = restApiV1.HandleRequest (request.Method, restAPIEndpoint, restAPIParamString, request.Body)
 			}
 		}
 	}

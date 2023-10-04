@@ -82,7 +82,6 @@ func (o *Output) GetOutputType () string {
 }
 
 func (o *Output) GetAddress () string {
-	if len (o.address) == 0 { return "No Address Format" }
 	return o.address
 }
 

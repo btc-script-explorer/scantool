@@ -29,6 +29,7 @@ type settingsManager struct {
 	port uint16
 
 	noWeb bool
+	caching bool
 
 	testMode string
 	testVerifiedDir string
@@ -117,12 +118,23 @@ func (s *settingsManager) IsWebOn () bool {
 	return !s.noWeb
 }
 
+func (s *settingsManager) IsCachingOn () bool {
+	return s.caching
+}
+
+func getBoolValue (setting string) bool {
+	lower := strings.ToLower (setting)
+	intVal, err := strconv.Atoi (setting)
+	if err != nil { intVal = 1 }
+	return lower != "false" && lower != "off" && intVal != 0
+}
+
 func (s *settingsManager) setSettings (settings map [string] string) {
 	for k, v := range settings {
 		switch k {
 			case "config-file": s.configFile = v
 
-			// bitcoin core
+			// bitcoin core settings
 			case "bitcoin-core-addr": s.bitcoinCoreAddr = v
 			case "bitcoin-core-port":
 				port, err := strconv.Atoi (v)
@@ -131,19 +143,22 @@ func (s *settingsManager) setSettings (settings map [string] string) {
 			case "bitcoin-core-username": s.bitcoinCoreUsername = v
 			case "bitcoin-core-password": s.bitcoinCorePassword = v
 
-			// web
+			// scantool settings
 			case "addr": s.addr = v
 			case "port":
 				port, err := strconv.Atoi (v)
 				if err != nil { panic (err.Error ()) }
 				s.port = uint16 (port)
-			case "no-web": s.noWeb = true
+			case "caching":
+				s.caching = getBoolValue (v)
+			case "no-web":
+				s.noWeb = getBoolValue (v)
 
 			// test
-			case "test-mode": s.testMode = v
-			case "test-verified-dir": s.testVerifiedDir = v
-			case "test-unverified-dir": s.testUnverifiedDir = v
-			case "test-source-file": s.testSourceFile = v
+//			case "test-mode": s.testMode = v
+//			case "test-verified-dir": s.testVerifiedDir = v
+//			case "test-unverified-dir": s.testUnverifiedDir = v
+//			case "test-source-file": s.testSourceFile = v
 		}
 	}
 }
@@ -165,6 +180,7 @@ func getDefaultSettings () settingsManager {
 								addr: "127.0.0.1",
 								port: 8080,
 //								noWeb: false,
+//								caching: false,
 
 //								testMode: "",
 //								testVerifiedDir: "",
@@ -201,8 +217,6 @@ func ParseSettings () {
 			if len (parts) == 1 {
 				if parts [0] == "version" {
 					Settings.versionRequest = true
-				} else if parts [0] == "no-web" {
-					parameters [parts [0]] = ""
 				}
 			} else {
 				panic (parameter + " parameter is improperly formatted.")

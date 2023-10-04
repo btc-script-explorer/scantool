@@ -122,22 +122,14 @@ func (s *Segwit) IsValidTaprootKeyPath () bool {
 			nonEmptyFieldCount++
 		}
 	}
-	if nonEmptyFieldCount != exactFieldCount { return false }
 
-	return true
+	return nonEmptyFieldCount == exactFieldCount
 }
 
-/*
-func (s *Segwit) IsValidP2wsh (setWitnessScript bool) bool {
+func (s *Segwit) IsValidP2wsh () bool {
 	witnessScript := s.parseWitnessScript ()
-
-	if setWitnessScript {
-		s.witnessScript = witnessScript
-	}
-
 	return !witnessScript.IsNil ()
 }
-*/
 
 func (s *Segwit) parseWitnessScript () Script {
 
@@ -171,19 +163,10 @@ func (s *Segwit) SetWitnessScript (ws Script) {
 	}
 }
 
-/*
-func (s *Segwit) IsValidTaprootScriptPath (setTapScript bool) bool {
-
-	tapScript, tapScriptIndex := s.parseTapScript ()
-
-	if setTapScript {
-		s.tapScript = tapScript
-		s.tapScriptIndex = tapScriptIndex
-	}
-
-	return tapScriptIndex != -1
+func (s *Segwit) IsValidTaprootScriptPath () bool {
+	tapScript, _ := s.parseTapScript ()
+	return !tapScript.IsNil ()
 }
-*/
 
 func (s *Segwit) parseTapScript () (Script, uint32) {
 

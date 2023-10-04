@@ -70,7 +70,13 @@ async function get_tx_inputs ()
 			if (tx_value_in >= tx_value_out)
 				$ ('#tx-fee').html (tx_value_in - tx_value_out);
 		}
+
+		var tx_load_percent = Number (((i + 1) * 100) / input_count).toFixed (2);
+		$ ('#tx-load-status-bar').css ('width', tx_load_percent + '%');
+		$ ('#tx-load-status-percent').html (tx_load_percent + '%');
 	}
+
+	$ ('#tx-load-status').css ('display', 'none')
 
 	$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').text ()));
 	$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').text ()));
@@ -119,137 +125,6 @@ function get_pending_block_spend_types ()
 
 	return pending_spend_types;
 }
-
-/*
-async function handle_pending_block_spend_types ()
-{
-	$ ('#toggle-charts-link').css ('display', 'none');
-	$ ('#spend-type-status').css ('display', 'block');
-
-	var spend_types_received = 0;
-
-	var next_pending_spend_types = get_pending_block_spend_types ();
-	while (!$.isEmptyObject (next_pending_spend_types))
-	{
-		var txs_to_delete = [];
-		for (var tx_id in next_pending_spend_types)
-			txs_to_delete.push (tx_id);
-
-		if (txs_to_delete.length > 0)
-		{
-			// get the spend types from the server
-			const headers = new Headers ();
-			headers.append ("Content-Type", "application/json");
-			var request_data = { method: 'POST', headers: headers, body: JSON.stringify (next_pending_spend_types) };
-			const response = await fetch (base_url_web + '/legacy_spend_types', request_data);
-			const data = await response.json ();
-
-			// handle the response
-			for (var outpoint in data)
-			{
-				if (typeof known_spend_types [data [outpoint]] != 'undefined')
-					++known_spend_types [data [outpoint]];
-				else
-					known_spend_types [data [outpoint]] = 1;
-				++known_spend_type_count;
-				++spend_types_received;
-				var spend_type_percent = ((spend_types_received * 100) / unknown_spend_type_count).toFixed (2);
-				$ ('#spend-type-status-bar').css ('width', spend_type_percent + '%');
-				$ ('#spend-type-status-percent').html (spend_type_percent + '%');
-			}
-
-			// get the next one
-			// an interval could be used as a timer in case some of the responses are never received
-			for (var i = 0; i < txs_to_delete.length; i++)
-				delete pending_block_spend_types [txs_to_delete [i]];
-		}
-
-		next_pending_spend_types = get_pending_block_spend_types ();
-	}
-
-	// no more to get
-	// we gather all the spend types, output types and non-coinbase input count
-	// then we return them to the server to create the charts
-	$ ('#spend-type-status').css ('display', 'none');
-
-	var block_chart_data = { NonCoinbaseInputCount: known_spend_type_count, OutputCount: output_count, SpendTypes: known_spend_types, OutputTypes: output_types };
-
-	const headers = new Headers ();
-	headers.append ("Content-Type", "application/json");
-	var request_data = { method: 'POST', headers: headers, body: JSON.stringify (block_chart_data) };
-	const response = await fetch (base_url_web + '/block_charts', request_data);
-	const data = await response.json ();
-
-	$ ('#spend-types').html (data.SpendTypeChart);
-	$ ('#output-types').html (data.OutputTypeChart);
-	$ ('#type-charts').css ('display', 'block');
-}
-
-async function handle_pending_tx_previous_outputs ()
-{
-	if (pending_tx_previous_outputs.length == 0)
-	{
-		$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').html ()))
-		$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').html ()))
-		$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').html ()))
-		return;
-	}
-
-	while (pending_tx_previous_outputs.length > 0)
-	{
-		const headers = new Headers ();
-		headers.append ("Content-Type", "application/json");
-		var request_data = { method: 'POST', headers: headers, body: JSON.stringify (pending_tx_previous_outputs [0]) };
-		const response = await fetch (base_url_web + '/previous_output', request_data);
-		const data = await response.json ();
-
-		// previous output type
-		$ ('#input-maximized-' + data.InputIndex + '-previous-output-type').html (data.PrevOutType);
-
-		// previous output value
-		$ ('#input-minimized-' + data.InputIndex + '-value').html (get_value_html (data.PrevOutValue));
-		$ ('#input-maximized-' + data.InputIndex + '-previous-output-value').html (get_value_html (data.PrevOutValue));
-
-		// previous output address
-		$ ('#input-minimized-' + data.InputIndex + '-address').html (data.PrevOutAddress);
-		$ ('#input-maximized-' + data.InputIndex + '-previous-output-address').html (data.PrevOutAddress);
-
-		// previous output script
-		$ ('#input-maximized-' + data.InputIndex + '-previous-output-script').html (data.PrevOutScriptHtml);
-
-		// if the spend type is empty, it uses the same name as the output type
-		var spend_type = $ ('#input-minimized-' + data.InputIndex + '-spend-type').html ();
-		if (spend_type.length == 0)
-		{
-			$ ('#input-minimized-' + data.InputIndex + '-spend-type').html (data.PrevOutType);
-			$ ('#input-maximized-' + data.InputIndex + '-spend-type').html (data.PrevOutType);
-
-			if (data.PrevOutType != 'P2PK' && data.PrevOutType != 'MultiSig' && data.PrevOutType != 'P2PKH')
-			{
-				$ ('#input-minimized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
-				$ ('#input-maximized-' + data.InputIndex + '-spend-type').html ('Non-Standard');
-			}
-		}
-
-		// update the tx value in
-		var value_in = parseInt ($ ('#tx-value-in').html ()) + data.PrevOutValue;
-		$ ('#tx-value-in').html (value_in);
-
-		// update the tx fee
-		var value_out = parseInt ($ ('#tx-value-out').html ());
-		if (value_in >= value_out)
-			$ ('#tx-fee').html (value_in - value_out);
-
-		// get the next one
-		// an interval could be used as a timer in case some of the responses are never received
-		pending_tx_previous_outputs.splice (0, 1);
-	}
-
-	$ ('#tx-value-in').html (get_value_html ($ ('#tx-value-in').html ()))
-	$ ('#tx-value-out').html (get_value_html ($ ('#tx-value-out').html ()))
-	$ ('#tx-fee').html (get_value_html ($ ('#tx-fee').html ()))
-}
-*/
 
 function get_value_html (value)
 {

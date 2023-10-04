@@ -28,7 +28,7 @@ func (bc *BitcoinCore) getNodeType () string {
 	return "Bitcoin Core"
 }
 
-func (bc *BitcoinCore) getVersionString () string {
+func (bc *BitcoinCore) GetVersionString () string {
 	return bc.getNodeType () + " " + bc.version
 }
 
