@@ -4,16 +4,14 @@
 
 Name | Type | Required | Default | Description
 :---:|:---:|:---:|:---:|:---:
-include_input_detail | bool | No | false | (see below)
+include_input_detail | bool | No | false | (see table below)
 human_readable | bool | No | false | return human readable JSON
-
-include_input_detail determines which fields in the Input response are guaranteed to be included.
 
 Input response field | include_input_detail=true | include_input_detail=false
 :---:|:---:|:---:
 coinbase | Yes | Yes
 input_script | Yes | Yes
-segwit | Yes | Yes
+segwit | Yes, including serialized scripts | Yes, but without serialized scripts
 sequence | Yes | Yes
 redeem_script | Yes | No
 spend_type | Yes | No
