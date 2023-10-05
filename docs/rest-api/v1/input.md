@@ -3,14 +3,14 @@
 ## InputOptions
 
 Name | Type | Required | Default | Description
----|---|---|---|---
-include_input_detail | bool | No | false | return complete input in one request
+:---:|:---:|:---:|:---:|:---:
+include_input_detail | bool | No | false | (see below)
 human_readable | bool | No | false | return human readable JSON
 
 include_input_detail determines which fields in the Input response are guaranteed to be included.
 
-Input field | true | false
----|:---:|---
+Input response field | include_input_detail=true | include_input_detail=false
+:---:|:---:|:---:
 coinbase | Yes | Yes
 input_script | Yes | Yes
 segwit | Yes | Yes
@@ -24,7 +24,7 @@ previous_output_index | if coinbase= false | if coinbase= false
 ## InputRequest
 
 Name | Type | Required | Default | Description
----|---|---|---|---
+:---:|:---:|:---:|:---:|:---:
 tx_id | string | Yes | | transaction id
 input_index | uint16 | Yes | | input index
 options | InputOptions | No | not included | options
