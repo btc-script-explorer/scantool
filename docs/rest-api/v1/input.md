@@ -4,20 +4,7 @@
 
 Name | Type | Required | Default | Description
 :---:|:---:|:---:|:---:|:---:
-include_input_detail | bool | No | false | (see table below)
 human_readable | bool | No | false | return human readable JSON
-
-Input response field | include_input_detail=true | include_input_detail=false
-:---:|:---:|:---:
-coinbase | Yes | Yes
-input_script | Yes | Yes
-segwit | Yes, including serialized scripts | Yes, but without serialized scripts
-sequence | Yes | Yes
-redeem_script | Yes | No
-spend_type | Yes | No
-previous_output | if coinbase= false | No
-previous_output_tx_id | if coinbase= false | if coinbase= false
-previous_output_index | if coinbase= false | if coinbase= false
 
 ## InputRequest
 
@@ -41,7 +28,9 @@ InputRequest
                 }
         }
 
-Input
+        $ curl -X POST -d '{"tx_id":"adb4e7a5115b1073f5850ba88a8ff5bb4e7b6cf667fbc0e111e5ab245f01a14c","input_index":0,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/input
+
+Input response
 
         {
                 "coinbase": true,
@@ -69,10 +58,120 @@ Input
                 "sequence": 0
         }
 
+***
 
+InputRequest
 
+        {
+                "tx_id": "042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414",
+                "input_index": 4,
+                "options": {
+                        "human_readable": true
+                }
+        }
 
+        $ curl -X POST -d '{"tx_id":"adb4e7a5115b1073f5850ba88a8ff5bb4e7b6cf667fbc0e111e5ab245f01a14c","input_index":0,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/input
 
-        $ curl -X POST -d '{"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":1,"PrevOutTxId":"ba6ce05c8e646b13b41ae44d23281ddcdbafeb64396b7d87855c233685a1400a","PrevOutIndex":0}' http://127.0.0.1:8080/rest/v1/previous_output
-        {"InputTxId":"abdcfbd8b77c4b14372c58cd7bfc5a09ad5c04759c6699b0eaa19e9226746571","InputIndex":1,"PrevOut":{"Value":23248802,"OutputType":"Taproot","Address":"bc1pp2767q84l8ytnftxudxvyfs4y9z34r2dqr8ltj59pg6ysvf607qqcwwgdw","OutputScript":{"Fields":[{"Hex":"OP_1","Type":"OP_1"},{"Hex":"0abdaf00f5f9c8b9a566e34cc2261521451a8d4d00cff5ca850a3448313a7f80","Type":"Witness Program (Public Key)"}]}}}
+Input response
+
+        {
+                "coinbase": false,
+                "input_script": {
+                        "fields": [
+                                {
+                                        "hex": "0020edfa6bc5ecef026a3ea2ba6caae46d0fd36322ce2d6c7fcb06b66f4b15705c1a",
+                                        "type": "SERIALIZED REDEEM SCRIPT"
+                                }
+                        ],
+                        "hex": "220020edfa6bc5ecef026a3ea2ba6caae46d0fd36322ce2d6c7fcb06b66f4b15705c1a",
+                        "parse_error": false
+                },
+                "previous_output": {
+                        "address": "3McjpTqks39EXHATreiet3fPt2P13Lrf1q",
+                        "output_script": {
+                                "fields": [
+                                        {
+                                                "hex": "OP_HASH160",
+                                                "type": "OP_HASH160"
+                                        },
+                                        {
+                                                "hex": "da93687f54efc36ddba2bb0e89d1791f9742530d",
+                                                "type": "Script Hash"
+                                        },
+                                        {
+                                                "hex": "OP_EQUAL",
+                                                "type": "OP_EQUAL"
+                                        }
+                                ],
+                                "hex": "a914da93687f54efc36ddba2bb0e89d1791f9742530d87",
+                                "parse_error": false
+                        },
+                        "output_type": "P2SH",
+                        "value": 69604952
+                },
+                "previous_output_index": 1,
+                "previous_output_tx_id": "a27a5ffe03c9f22a3ea138df597c3c1e1a98e8d5e83d4cf7848ad5e96dc2d8fb",
+                "redeem_script": {
+                        "fields": [
+                                {
+                                        "hex": "OP_0",
+                                        "type": "OP_0"
+                                },
+                                {
+                                        "hex": "edfa6bc5ecef026a3ea2ba6caae46d0fd36322ce2d6c7fcb06b66f4b15705c1a",
+                                        "type": "Witness Program (Script Hash)"
+                                }
+                        ],
+                        "hex": "0020edfa6bc5ecef026a3ea2ba6caae46d0fd36322ce2d6c7fcb06b66f4b15705c1a",
+                        "parse_error": false
+                },
+                "segwit": {
+                        "fields": [
+                                {
+                                        "hex": "",
+                                        "type": "Data (0 Bytes)"
+                                },
+                                {
+                                        "hex": "304402200942fdab8d46d4663e251e8c8a2eb85613ab34ec2e039d88430e01f6553bf0290220656bee7fa241861e063c4c7927626921165e360bf17731220ebc54a9d4e36d2701",
+                                        "type": "Signature"
+                                },
+                                {
+                                        "hex": "3044022075516cedac86c5d2f3c136520f3ee6e28ec7e7585ae0b85c2c96284e58855c210220620e18b5f08bc4f1472f6e969bc389ce6a67c953107ace9256353707b03517a001",
+                                        "type": "Signature"
+                                },
+                                {
+                                        "hex": "5221022ec1e2182e1fbae2c95c45d108e139bf4547e61fd5c8460f6f38682158ee587f210381a36e10cc711aedfc2378df0eb9f65e472122bb025b1f2ee7457498bc19fe2a52ae",
+                                        "type": "SERIALIZED WITNESS SCRIPT"
+                                }
+                        ],
+                        "witness_script": {
+                                "fields": [
+                                        {
+                                                "hex": "OP_2",
+                                                "type": "OP_2"
+                                        },
+                                        {
+                                                "hex": "022ec1e2182e1fbae2c95c45d108e139bf4547e61fd5c8460f6f38682158ee587f",
+                                                "type": "Public Key"
+                                        },
+                                        {
+                                                "hex": "0381a36e10cc711aedfc2378df0eb9f65e472122bb025b1f2ee7457498bc19fe2a",
+                                                "type": "Public Key"
+                                        },
+                                        {
+                                                "hex": "OP_2",
+                                                "type": "OP_2"
+                                        },
+                                        {
+                                                "hex": "OP_CHECKMULTISIG",
+                                                "type": "OP_CHECKMULTISIG"
+                                        }
+                                ],
+                                "hex": "5221022ec1e2182e1fbae2c95c45d108e139bf4547e61fd5c8460f6f38682158ee587f210381a36e10cc711aedfc2378df0eb9f65e472122bb025b1f2ee7457498bc19fe2a52ae",
+                                "parse_error": false
+                        }
+                },
+                "sequence": 4294967295,
+                "spend_type": "P2SH-P2WSH"
+        }
 
