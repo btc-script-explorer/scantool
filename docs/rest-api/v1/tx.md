@@ -14,11 +14,11 @@ Name | Type | Required | Default | Description
 id | string | Yes | | transaction id
 options | TxOptions | No | not included | options
 
-# How to request a transaction
+# Two ways to request a transaction
 
 ## include_input_detail = true
 
-The include_input_detail option will force the SCANTOOL to return detailed information about every input.
+With include_input_detail set to true, the SCANTOOL will return detailed information about every input.
 
 Considerations:
 
@@ -40,15 +40,15 @@ Input fields returned in the response:
 
 ## include_input_detail = false
 
-The include_input_detail option will not force the SCANTOOL to return detailed information about every input.
-Howeve, for the sake of efficiency, if caching is on and the input detail is already in the cache, a TxResponse might include detailed input data even if it was not requested.
+With include_input_detail set to false, the SCANTOOL will return only basic information about each input in most cases.
+However, for the sake of efficiency, if caching is on and the input detail is already in the cache, a TxResponse might include detailed input data even if it was not requested.
 
 Considerations:
 
 - Only basic information about inputs will be returned in the initial response.
 - Subsquent requests will be required in order to get detailed information about each input.
 - It will probably be faster per request, but slower overall.
-- Better for user interfaces using the REST API as a backend where response times are important.
+- Better for custom user interfaces that use the REST API as a backend.
 
 Input fields returned in the response:
 
@@ -74,7 +74,7 @@ TxRequest
 
         $ curl -X POST -d '{"id":"bbe9e2fced55a2ac4fabb6c74cef8d9dda6cc1121a9782ee7e34fe97e32958cb","options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/tx
 
-TxResponse
+Tx response
 
 This response includes no previous output detail, no spend type and no serialized script information.
 It appears rather ordinary on the surface.
@@ -183,7 +183,7 @@ We are requesting the same transaction as above, but with input detail this time
 
         $ curl -X POST -d '{"id":"bbe9e2fced55a2ac4fabb6c74cef8d9dda6cc1121a9782ee7e34fe97e32958cb","options":{"include_input_detail":true,"human_readable":true}}' http://127.0.0.1:8888/rest/v1/tx
 
-TxResponse
+Tx response
 
 This response includes the input's previous output detail, spend type and all serialized script information.
 From this we can see that the input is not ordinary at all. The redeem script is one of approximately five existing 0-of-5 multisig serialized scripts in the blockchain.

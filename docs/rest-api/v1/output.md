@@ -30,7 +30,7 @@ OutputRequest
 
         $ curl -X POST -d '{"tx_id":"7641c08f4bd299abfef26dcc6b477938f4a6c2eed2f224d1f5c1c86b4e09739d","output_index":1,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/output
 
-OutputResponse
+Output response
 
         {
                 "address": "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9",
@@ -66,7 +66,7 @@ OutputRequest
 
         $ curl -X POST -d '{"tx_id":"b3e4d204d3a9b139789f9da9f6efd546b9d67b445d65231f4842133c4e30a41c","output_index":2,"options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/output
 
-OutputResponse
+Output response
 
         {
                 "output_script": {

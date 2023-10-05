@@ -2,38 +2,72 @@
 
 ## Field
 
-Name | Type | When Included
----|---|---|---
-hex | string | Always
-type | string | When known
+Name | Type
+---|---
+hex | string
+type | string
 
 ## Script
 
-Name | Type | When Included
----|---|---|---
-hex | string | Always
-fields | [] Field | Always
-parse_error | bool | Always
+Name | Type
+---|---
+hex | string
+fields | [] Field
+parse_error | bool
 
 ## Segwit
 
-Name | Type | When Included
----|---|---|---
-fields | [] Field | Always
-witness_script | Script | if present
-tap_script | Script | if present
+Name | Type
+---|---
+fields | [] Field
+witness_script | Script
+tap_script | Script
 
 ## Input
 
-Name | Type | When Included
----|---|---|---
-coinbase | bool | Always
-input_script | Script | Always
-redeem_script | Script | coinbase = false and include_input_detail = true and previous output type = P2SH
-sequence | uint32 | Always
-spend_type | string | coinbase = false
-previous_output_tx_id | string | coinbase = false
-previous_output_index | uint16 | coinbase = false
-previous_output | Output | coinbase = false or include_input_detail = true
-segwit | Segwit | parent tx supports BIP141
+Name | Type
+---|---
+coinbase | bool
+input_script | Script
+redeem_script | Script
+sequence | uint32
+spend_type | string
+previous_output_tx_id | string
+previous_output_index | uint16
+previous_output | Output
+segwit | Segwit
+
+## Output
+
+Name | Type
+---|---
+address | string
+output_script | Script
+output_type | string
+value | uint64
+
+## Tx
+
+Name | Type
+---|---
+id | string
+version | uint32
+inputs | [] Input
+outputs | [] Output
+locktime | uint32
+coinbase | bool
+bip141 | bool
+blockhash | string
+blocktime | int64
+
+## Block
+
+Name | Type
+---|---
+hash | string
+previous_hash | string
+next_hash | string
+height | uint32
+timestamp | int64
+tx_ids | [] string
 
