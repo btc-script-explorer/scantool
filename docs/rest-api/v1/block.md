@@ -27,7 +27,7 @@ BlockRequest
                 }
         }
 
-        $ curl -X POST -d '{"hash":"0000000000000000000146140c9fc04604169e3227fa72eee1432c51f3ee95ca","options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/block
+        $ curl -X POST -d '{"hash":"0000000000000000000146140c9fc04604169e3227fa72eee1432c51f3ee95ca","options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/block
 
 Block response
 
@@ -62,7 +62,7 @@ BlockRequest
                 }
         }
 
-        $ curl -X POST -d '{"height":772525,"options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/block
+        $ curl -X POST -d '{"height":772525,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/block
 
 Block response
 
@@ -101,7 +101,7 @@ When neither hash nor height is included in the request, the most recent block w
                 }
         }
 
-        $ curl -X POST -d '{"options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/block
+        $ curl -X POST -d '{"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/block
 
 Block response
 

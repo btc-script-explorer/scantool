@@ -73,7 +73,7 @@ InputRequest
                 }
         }
 
-        $ curl -X POST -d '{"tx_id":"042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414","input_index":4,"options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/input
+        $ curl -X POST -d '{"tx_id":"042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414","input_index":4,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/input
 
 Input response
 

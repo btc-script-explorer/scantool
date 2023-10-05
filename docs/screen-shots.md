@@ -1,6 +1,6 @@
 # Screen Shots
 
-### P2SH-P2WSH 2-of-3 multisig input, viewed as hex
+### Input, Hex View, 2-of-3 Multisig
 
 Here we see the four distinct pieces of input data required for a P2SH-P2WSH redemption. The redeem script, in this case,
 is actually a standard P2WSH output script. The witness script is where the real work is done.
@@ -9,7 +9,7 @@ is actually a standard P2WSH output script. The witness script is where the real
 
 ***
 
-### P2SH-P2WSH 2-of-3 multisig input, viewed as data types
+### Input, Type View, 2-of-3 Multisig
 
 This is the same input as above but displaying data types instead of hex values.
 
@@ -17,17 +17,14 @@ This is the same input as above but displaying data types instead of hex values.
 
 ***
 
-### Genesis Block Coinbase Script, viewed as text
+### Input, Text View, Coinbase
 
 ![Genesis Coinbase (as text)](/docs/images/screen-shots/genesis-coinbase-as-text.png)
 
 ***
 
-### Ordinal, viewed as text
+### Input, Text View, Ordinal
 
-Ordinals could be described as a standard within a standard. This is a standard Taproot Script Path redemption
-with a tap script that also conforms to another standard. Nearly 99% of tap scripts during 2023 have been ordinals.
-They seem to have peaked in late spring and early summer but the numbers appear to have dropped off after that.
 The text view is the best way to see the structure of a standard ordinal.
 The OP_CHECKSIG handles the redemption of funds. After that, an OP_0 followed by OP_IF guarantees that the OP_IF
 block will never execute. The rest of the fields are meta-data and data fields.
@@ -36,7 +33,7 @@ block will never execute. The rest of the fields are meta-data and data fields.
 
 ***
 
-### Ordinal, viewed as data types
+### Input, Type View, Ordinal
 
 This is the same ordinal as above viewed as data types.
 
@@ -44,7 +41,7 @@ This is the same ordinal as above viewed as data types.
 
 ***
 
-### Ordinal representing a file, viewed as text
+### Input, Text View, Ordinal
 
 Ordinals can represent text files or binary files. Almost any file type can be used. This one is a small CSS file.
 
@@ -52,7 +49,7 @@ Ordinals can represent text files or binary files. Almost any file type can be u
 
 ***
 
-### OP_RETURN output message, viewed as text
+### Output, Text View, OP_RETURN
 
 From transaction ac49f0d3117a02545d86efff49be45fe94cd99f901456088a3dcb0e816cb6927
 
@@ -60,7 +57,7 @@ From transaction ac49f0d3117a02545d86efff49be45fe94cd99f901456088a3dcb0e816cb692
 
 ***
 
-### Transaction Results
+### Transaction
 
 Transaction results include some data about the overall transaction and a list of inputs and outputs.
 The values and addresses for the inputs come from their previous outputs.
@@ -70,9 +67,9 @@ The inputs and outputs can be opened by clicking on them.
 
 ***
 
-### Block Results
+### Block
 
-Block results include some data about the overall block, optionally-loaded spend type and output type charts and a list of transactions.
+Block results include some data about the overall block and a list of transactions.
 
 ![Block Results](/docs/images/screen-shots/block-results.png)
 

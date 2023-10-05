@@ -64,7 +64,7 @@ OutputRequest
                 }
         }
 
-        $ curl -X POST -d '{"tx_id":"b3e4d204d3a9b139789f9da9f6efd546b9d67b445d65231f4842133c4e30a41c","output_index":2,"options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/output
+        $ curl -X POST -d '{"tx_id":"b3e4d204d3a9b139789f9da9f6efd546b9d67b445d65231f4842133c4e30a41c","output_index":2,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/output
 
 Output response
 
