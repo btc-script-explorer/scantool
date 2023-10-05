@@ -156,20 +156,25 @@ Our example will assume the following:
 
 All settings on the command line should begin with "--". In the config file, the "--" should not be present.
 
-The --config-file setting is only applicable on the command line. All others can be provided on the command or in the config file, or any combination of the two.
-
 Setting | Required | Default | Description
 ---|---|---|---
 bitcoin-core-addr | Yes | | The IP address from a rpcbind setting in Bitcoin Core.
 bitcoin-core-port | Yes | | The port number from the same rpcbind setting in Bitcoin Core.
 bitcoin-core-username | Yes | | The rpcuser setting in Bitcoin Core.
 bitcoin-core-password | Yes | | The rpcpassword setting in Bitcoin Core.
+
+Setting | Required | Default | Description
+---|---|---|---
 addr | if no-web=false | | The IP address the web interface should be available on.
 port | if no-web=false | | The port number the web interface should be available on.
+
+Setting | Required | Default | Description
+---|---|---|---
 no-web | No | false | Turns off the web interface.
 caching | No | false | Turns caching on for better performance.
+config-file | No | | Location of the config file. Only applicable on the command line.
 
-* Cache size is not currently managed, so the cache will only grow.
+\* Cache size is not currently managed, so the cache will only grow.
 
 ### Web Interface
 
