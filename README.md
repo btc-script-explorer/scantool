@@ -4,17 +4,17 @@
 
 ## What is it?
 
-The **SC**ript **AN**alytics **TOOL** (SCANTOOL) is a tool for analyzing bitcoin scripts, including serialized scripts. It provides the following features.
+The **SC**ript **AN**alytics **TOOL** (SCANTOOL) is a program that provides a REST API and web user interface for analyzing bitcoin scripts.
+It is intended to be used in a private network with a running bitcoin node. Notable features include:
 
-- a REST API
-- a web-based block and transaction explorer
+- Indentification of Spend Types (Input Types)
+- Parsing and Displaying of Serialize Scripts
+- Identification of Data Types
+- Platform for Custom Projects
 
-It can be used as a research tool and/or a learning utility that provides data that other APIs and user interfaces do not.
-It is intended to be used in a private network.
+## Features in Detail
 
-## How It Is Different Than Other REST APIs And Block Explorers
-
-#### Spend Types
+### Spend Types
 
 When people discuss transaction types in the bicoin blockchain, they are usually referring to standard output types.
 But output types are only half of the process of transacting on the blockchain.
@@ -37,7 +37,7 @@ Since these are all standard methods for redeeming funds, all input data must be
 
 ![Spend Types](/docs/images/spend_types.png)
 
-#### Serialized Scripts
+### Serialized Scripts
 
 A serialized script is a script included as a field in an input script or segregated witness block.
 These scripts allow bitcoin transactions to be customizable.
@@ -62,7 +62,7 @@ but most bitcoin node APIs and online block explorers display them only as hex f
 
 The SCANTOOL provides fully parsed serialized scripts.
 
-#### Script Field Data Types
+### Script Field Data Types
 
 The bitcoin blockchain contains a variety of different types of data, many of which have little or nothing to do with monetary transactions.
 For example, a segregated witness field could be a signature, a public key or a hash.
@@ -72,7 +72,7 @@ Having a way to view these fields by their data type can be useful for anyone in
 
 (See the [Screen Shots](/docs/screen-shots.md) section for examples.)
 
-#### Custom Projects
+### Custom Projects
 
 The REST API can be used as a back end for research projects which might focus on analysis of specific spend types, output types, script types, opcodes or anything else of interest.
 A client application could be written in almost any language in a relatively short period of time and could be used to put large amounts of data into a database where it can be analyzed more thoroughly.
@@ -80,15 +80,15 @@ A client application could be written in almost any language in a relatively sho
 
 ## Usage
 
-#### Requirements
+### Requirements
 
 1. Access to a bitcoin node that has transaction indexing enabled.
 
-#### Download
+### Download
 
 Go to the [Releases](https://github.com/btc-script-explorer/scantool/releases/latest) page and download the appropriate file for your system.
 
-#### Quick Start (with Bitcoin Core)
+### Quick Start (with Bitcoin Core)
 
 **Each build comes with its own QUICK START GUIDE.**
 
