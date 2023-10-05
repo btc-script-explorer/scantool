@@ -2,18 +2,18 @@
 
 ## InputOptions
 
-Name | Type | Required | Default
----|---|---|---
-include_input_detail | bool | No | false
-human_readable | bool | No | false
+Name | Type | Required | Default | Description
+---|---|---|---|---
+include_input_detail | bool | No | false | return complete input in one request
+human_readable | bool | No | false | return human readable JSON
 
 ## InputRequest
 
-Name | Type | Required | Default
----|---|---|---
-tx_id | string | Yes |
-input_index | uint16 | Yes |
-options | InputOptions | No | not included
+Name | Type | Required | Default | Description
+---|---|---|---|---
+tx_id | string | Yes | | transaction id
+input_index | uint16 | Yes | | input index
+options | InputOptions | No | not included | options
 
 ***
 

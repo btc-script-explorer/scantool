@@ -166,18 +166,18 @@ bitcoin-core-password | Yes | | The rpcpassword setting in Bitcoin Core.
 addr | if no-web=false | 127.0.0.1 | The IP address the web interface should be available on.
 port | if no-web=false | 8080 | The port number the web interface should be available on.
 |||
-no-web | No | false | Turns off the web interface.
-caching | No | false | Turns caching on for better performance.
+no-web | No | false | Disables the web interface.
+caching | No | false | Enables caching for better performance.
 config-file | No | | Location of the config file. Only applicable on the command line.
 
-\* Cache size is not currently managed, so the cache will only grow.
+\* Cache size is not currently managed.
 
 ### Web Interface
 
 The web interface allows search by:
+- transaction id
 - block hash
 - block height
-- transaction id
 
 For more information, see the [screen shots](/docs/screen-shots.md).
 
