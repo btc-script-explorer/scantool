@@ -16,7 +16,9 @@ options | InputOptions | No | not included | options
 
 ***
 
-# Examples
+## Example 1
+
+A coinbase input. Since these have no previous output, the response does not include as many fields.
 
 InputRequest
 
@@ -60,6 +62,11 @@ Input response
 
 ***
 
+## Example 2
+
+A P2SH-P2WSH input. This is the only spend type that includes two serialized scripts. The previous output is P2SH, so the input script contains a redeem script.
+It is also a wrapped P2WSH transaction, so the segregated witness contains a witness script.
+
 InputRequest
 
         {
@@ -70,7 +77,7 @@ InputRequest
                 }
         }
 
-        $ curl -X POST -d '{"tx_id":"adb4e7a5115b1073f5850ba88a8ff5bb4e7b6cf667fbc0e111e5ab245f01a14c","input_index":0,"options":{"human_readable":true}}' http://127.0.0.1:8080/rest/v1/input
+        $ curl -X POST -d '{"tx_id":"042c4f45e5bd4a0e24262436fcdc48dff83d98ee16a841ada62c2f460572a414","input_index":4,"options":{"human_readable":true}}' http://127.0.0.1:8888/rest/v1/input
 
 Input response
 
