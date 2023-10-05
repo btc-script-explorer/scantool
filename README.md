@@ -135,7 +135,7 @@ Our example will assume the following:
         *  REST: curl -X GET http://192.168.1.77:8080/rest/v1/current_block_height  *
         *        curl -X POST -d '{}' http://192.168.1.77:8080/rest/v1/block        *
         *                                                                           *
-        *  Caching: On                                                              *
+        *  Caching: Off                                                             *
         *                                                                           *
         *****************************************************************************
 
@@ -158,18 +158,14 @@ All settings on the command line should begin with "--". In the config file, the
 
 Setting | Required | Default | Description
 ---|---|---|---
-bitcoin-core-addr | Yes | | The IP address from a rpcbind setting in Bitcoin Core.
-bitcoin-core-port | Yes | | The port number from the same rpcbind setting in Bitcoin Core.
+bitcoin-core-addr | Yes | 127.0.0.1 | The IP address from a rpcbind setting in Bitcoin Core.
+bitcoin-core-port | Yes | 8332 | The port number from the same rpcbind setting in Bitcoin Core.
 bitcoin-core-username | Yes | | The rpcuser setting in Bitcoin Core.
 bitcoin-core-password | Yes | | The rpcpassword setting in Bitcoin Core.
-
-Setting | Required | Default | Description
----|---|---|---
-addr | if no-web=false | | The IP address the web interface should be available on.
-port | if no-web=false | | The port number the web interface should be available on.
-
-Setting | Required | Default | Description
----|---|---|---
+|||
+addr | if no-web=false | 127.0.0.1 | The IP address the web interface should be available on.
+port | if no-web=false | 8080 | The port number the web interface should be available on.
+|||
 no-web | No | false | Turns off the web interface.
 caching | No | false | Turns caching on for better performance.
 config-file | No | | Location of the config file. Only applicable on the command line.

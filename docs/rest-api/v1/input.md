@@ -19,6 +19,8 @@ options | InputOptions | No | not included
 
 # Examples
 
+InputRequest
+
         {
                 "tx_id": "adb4e7a5115b1073f5850ba88a8ff5bb4e7b6cf667fbc0e111e5ab245f01a14c",
                 "input_index": 0,
@@ -26,6 +28,8 @@ options | InputOptions | No | not included
                         "human_readable": true
                 }
         }
+
+Input
 
         {
                 "coinbase": true,
