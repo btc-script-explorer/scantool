@@ -35,7 +35,7 @@ It also shows the required contents of the input script and segregated witness f
 The output types are listed by the names assigned to them by Bitcoin Core. The spend types are listed by their commonly-used "P2" (pay-to) names.
 Since these are all standard methods for redeeming funds, all input data must be exactly as shown in the table below with almost no exceptions, otherwise the redemption method will be considered non-standard.
 
-![Spend Types](/docs/images/spend-types.png)
+![Spend Types](/docs/images/spend_types.png)
 
 #### Serialized Scripts
 
@@ -152,13 +152,33 @@ Our example will assume the following:
 
 ## Documentation
 
-### [Settings](/docs/app-settings.md)
+### Settings
 
-### [Web Application](/docs/screen-shots.md)
+All settings on the command line should begin with "--". In the config file, the "--" should not be present.
 
-The web interface is similar to most online block explorers that have a search box.
-Blocks can be identified by their hash or height. Transactions can be identified by their id.
-There is currently no support for address searches.
+The --config-file setting is only applicable on the command line. All others can be provided on the command or in the config file, or any combination of the two.
+
+Setting | Required | Default | Description
+---|---|---|---
+bitcoin-core-addr | Yes | | The IP address from a rpcbind setting in Bitcoin Core.
+bitcoin-core-port | Yes | | The port number from the same rpcbind setting in Bitcoin Core.
+bitcoin-core-username | Yes | | The rpcuser setting in Bitcoin Core.
+bitcoin-core-password | Yes | | The rpcpassword setting in Bitcoin Core.
+addr | if no-web=false | | The IP address the web interface should be available on.
+port | if no-web=false | | The port number the web interface should be available on.
+no-web | No | false | Turns off the web interface.
+caching | No | false | Turns caching on for better performance.
+
+* Cache size is not currently managed, so the cache will only grow.
+
+### Web Interface
+
+The web interface allows search by:
+- block hash
+- block height
+- transaction id
+
+For more information, see the [screen shots](/docs/screen-shots.md).
 
 ### REST API
 
