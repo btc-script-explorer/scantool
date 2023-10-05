@@ -14,11 +14,9 @@ tx_id | string | Yes | | transaction id
 output_index | uint16 | Yes | | output index
 options | OutputOptions | No | not included | options
 
-***
+# Examples
 
-## Example 1
-
-A Taproot output.
+## A Taproot Output
 
 OutputRequest
 
@@ -54,11 +52,7 @@ OutputResponse
                 "value": 50000
         }
 
-***
-
-## Example 2
-
-A legacy multisig output.
+## A Legacy Multisig Output
 
 OutputRequest
 

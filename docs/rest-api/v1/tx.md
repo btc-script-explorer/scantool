@@ -14,9 +14,17 @@ Name | Type | Required | Default | Description
 id | string | Yes | | transaction id
 options | TxOptions | No | not included | options
 
-### How to request a transaction
+# How to request a transaction
 
-The include_input_detail determines which fields will be included in the Input objects in the TxResponse.
+## The include_input_detail Option
+
+The include_input_detail option will force the SCANTOOL to return detailed information about every input.
+For the sake of efficiency, if caching is on and the input detail is already in the cache, a TxResponse might include detailed data even if it was not requested.
+
+include_input_detail | Advantage | Disadvantage | Best Use Case
+:---:|:---:|:---:|:---:
+true | requires only one request | may take longer | automated script
+false | responses may be faster | requires multiple requests | user interface
 
 Input response field | include_input_detail=true | include_input_detail=false
 :---:|:---:|:---:
@@ -30,10 +38,4 @@ previous_output | if coinbase=false | No
 previous_output_tx_id | if coinbase=false | if coinbase=false
 previous_output_index | if coinbase=false | if coinbase=false
 
-Here are the effects of using each option.
-
-include_input_detail | Advantage | Disadvantage
-:---:|:---:|:---:
-true | all data returned in one request | may take longer
-false | initial response is fast | may request a separate request per input
 

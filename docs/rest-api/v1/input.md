@@ -14,11 +14,9 @@ tx_id | string | Yes | | transaction id
 input_index | uint16 | Yes | | input index
 options | InputOptions | No | not included | options
 
-***
+# Examples
 
-## Example 1
-
-A coinbase input. Since these have no previous output, the response does not include as many fields.
+## A Coinbase Input
 
 InputRequest
 
@@ -60,11 +58,9 @@ Input response
                 "sequence": 0
         }
 
-***
+## A P2SH-P2WSH Input
 
-## Example 2
-
-A P2SH-P2WSH input. This is the only spend type that includes two serialized scripts. The previous output is P2SH, so the input script contains a redeem script.
+This is the only spend type that includes two serialized scripts. The previous output is P2SH, so the input script contains a redeem script.
 It is also a wrapped P2WSH transaction, so the segregated witness contains a witness script.
 
 InputRequest
