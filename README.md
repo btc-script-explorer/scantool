@@ -23,11 +23,11 @@ Inputs do most of the work of transfering funds, and they have standard types to
 There are 7 standard redeemable output types, and 10 standard input types, which we refer to here as spend types.
 Each spend type can redeem exactly one output type, but some output types are redeemable by multiple spend types.
 
-An example of the difference between the two would be Taproot. Taproot is actually an output type. There is a specific format that identifies a Taproot output.
-But looking at the output tells us nothing about how it will be redeemed. Taproot outputs can be redeemed using the Key Path spend type or the Script Path spend type.
-Taproot is a single output types that can be redeemed with one of two spend types.
+A good example would be Taproot. Taproot is actually an output type. There is a specific format that identifies a Taproot output.
+But looking at the output tells us nothing about how it will be redeemed. This ambiguity in the output can be thought of as a security feature.
+Taproot outputs can be redeemed using either the Key Path spend type or the Script Path spend type.
 
-Most bitcoin node APIs and online block explorers do not identify input types.
+Most bitcoin node APIs and online block explorers do not identify spend types.
 The SCANTOOL identifies both output types and spend types.
 
 The table below shows which spend types can be used to redeem which output types.
@@ -61,6 +61,8 @@ Therefore, viewing the contents of serialized scripts is essential to understand
 but most bitcoin node APIs and online block explorers display them only as hex fields, the same way they would display a signature or a public key.
 
 The SCANTOOL provides fully parsed serialized scripts.
+
+(See the [Screen Shots](/docs/screen-shots.md) section for examples.)
 
 ### Script Field Data Types
 
@@ -154,7 +156,9 @@ Our example will assume the following:
 
 ### Settings
 
-All settings on the command line should begin with "--". In the config file, the "--" should not be present.
+All settings can be provided on the command line or in a config file, except for the config-file setting which is only applicable on the command line.
+When provided on the command line, settings should begin with "--".
+In the config file, the "--" should not be present.
 
 Setting | Required | Default | Description
 ---|---|---|---
@@ -162,15 +166,13 @@ bitcoin-core-addr | Yes | 127.0.0.1 | The IP address from a rpcbind setting in B
 bitcoin-core-port | Yes | 8332 | The port number from the same rpcbind setting in Bitcoin Core.
 bitcoin-core-username | Yes | | The rpcuser setting in Bitcoin Core.
 bitcoin-core-password | Yes | | The rpcpassword setting in Bitcoin Core.
-|||
 addr | if no-web=false | 127.0.0.1 | The IP address the web interface should be available on.
 port | if no-web=false | 8080 | The port number the web interface should be available on.
-|||
 no-web | No | false | Disables the web interface.
 caching | No | false | Enables caching for better performance.
 config-file | No | | Location of the config file. Only applicable on the command line.
 
-\* Cache size is not currently managed.
+\* Cache size is not currently monitored.
 
 ### Web Interface
 
@@ -190,5 +192,5 @@ For more information, see the [screen shots](/docs/screen-shots.md).
   - [Input](/docs/rest-api/v1/input.md)
   - [Output](/docs/rest-api/v1/output.md)
   - [Current Block Height](/docs/rest-api/v1/current_block_height.md)
-  - [Blockchain Analysis/Research](/docs/rest-api/v1/blockchain_analysis.md)
+- [Blockchain Analysis/Research](/docs/rest-api/v1/blockchain_analysis.md)
 

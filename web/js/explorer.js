@@ -11,12 +11,8 @@ console.log (block_tx_ids);
 	{
 		const headers = new Headers ();
 		headers.append ("Content-Type", "application/json");
-//		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ id: block_tx_ids [t] }) };
-console.log (base_url_rest + '/tx/' + block_tx_ids [t])
 		const response = await fetch (base_url_web + '/block-tx/' + block_tx_ids [t] + '/' + t);
-//console.log (response);
 		const data = await response.json ();
-console.log (data);
 		$ ('#tx-count').html (++txs_loaded);
 		if (data.bip141)
 			++bip141_count;
@@ -41,7 +37,6 @@ console.log (data);
 async function get_tx_inputs ()
 {
 	var input_count = tx_inputs.length;
-//console.log ($ ('#tx-value-out').html ());
 	var tx_value_out = Number ($ ('#tx-value-out').html ());
 	for (var i = 0; i < input_count; i++)
 	{
@@ -50,23 +45,17 @@ async function get_tx_inputs ()
 		var request_data = { method: 'POST', headers: headers, body: JSON.stringify ({ tx_id: tx_inputs [i].tx_id, input_index: tx_inputs [i].input_index }) };
 		const response = await fetch (base_url_web + '/input', request_data);
 		const data = await response.json ();
-//console.log (data);
 
 		$ ('#input-minimized-' + i + '-spend-type').html (data.spend_type)
 		$ ('#input-minimized-' + i + '-value').html (get_value_html (data.value_in))
 		$ ('#input-minimized-' + i + '-address').html (data.address)
 		$ ('#input-maximized-' + i).html (data.input_html)
 
-//console.log (tx_value_out);
 		if (data.spend_type != 'COINBASE')
 		{
 			var tx_value_in = Number ($ ('#tx-value-in').text ()) + Number (data.value_in);
-//console.log (data.value_in);
-//console.log ($ ('#tx-value-in').text ());
-//console.log (tx_value_in);
 			$ ('#tx-value-in').text (tx_value_in);
 			var tx_fee = Number ($ ('#tx-fee').text ());
-//console.log (tx_fee);
 			if (tx_value_in >= tx_value_out)
 				$ ('#tx-fee').html (tx_value_in - tx_value_out);
 		}
