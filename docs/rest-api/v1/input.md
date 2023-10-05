@@ -7,19 +7,19 @@ Name | Type | Required | Default | Description
 include_input_detail | bool | No | false | return complete input in one request
 human_readable | bool | No | false | return human readable JSON
 
-These are the Input fields that will be returned depending on what the include_input_detail option is set to:
+include_input_detail determines which fields in the Input response are guaranteed to be included.
 
 Input field | true | false
----|---|---
+---|:---:|---
 coinbase | Yes | Yes
 input_script | Yes | Yes
 segwit | Yes | Yes
 sequence | Yes | Yes
-previous_output_tx_id | if coinbase= false | if coinbase= false
-previous_output_index | if coinbase= false | if coinbase= false
 redeem_script | Yes | No
 spend_type | Yes | No
 previous_output | if coinbase= false | No
+previous_output_tx_id | if coinbase= false | if coinbase= false
+previous_output_index | if coinbase= false | if coinbase= false
 
 ## InputRequest
 
