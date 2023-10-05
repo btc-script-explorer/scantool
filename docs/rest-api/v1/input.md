@@ -2,14 +2,14 @@
 
 ## InputOptions
 
-Field | Type | Required | Default
+Name | Type | Required | Default
 ---|---|---|---
 include_input_detail | bool | No | false
 human_readable | bool | No | false
 
 ## InputRequest
 
-Field | Type | Required | Default
+Name | Type | Required | Default
 ---|---|---|---
 tx_id | string | Yes |
 input_index | uint16 | Yes |
@@ -20,9 +20,9 @@ options | InputOptions | No | not included
 # Examples
 
         {
-                "tx_id": "adb4e7a5115b1073f5850ba88a8ff5bb4e7b6cf667fbc0e111e5ab245f01a14c"
-                "input_index": 0
-                {
+                "tx_id": "adb4e7a5115b1073f5850ba88a8ff5bb4e7b6cf667fbc0e111e5ab245f01a14c",
+                "input_index": 0,
+                "options": {
                         "human_readable": true
                 }
         }

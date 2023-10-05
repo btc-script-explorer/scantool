@@ -146,10 +146,12 @@ Our example will assume the following:
 
 ### REST API
 
-- [Block](/docs/rest-api/v1/block.md)
-- [Transaction](/docs/rest-api/v1/tx.md)
-- [Input](/docs/rest-api/v1/input.md)
-- [Output](/docs/rest-api/v1/output.md)
-- [Current Block Height](/docs/rest-api/v1/current_block_height.md)
-- [Blockchain Analysis/Research](/docs/rest-api/v1/blockchain_analysis.md)
+- [JSON Responses](/docs/rest-api/v1/json_response_objects.md)
+- JSON Requests
+  - [Block](/docs/rest-api/v1/block.md)
+  - [Transaction](/docs/rest-api/v1/tx.md)
+  - [Input](/docs/rest-api/v1/input.md)
+  - [Output](/docs/rest-api/v1/output.md)
+  - [Current Block Height](/docs/rest-api/v1/current_block_height.md)
+  - [Blockchain Analysis/Research](/docs/rest-api/v1/blockchain_analysis.md)
 

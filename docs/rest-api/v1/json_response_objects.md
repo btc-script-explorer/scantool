@@ -1,15 +1,15 @@
-# Response JSON Objects
+# JSON Response Objects
 
 ## Field
 
-Field | Type | When Included
+Name | Type | When Included
 ---|---|---|---
 hex | string | Always
 type | string | When known
 
 ## Script
 
-Field | Type | When Included
+Name | Type | When Included
 ---|---|---|---
 hex | string | Always
 fields | [] Field | Always
@@ -17,7 +17,7 @@ parse_error | bool | Always
 
 ## Segwit
 
-Field | Type | When Included
+Name | Type | When Included
 ---|---|---|---
 fields | [] Field | Always
 witness_script | Script | if present
@@ -25,7 +25,7 @@ tap_script | Script | if present
 
 ## Input
 
-Field | Type | When Included
+Name | Type | When Included
 ---|---|---|---
 coinbase | bool | Always
 input_script | Script | Always
