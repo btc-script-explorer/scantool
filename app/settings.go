@@ -127,8 +127,8 @@ func (s *settingsManager) IsCachingOn () bool {
 func getBoolValue (setting string) bool {
 	lower := strings.ToLower (setting)
 	intVal, err := strconv.Atoi (setting)
-	if err != nil { intVal = 1 }
-	return lower != "false" && lower != "off" && intVal != 0
+	if err != nil { intVal = -1 }
+	return lower == "true" || lower == "on" || intVal > 0
 }
 
 func (s *settingsManager) setSettings (settings map [string] string) {
