@@ -481,6 +481,7 @@ func getBlockHtml (block btc.Block, customJavascript string) string {
 	explorerPageHtmlData := getExplorerPageHtmlData (blockHash, blockHtmlData)
 	layoutHtmlData := getLayoutHtmlData (customJavascript, explorerPageHtmlData)
 
+fmt.Println (GetPath ())
 	// parse the files
 	layoutHtmlFiles := [] string {
 		GetPath () + "html/layout.html",
@@ -1006,8 +1007,16 @@ func getBlockCharts (nonCoinbaseInputCount uint16, outputCount uint16, spendType
 }
 */
 
-// TODO: this needs to be replaced by a web-dir setting
+var path string
+
+func SetWebPath (webPath string) {
+	path = webPath
+	if len (path) > 0 && path [len (path) - 1] != '/' {
+		path += "/"
+	}
+}
+
 func GetPath () string {
-	return "web/"
+	return path
 }
 

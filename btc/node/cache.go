@@ -9,6 +9,8 @@ import (
 	"time"
 //	"runtime"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/btc-script-explorer/scantool/app"
 	"github.com/btc-script-explorer/scantool/btc"
 )
@@ -145,7 +147,9 @@ func makeTx (rawTx map [string] interface {}) btc.Tx {
 	for o := 0; o < int (outputCount); o++ {
 		rawOutput := vout [o].(map [string] interface {})
 
-		value := uint64 (rawOutput ["value"].(float64) * 100000000)
+//		value := uint64 (rawOutput ["value"].(float64) * 100000000)
+		dValue := decimal.NewFromFloat (rawOutput ["value"].(float64))
+		value := uint64 (dValue.Mul (decimal.NewFromInt (100000000)).IntPart ())
 
 		// output script
 		outputScript := rawOutput ["scriptPubKey"].(map [string] interface {})

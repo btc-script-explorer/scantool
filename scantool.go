@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"net/http"
 	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/btc-script-explorer/scantool/app"
 	"github.com/btc-script-explorer/scantool/btc/node"
@@ -118,7 +120,30 @@ func printListeningMessage () {
 
 func main () {
 
-	app.ParseSettings ()
+	// make sure certain paths exist
+	executablePath, pathError := os.Executable ()
+	if pathError != nil {
+		fmt.Println (pathError.Error ())
+		fmt.Println ("Failed to locate currently running executable. Aborting.")
+		return
+	}
+
+	webDirPath := filepath.Join (filepath.Dir (executablePath), "web")
+	versionFilePath := filepath.Join (filepath.Dir (executablePath), "VERSION")
+
+	for _, p := range [] string { webDirPath, versionFilePath } {
+		_, err := os.Stat (p)
+		if err != nil {
+			fmt.Println (err.Error ())
+			fmt.Println (fmt.Sprintf ("Failed to locate %s. Aborting.", p))
+			return
+		}
+	}
+
+	web.SetWebPath (webDirPath)
+
+	// load the settings
+	app.ParseSettings (versionFilePath)
 	if app.Settings.IsVersionRequest () {
 		fmt.Println (fmt.Sprintf ("scantool %s", app.GetVersion ()))
 		return

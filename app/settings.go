@@ -31,10 +31,10 @@ type settingsManager struct {
 	noWeb bool
 	caching bool
 
-	testMode string
-	testVerifiedDir string
-	testUnverifiedDir string
-	testSourceFile string
+//	testMode string
+//	testVerifiedDir string
+//	testUnverifiedDir string
+//	testSourceFile string
 }
 
 func (s *settingsManager) ExitOnError () {
@@ -42,6 +42,7 @@ func (s *settingsManager) ExitOnError () {
 	// verify the web settings
 	if s.noWeb && (len (s.addr) == 0 || s.port == 0) { panic ("Web parameters are not valid.") }
 
+/*
 	// make sure the user has the correct test file permissions
 	if s.testMode == "save" {
 		if !checkFile (s.testSourceFile, PERM_READ) { panic ("Can not access test souce file " + s.testSourceFile + ".") }
@@ -49,6 +50,7 @@ func (s *settingsManager) ExitOnError () {
 	} else if s.testMode == "verify" {
 		if !checkFile (s.testVerifiedDir, PERM_READ) { panic ("Can not access verified test directory " + s.testVerifiedDir + ".") }
 	}
+*/
 }
 
 func (s *settingsManager) GetConfigFileLocation () string {
@@ -189,13 +191,17 @@ func getDefaultSettings () settingsManager {
 							}
 }
 
-func ParseSettings () {
+func ParseSettings (versionFilePath string) {
 	if Settings.alreadyParsed { return }
 
 	Settings = getDefaultSettings ()
 
-	versionBytes, err := ioutil.ReadFile ("./VERSION")
-	if err != nil { fmt.Println (err.Error ()) }
+	versionBytes, err := ioutil.ReadFile (versionFilePath)
+	if err != nil {
+		fmt.Println (err.Error ())
+		fmt.Println ("Unable to read from " + versionFilePath)
+		os.Exit (1)
+	}
 	Settings.versionTag = string (versionBytes)
 	for Settings.versionTag [len (Settings.versionTag) - 1] == '\n' {
 		Settings.versionTag = Settings.versionTag [0 : len (Settings.versionTag) - 1]
