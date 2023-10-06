@@ -41,12 +41,14 @@ func NewSegwit (rawFields [] [] byte) Segwit {
 		fields [f] = SegwitField { rawBytes: field }
 	}
 
+/*
 	// segwit is not aware of the types of all of its fields
 	for f, field := range fields {
 		if len (field.rawBytes) == 0 {
 			fields [f].dataType = "ZERO-LENGTH FIELD"
 		}
 	}
+*/
 
 	return Segwit { fields: fields, tapScriptIndex: INVALID_CB_INDEX }
 }
