@@ -481,7 +481,6 @@ func getBlockHtml (block btc.Block, customJavascript string) string {
 	explorerPageHtmlData := getExplorerPageHtmlData (blockHash, blockHtmlData)
 	layoutHtmlData := getLayoutHtmlData (customJavascript, explorerPageHtmlData)
 
-fmt.Println (GetPath ())
 	// parse the files
 	layoutHtmlFiles := [] string {
 		GetPath () + "html/layout.html",
