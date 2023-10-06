@@ -46,9 +46,9 @@ However, for the sake of efficiency, if caching is on and the input detail is al
 Considerations:
 
 - Only basic information about inputs will be returned in the initial response.
-- Subsquent requests will be required in order to get detailed information about each input.
+- Subsquent requests to either the input or output API will be required in order to get detailed information about each input.
 - It will probably be faster per request, but slower overall.
-- Better for custom user interfaces that use the REST API as a backend.
+- Better for custom user interfaces that use the REST API as a backend and require fast response times.
 
 Input fields returned in the response:
 
