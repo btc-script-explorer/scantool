@@ -19,6 +19,8 @@ import (
 	"github.com/btc-script-explorer/scantool/web"
 )
 
+var versionTag string
+
 func homeHandler (response http.ResponseWriter, request *http.Request) {
 
 	// redirect web requests if web enabled
@@ -129,9 +131,8 @@ func main () {
 	}
 
 	webDirPath := filepath.Join (filepath.Dir (executablePath), "web")
-	versionFilePath := filepath.Join (filepath.Dir (executablePath), "VERSION")
 
-	for _, p := range [] string { webDirPath, versionFilePath } {
+	for _, p := range [] string { webDirPath } {
 		_, err := os.Stat (p)
 		if err != nil {
 			fmt.Println (err.Error ())
@@ -143,7 +144,7 @@ func main () {
 	web.SetWebPath (webDirPath)
 
 	// load the settings
-	app.ParseSettings (versionFilePath)
+	app.ParseSettings (versionTag)
 	if app.Settings.IsVersionRequest () {
 		fmt.Println (fmt.Sprintf ("scantool %s", app.GetVersion ()))
 		return

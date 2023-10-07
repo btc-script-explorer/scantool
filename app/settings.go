@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"io/fs"
-	"io/ioutil"
 	"bufio"
 	"strings"
 	"strconv"
@@ -169,7 +168,7 @@ var Settings settingsManager
 
 func getDefaultSettings () settingsManager {
 	return settingsManager {
-//								versionTag: "",
+								versionTag: "",
 								versionRequest: false,
 
 //								configFile: "",
@@ -191,21 +190,11 @@ func getDefaultSettings () settingsManager {
 							}
 }
 
-func ParseSettings (versionFilePath string) {
+func ParseSettings (versionTag string) {
 	if Settings.alreadyParsed { return }
 
 	Settings = getDefaultSettings ()
-
-	versionBytes, err := ioutil.ReadFile (versionFilePath)
-	if err != nil {
-		fmt.Println (err.Error ())
-		fmt.Println ("Unable to read from " + versionFilePath)
-		os.Exit (1)
-	}
-	Settings.versionTag = string (versionBytes)
-	for Settings.versionTag [len (Settings.versionTag) - 1] == '\n' {
-		Settings.versionTag = Settings.versionTag [0 : len (Settings.versionTag) - 1]
-	}
+	Settings.versionTag = versionTag
 
 	parameters := make (map [string] string)
 
@@ -332,3 +321,4 @@ func (s *settingsManager) IsVersionRequest () bool {
 func GetVersion () string {
 	return Settings.versionTag
 }
+
