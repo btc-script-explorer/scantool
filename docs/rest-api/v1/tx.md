@@ -65,8 +65,6 @@ Input fields returned in the response:
 
 TxRequest
 
-We are requesting the same transaction as above, but with input detail this time.
-
         {
                 "id": "bbe9e2fced55a2ac4fabb6c74cef8d9dda6cc1121a9782ee7e34fe97e32958cb",
                 "options": {
@@ -80,7 +78,7 @@ We are requesting the same transaction as above, but with input detail this time
 Tx response
 
 This response includes the input's previous output detail, spend type and all serialized script information.
-This reveals something very unusual about this transaction. The redeem script is one of approximately five existing 0-of-5 multisig serialized scripts in the blockchain.
+It reveals something rare and unusual about this transaction. The redeem script is one of approximately five existing 0-of-5 multisig serialized scripts in the blockchain.
 No signatures are required to be verfied in order for the script to succeed. The script will always succeed.
 However, the transaction itself is still relatively secure because, in order to steal the funds, someone would have to guess the exact script that produced the script hash.
 
@@ -237,6 +235,8 @@ However, the transaction itself is still relatively secure because, in order to 
 ## Without Input Detail
 
 TxRequest
+
+We are requesting the same transaction as above, but without the detailed input information.
 
         {
                 "id": "bbe9e2fced55a2ac4fabb6c74cef8d9dda6cc1121a9782ee7e34fe97e32958cb",
