@@ -55,7 +55,7 @@ Others-20 | 1 | 0
 src-20 | 1 | 0
 bitclub | 1 | 0
 
-The vast majority of standard ordinals found were performing mint operations.
+Here are the operations found in this test.
 
 Operation | Count | %
 ---|---:|---:

@@ -222,7 +222,9 @@ func (s *Segwit) SetTapScript (ts Script, i uint32) {
 	tapScriptFields := s.tapScript.GetFields ()
 	for f, field := range tapScriptFields {
 		if !field.IsOpcode () {
-			s.tapScript.SetFieldType (f, GetStackItemType (field.AsBytes (), true))
+			// passing !IsOrdinal here because tap scripts for ordinals do not usually contain signatures
+			// so we don't want 64-byte or 65-byte data fields to be mis-identified as Schnorr Signatures
+			s.tapScript.SetFieldType (f, GetStackItemType (field.AsBytes (), !s.tapScript.IsOrdinal ()))
 		}
 	}
 }
