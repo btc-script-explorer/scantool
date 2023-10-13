@@ -20,15 +20,15 @@ func scriptToJson (script btc.Script) map [string] interface {} {
 
 	json := make (map [string] interface {})
 
-	fields := make ([] binaryFieldJson, script.GetFieldCount ())
+	jsonFields := make ([] binaryFieldJson, script.GetFieldCount ())
 	for f, field := range script.GetFields () {
-		fields [f] = binaryFieldJson { Hex: field.AsHex (), Type: field.AsType () }
+		jsonFields [f] = binaryFieldJson { Hex: field.AsHex (), Type: field.AsType () }
 	}
 
 	json ["hex"] = script.AsHex ()
-	json ["fields"] = fields
+	json ["fields"] = jsonFields
 	if script.IsOrdinal () { json ["is_ordinal"] = true }
-	if script.IsOrdinal () { json ["is_ordinal"] = true }
+	if script.IsMultiSigOutput () { json ["is_multisig"] = true }
 	json ["parse_error"] = script.HasParseError ()
 
 	return json
@@ -38,12 +38,31 @@ func segwitToJson (segwit btc.Segwit) map [string] interface {} {
 
 	json := make (map [string] interface {})
 
+	cbIndex := segwit.GetControlBlockIndex ()
+
 	fields := make ([] map [string] interface {}, segwit.GetFieldCount ())
 	for f, field := range segwit.GetFields () {
 		fields [f] = make (map [string] interface {})
-		fields [f] ["hex"] = field.AsHex ()
+		hexStr := field.AsHex ()
+		fields [f] ["hex"] = hexStr
 		if len (field.AsType ()) > 0 {
 			fields [f] ["type"] = field.AsType ()
+		}
+
+		if cbIndex != btc.INVALID_CB_INDEX && uint32 (f) == cbIndex {
+			fields [f] ["type"] = "Control Block"
+			fields [f] ["leaf_version"] = segwit.GetTapLeafVersion ()
+			parity, err := segwit.GetTapTweakParity ()
+			if err != nil { fmt.Println (err.Error ()) }
+			fields [f] ["parity"] = parity
+			tapLeafCount := (len (field.AsBytes ()) - 1) / 32
+			tapLeaves := make ([] string, tapLeafCount)
+			for i := 0; i < tapLeafCount; i++ {
+				start := 2 + (i * 64)
+				end := start + 64
+				tapLeaves [i] = hexStr [start : end]
+			}
+			fields [f] ["tap_leaf_hash"] = tapLeaves
 		}
 	}
 

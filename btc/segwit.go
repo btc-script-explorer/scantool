@@ -2,6 +2,7 @@ package btc
 
 import (
 	"fmt"
+	"errors"
 	"encoding/hex"
 )
 
@@ -216,7 +217,9 @@ func (s *Segwit) SetTapScript (ts Script, i uint32) {
 
 	leafCountLabel := "TapLea"
 	if cbLeafCount == 1 { leafCountLabel += "f" } else { leafCountLabel += "ves" }
-	s.fields [cbIndex].SetType (fmt.Sprintf ("Control Block (%d %s)", cbLeafCount, leafCountLabel))
+	parity, err := s.GetTapTweakParity ()
+	if err != nil { fmt.Println (err.Error ()) }
+	s.fields [cbIndex].SetType (fmt.Sprintf ("Control Block (Version %X, Parity %d, %d %s)", s.GetTapLeafVersion (), parity, cbLeafCount, leafCountLabel))
 
 	// set the field types for the Tap Script
 	tapScriptFields := s.tapScript.GetFields ()
@@ -237,6 +240,22 @@ func (s *Segwit) HasAnnex () bool {
 }
 
 const INVALID_CB_INDEX = 0xffffffff
+
+// returns 0 on error
+func (s *Segwit) GetTapLeafVersion () byte {
+	cbIndex := s.GetControlBlockIndex ()
+	if s.tapScript.IsNil () || cbIndex == INVALID_CB_INDEX { return 0 }
+
+	return s.fields [cbIndex].AsBytes () [0] & 0xfe
+}
+
+func (s *Segwit) GetTapTweakParity () (byte, error) {
+	cbIndex := s.GetControlBlockIndex ()
+	if s.tapScript.IsNil () || cbIndex == INVALID_CB_INDEX { return 0, errors.New ("Getting parity for field other than control block.") }
+
+	return s.fields [cbIndex].AsBytes () [0] & 0x01, nil
+}
+
 func (s *Segwit) GetControlBlockIndex () uint32 {
 
 	minimumFieldCount := 2
@@ -251,7 +270,7 @@ func (s *Segwit) GetControlBlockIndex () uint32 {
 	// if this is really a control block, there will be a minimum number of segwit fields
 	if actualFieldCount < minimumFieldCount { return INVALID_CB_INDEX }
 
-	// a valid control must have a valid length
+	// a valid control block must have a valid length
 	controlBlockLength := len (s.fields [controlBlockIndex].AsBytes ())
 	validControlBlockLength := controlBlockLength >= 33 && (controlBlockLength - 1) % 32 == 0
 	if !validControlBlockLength { return INVALID_CB_INDEX }
