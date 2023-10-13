@@ -159,7 +159,7 @@ func NewScript (rawBytes [] byte) Script {
 		appearsValid = !(looksLikeOpReturn || mismatchedElse || mismatchedIf)
 	}
 
-	// finally, determine the data type of each script item
+	// determine the data type of each script item
 	for f, field := range fields {
 		if field.IsOpcode () {
 			fields [f].dataType = field.AsHex ()
@@ -172,6 +172,7 @@ func NewScript (rawBytes [] byte) Script {
 }
 
 // used only for testing
+/*
 func (s *Script) PrintToScreen () {
 	fmt.Println ("\n**************************************")
 	fmt.Println (len (s.fields), " fields in script")
@@ -180,6 +181,7 @@ func (s *Script) PrintToScreen () {
 	}
 	fmt.Println ("**************************************\n")
 }
+*/
 
 func (s *Script) AsBytes () [] byte {
 	return s.rawBytes
