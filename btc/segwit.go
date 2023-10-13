@@ -224,7 +224,7 @@ func (s *Segwit) SetTapScript (ts Script, i uint32) {
 		if !field.IsOpcode () {
 			itemType := GetStackItemType (field.AsBytes (), true)
 			if s.tapScript.IsOrdinal () && itemType == "Schnorr Signature" {
-				itemType := GetStackItemType (field.AsBytes (), false)
+				itemType = GetStackItemType (field.AsBytes (), false)
 			}
 			s.tapScript.SetFieldType (f, itemType)
 		}
