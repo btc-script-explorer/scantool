@@ -65,20 +65,13 @@ type cacheThreadChannelPack struct {
 }
 
 // caches
-//var blockMap sync.Map // height -> block
 var blockIndex sync.Map // hash -> height
-//var txMap sync.Map // tx-id -> tx
-
-//var countDataMutex sync.Mutex
-//var blockCount uint32
-//var txCount uint32
-
-var blockCacheMutex sync.Mutex
 var blockMap map [uint32] cachedBlock
-//var blockIndex map [string] uint32
-
-var txCacheMutex sync.Mutex
 var txMap map [string] cachedTx
+
+// mutexes
+var blockCacheMutex sync.Mutex
+var txCacheMutex sync.Mutex
 
 type btcCache struct {
 	channel cacheClientChannelPack
@@ -104,8 +97,8 @@ func initCache () {
 		txMap = make (map [string] cachedTx)
 
 		// channels
-		blockChan := make (chan btc.Block)
-		txChan := make (chan btc.Tx)
+		blockChan := make (chan btc.Block, 50)
+		txChan := make (chan btc.Tx, 50)
 		cache.channel = cacheClientChannelPack { block: blockChan, tx: txChan }
 
 		// start the cache thread
@@ -293,12 +286,9 @@ func (c *btcCache) getBlock (blockKey string) btc.Block {
 		blockCacheMutex.Unlock ()
 
 		if !block.IsNil () {
-//fmt.Println (fmt.Sprintf ("FOUND: block %d", block.GetHeight ()))
 			return block
 		}
 	}
-
-//fmt.Println (fmt.Sprintf ("NOT FOUND: block %s", blockKey))
 
 	// it wasn't there
 	// get the block from the node, return it to the appropriate channel and cache it
@@ -317,7 +307,6 @@ func (c *btcCache) getBlock (blockKey string) btc.Block {
 		}
 
 		// try to get it from the node
-//fmt.Println (fmt.Sprintf ("REQUESTING: block %s", blockHash))
 		rawBlock, err := c.btcNode.getBlock (blockHash, true)
 
 		succeeded := err == nil
@@ -360,12 +349,7 @@ func (c *btcCache) getBlock (blockKey string) btc.Block {
 
 func (c *btcCache) threadTxFromNode (txId string, withPreviousOutputs bool, r chan<- btc.Tx) {
 
-//fmt.Println (fmt.Sprintf ("REQUESTING: tx %s", txId))
-//before := time.Now ().Unix ()
 	rawTx, err := c.btcNode.getTx (txId)
-//after := time.Now ().Unix ()
-//fmt.Println (fmt.Sprintf ("read tx from node took %d seconds", after - before))
-//fmt.Println (fmt.Sprintf ("RECEIVED: tx %s", txId))
 
 	succeeded := err == nil
 	txExists := rawTx != nil
@@ -418,11 +402,8 @@ func (c *btcCache) threadTxFromNode (txId string, withPreviousOutputs bool, r ch
 func (c *btcCache) getTx (txId string, withPreviousOutputs bool) btc.Tx {
 
 	// is it already cached?
-//	t, found := txMap.Load (txId)
-
-	found := false
-
 	t := cachedTx {}
+	found := false
 	if c.caching {
 
 		txCacheMutex.Lock ()
@@ -434,12 +415,13 @@ func (c *btcCache) getTx (txId string, withPreviousOutputs bool) btc.Tx {
 
 	if found {
 
-//		txCacheObj := t.(cachedTx)
 		txCacheObj := t
 		tx := txCacheObj.tx
 
 		if !tx.IsNil () {
-//fmt.Println (fmt.Sprintf ("FOUND: tx %s", tx.GetTxId ()))
+
+			// update the cache
+			c.channel.tx <- tx
 
 			includesPreviousOutputs := tx.IsCoinbase ()
 			if !tx.IsCoinbase () {
@@ -457,21 +439,9 @@ func (c *btcCache) getTx (txId string, withPreviousOutputs bool) btc.Tx {
 				}
 			}
 
-			if c.caching {
-				now := time.Now ().Unix ()
-				updatedTx := cachedTx { timestampCreated: txCacheObj.timestampCreated, timestampLastUsed: now, tx: tx }
-
-//				txMap.Swap (txId, updatedTx)
-
-				txCacheMutex.Lock ()
-				txMap [txId] = updatedTx
-				txCacheMutex.Unlock ()
-			}
-
 			return tx
 		}
 	}
-//fmt.Println (fmt.Sprintf ("NOT FOUND: tx %s", txId))
 
 	// it wasn't there, get it from the node
 	r := make (chan btc.Tx, 1)
@@ -514,33 +484,33 @@ func run (channel cacheThreadChannelPack) {
 
 				if block.IsNil () { break }
 
-				blockHeight := block.GetHeight ()
-
-				// does it already exist?
-//				_, found := blockMap.Load (blockHeight)
-
-				blockCacheMutex.Lock ()
-				blockInCache := blockMap [blockHeight].block
-				blockCacheMutex.Unlock ()
-
-				found := !blockInCache.IsNil ()
-				if found {
-//fmt.Println (fmt.Sprintf ("IGNORING: block %d (already cached)", blockHeight))
-					break
-				}
-
-				// index and cache the block
 				go func () {
+					blockHeight := block.GetHeight ()
 					now := time.Now ().Unix ()
+
+					// does it already exist?
+					b := blockMap [blockHeight]
+					found := !b.block.IsNil ()
+					if found {
+
+						if b.timestampLastUsed == now { return }
+ 
+						// update the last used timestamp
+						b.timestampLastUsed = now
+
+					} else {
+
+						// index and cache the block
+						b = cachedBlock { timestampCreated: now, timestampLastUsed: now, block: block }
+						blockIndex.Store (block.GetHash (), blockHeight)
 //fmt.Println (fmt.Sprintf ("CACHING: block %d", blockHeight))
 
-//					blockMap.Store (blockHeight, cachedBlock { timestampCreated: now, timestampLastUsed: now, block: block })
+					}
 
 					blockCacheMutex.Lock ()
-					blockMap [blockHeight] = cachedBlock { timestampCreated: now, timestampLastUsed: now, block: block }
+					blockMap [blockHeight] = b
 					blockCacheMutex.Unlock ()
 
-					blockIndex.Store (block.GetHash (), blockHeight)
 				} ()
 
 
@@ -548,43 +518,43 @@ func run (channel cacheThreadChannelPack) {
 
 				if tx.IsNil () { break }
 
-				txId := tx.GetTxId ()
-
-				// does it already exist?
-//				_, found := txMap.Load (txId)
-
-				txCacheMutex.Lock ()
-				t := txMap [txId]
-				txCacheMutex.Unlock ()
-
-				found := !t.tx.IsNil ()
-
-				if found {
-//fmt.Println (fmt.Sprintf ("IGNORING: tx %s (already cached)", txId))
-					break
-				}
-
-				// cache the tx
 				go func () {
+					txId := tx.GetTxId ()
 					now := time.Now ().Unix ()
-//fmt.Println (fmt.Sprintf ("CACHING: tx %s", txId))
 
-//					txMap.Store (txId, cachedTx { timestampCreated: now, timestampLastUsed: now, tx: tx })
+					// does it already exist?
+					t := txMap [txId]
+					found := !t.tx.IsNil ()
+					if found {
+
+						if t.timestampLastUsed == now { return }
+ 
+						// update the last used timestamp
+						t.timestampLastUsed = now
+
+					} else {
+
+						// cache the tx
+						t = cachedTx { timestampCreated: now, timestampLastUsed: now, tx: tx }
+//fmt.Println (fmt.Sprintf ("CACHING: tx %s, created at %ld, queue size = %d, cache size = %d", txId, now, len (channel.tx), len (txMap)))
+					}
 
 					txCacheMutex.Lock ()
-					txMap [txId] = cachedTx { timestampCreated: now, timestampLastUsed: now, tx: tx }
+					txMap [txId] = t
+					txCacheMutex.Unlock ()
+
 //					txCount := len (txMap)
 //if txCount >= 100 {
 //	for k, _ := range txMap {
 //		delete (txMap, k)
 //	}
 //}
-					txCacheMutex.Unlock ()
 
 //var ms runtime.MemStats
 //runtime.ReadMemStats (&ms)
 //if txCount == 0 { txCount = 1 }
 //fmt.Println (fmt.Sprintf ("***** %d threads, %d bytes allocated, %d transactions (%d bytes/tx) *****", runtime.NumGoroutine (), ms.HeapAlloc, txCount, ms.HeapAlloc / uint64 (txCount)))
+
 				} ()
 		}
 	}
