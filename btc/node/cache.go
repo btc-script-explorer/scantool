@@ -489,7 +489,10 @@ func run (channel cacheThreadChannelPack) {
 					now := time.Now ().Unix ()
 
 					// does it already exist?
+					blockCacheMutex.Lock ()
 					b := blockMap [blockHeight]
+					blockCacheMutex.Unlock ()
+
 					found := !b.block.IsNil ()
 					if found {
 
@@ -523,7 +526,10 @@ func run (channel cacheThreadChannelPack) {
 					now := time.Now ().Unix ()
 
 					// does it already exist?
+					txCacheMutex.Lock ()
 					t := txMap [txId]
+					txCacheMutex.Unlock ()
+
 					found := !t.tx.IsNil ()
 					if found {
 
@@ -536,7 +542,7 @@ func run (channel cacheThreadChannelPack) {
 
 						// cache the tx
 						t = cachedTx { timestampCreated: now, timestampLastUsed: now, tx: tx }
-//fmt.Println (fmt.Sprintf ("CACHING: tx %s, created at %ld, queue size = %d, cache size = %d", txId, now, len (channel.tx), len (txMap)))
+//fmt.Println (fmt.Sprintf ("CACHING: tx %s, created at %ld, queue size = %d", txId, now, len (channel.tx)))
 					}
 
 					txCacheMutex.Lock ()
