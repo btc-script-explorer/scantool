@@ -78,7 +78,7 @@ TxRequest
 Tx response
 
 This response includes the input's previous output detail, spend type and all serialized script information.
-It reveals something rare and unusual about this transaction. The redeem script is one of approximately five existing 0-of-5 multisig serialized scripts in the blockchain.
+It reveals something rare and unusual about this transaction. The redeem script is one of five existing 0-of-5 multisig serialized scripts in the blockchain.
 No signatures are required to be verfied in order for the script to succeed. The script will always succeed.
 However, the transaction itself is still relatively secure because, in order to steal the funds, someone would have to guess the exact script that produced the script hash.
 

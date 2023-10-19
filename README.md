@@ -8,7 +8,7 @@ The **SC**ript **AN**alytics **TOOL** (SCANTOOL) is a program that provides a RE
 It is intended to be used in a private network with a running bitcoin node. Notable features include:
 
 - Indentification of Spend Types (Input Types)
-- Parsing and Displaying of Serialize Scripts
+- Parsing and Displaying of Serialized Scripts
 - Identification of Data Types
 - Platform for Custom Projects
 
