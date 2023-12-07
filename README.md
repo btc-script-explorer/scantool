@@ -47,7 +47,7 @@ There are 3 types of serialized scripts:
 - Witness Script (BIP 143) is the last field in the segregated witness for a P2SH-P2WSH or P2WSH input.
 - Tap Script (BIP 341) is the field immediately before the control block in the segregated witness for a Taproot Script Path input.
 
-The need for serialized scripts evolved out of the need for multisig transactions.
+The legacy multisig transactions are like the ancestors of modern serialized scripts.
 When the pay-to-scripthash output type was introduced, multisig wallets started using serialized scripts instead of the legacy multisig transaction type.
 Today, more than 93% of redeem scripts and witness scripts are used for multisig transactions. Nearly 99% of tap scripts are used for ordinals.
 

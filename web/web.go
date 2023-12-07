@@ -546,6 +546,7 @@ func getTxHtml (tx btc.Tx, customJavascript string) string {
 	txPageHtmlData ["BlockTime"] = time.Unix (tx.GetBlockTime (), 0).UTC ()
 
 	txPageHtmlData ["BlockHash"] = tx.GetBlockHash ()
+	txPageHtmlData ["Version"] = tx.GetVersion ()
 	txPageHtmlData ["IsCoinbase"] = tx.IsCoinbase ()
 	txPageHtmlData ["SupportsBip141"] = tx.SupportsBip141 ()
 	txPageHtmlData ["LockTime"] = tx.GetLockTime ()

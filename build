@@ -1,0 +1,160 @@
+#! /bin/bash
+
+VERSION="test"
+TARGET="test"
+if [ $# -ge 1 ]; then
+	VERSION=$1
+	TARGET="release"
+fi
+
+# for release builds, the version must be an existing git tag
+if [ "$TARGET" == "release" ]; then
+	TAG=`git tag -l $VERSION`
+	if [ "$TAG" != "$VERSION" ]; then
+		echo ""
+		echo "Git tag $VERSION does not exist."
+		echo ""
+		exit
+	fi
+fi
+
+# verify that all required files and directories exist
+# the executable and VERSION file will be built during the build
+REQUIRED_FILES=("./LICENSE" "./docs/QUICK-START" "./docs/scantool-example.conf")
+for F in ${REQUIRED_FILES[@]}; do
+	if [ ! -f $F ]; then
+		echo ""
+		echo "$F is missing. Can not build."
+		echo ""
+		exit
+	fi
+done
+
+REQUIRED_DIRECTORIES=("web/css" "web/html" "web/js")
+for D in ${REQUIRED_DIRECTORIES[@]}; do
+	if [ ! -d ./$D ]; then
+		echo ""
+		echo "Directory $D is missing. Can not build."
+		echo ""
+		exit
+	fi
+done
+
+# check for uncommitted changes
+STASHING_CHANGES=0
+GIT_BRANCH=`git rev-parse --abbrev-ref HEAD`
+if [ "$TARGET" == "release" ]; then
+	if [ "$GIT_BRANCH" == "HEAD" ]; then
+		echo ""
+		echo "You are in a detached head state. HEAD must point to a specific branch in order to run this script."
+		echo "Please resolve this issue and run the build script again."
+		echo ""
+		git status
+		exit
+	fi
+
+	UNCOMMITTED_TEST=`git diff --cached`
+	if [ ${#UNCOMMITTED_TEST} -ne 0 ]; then
+		echo ""
+		echo "There are changes to be committed that will be unstaged if the build proceeds."
+		echo "Please either commit the changes or unstage them. Then run this script again."
+		echo ""
+		git status
+		exit
+	fi
+
+	DIFF_TEST=`git diff --name-only`
+	if [ ${#DIFF_TEST} -ne 0 ]; then
+		STASHING_CHANGES=1
+	fi
+fi
+
+BUILDING_PREVIOUS_COMMIT=0
+if [ "$TARGET" == "release" ]; then
+	HEAD_HASH=`git log -1 --format=format:"%H"`
+	TAG_HASH=`git log -1 --format=format:"%H" $TAG`
+	if [ "$HEAD_HASH" != "$TAG_HASH" ]; then
+		BUILDING_PREVIOUS_COMMIT=1
+	fi
+fi
+
+echo ""
+echo "Build target: $TARGET"
+echo ""
+
+if [ $STASHING_CHANGES -ne 0 ]; then
+	git stash > /dev/null
+	echo "Changes stashed"
+fi
+
+if [ $BUILDING_PREVIOUS_COMMIT -ne 0 ]; then
+	git checkout --quiet $VERSION
+	echo "HEAD --> $VERSION"
+fi
+
+# build the executable
+EXECUTABLE_FILENAME="./scantool"
+if [ -f $EXECUTABLE_FILENAME ]; then
+	rm $EXECUTABLE_FILENAME
+fi
+
+CGO_ENABLED=0 go build -ldflags="-X 'main.versionTag=$VERSION'" -o $EXECUTABLE_FILENAME ./scantool.go
+
+# we restore the working directory immediately after the build, regardless of whether it succeeded or not
+# the goal is to leave the working directory exactly as it was before this script was run
+if [[ ( $STASHING_CHANGES -ne 0 ) || ( $BUILDING_PREVIOUS_COMMIT -ne 0 ) ]]; then
+	if [ $BUILDING_PREVIOUS_COMMIT -ne 0 ]; then
+		git checkout --quiet $GIT_BRANCH > /dev/null
+		echo "HEAD --> $GIT_BRANCH"
+	fi
+
+	if [ $STASHING_CHANGES -ne 0 ]; then
+		git stash pop > /dev/null
+		echo "Changes restored"
+	fi
+
+	echo ""
+fi
+
+# make sure the executable was built
+if [ ! -f $EXECUTABLE_FILENAME ]; then
+	echo "The build failed."
+	echo ""
+	exit
+fi
+
+# create the directory for the release
+TMP_BUILD_DIR="script-analytics-tool-$VERSION"
+if [ -d $TMP_BUILD_DIR ]; then
+	rm -Rf $TMP_BUILD_DIR
+fi
+
+mkdir $TMP_BUILD_DIR
+cp $EXECUTABLE_FILENAME ./$TMP_BUILD_DIR/
+cp ./LICENSE ./$TMP_BUILD_DIR/
+cp ./docs/QUICK-START ./$TMP_BUILD_DIR/
+cp ./docs/scantool-example.conf ./$TMP_BUILD_DIR/
+
+mkdir ./$TMP_BUILD_DIR/web/
+cp -r ./web/css/ ./$TMP_BUILD_DIR/web/
+cp -r ./web/html/ ./$TMP_BUILD_DIR/web/
+cp -r ./web/js/ ./$TMP_BUILD_DIR/web/
+
+# create the tar file
+FILENAME_VERSION=`echo ${VERSION//$/\\$} | sed "s/[][\\\/\<\>\@]//g" | sed "s/  */_/g" | sed "s/[^-|A-Z|a-z|0-9|._]//g"`
+FILENAME=scantool-$FILENAME_VERSION-linux-amd64.tar.gz
+if [ -f $FILENAME ]; then
+	rm $FILENAME
+fi
+tar zcf ./$FILENAME ./$TMP_BUILD_DIR/
+rm -Rf ./$TMP_BUILD_DIR/
+
+echo "Build succeeded!"
+echo "Build $VERSION: $FILENAME"
+if [ "$TARGET" == "release" ]; then
+	echo ""
+	echo "Run 'git push origin $VERSION' to push tag $VERSION to the remote repository."
+fi
+
+echo ""
+
