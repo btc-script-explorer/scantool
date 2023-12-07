@@ -194,5 +194,5 @@ For more information, see the [screen shots](/docs/screen-shots.md).
   - [Current Block Height](/docs/rest-api/v1/current_block_height.md)
 - [Blockchain Analysis/Research](/docs/rest-api/v1/blockchain_analysis.md)
 
-[## Rare and Unusual Bitcoin Transactions](/docs/rare_unusual_transactions.md)
+## [Rare and Unusual Bitcoin Transactions](/docs/rare_unusual_transactions.md)
 
