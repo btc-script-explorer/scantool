@@ -1,5 +1,15 @@
 #! /bin/bash
 
+# Build debug
+# ./build
+
+# Build release
+# git commit -m ""
+# git tag vX.Y.Z
+# ./build vX.Y.Z
+# git push origin vX.Y.Z
+# git push
+
 VERSION="test"
 TARGET="test"
 if [ $# -ge 1 ]; then
