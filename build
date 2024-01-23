@@ -9,6 +9,7 @@
 # ./build vX.Y.Z
 # git push origin vX.Y.Z
 # git push
+# (Then upload the tar.gz file for the release.)
 
 VERSION="test"
 TARGET="test"
