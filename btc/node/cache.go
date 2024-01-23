@@ -43,13 +43,11 @@ func getNode () (nodeClient, error) {
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 type cachedBlock struct {
-	timestampCreated int64
 	timestampLastUsed int64
 	block btc.Block
 }
 
 type cachedTx struct {
-	timestampCreated int64
 	timestampLastUsed int64
 	tx btc.Tx
 }
@@ -126,7 +124,7 @@ func makeBlock (rawBlock map [string] interface {}) btc.Block {
 		txIds [t] = rawTx ["txid"].(string)
 	}
 
-	return btc.NewBlock (rawBlock ["hash"].(string), previousHash, nextHash, uint32 (rawBlock ["height"].(float64)), int64 (rawBlock ["time"].(float64)), txIds)
+	return btc.NewBlock (rawBlock ["hash"].(string), previousHash, nextHash, uint32 (rawBlock ["height"].(float64)), int32 (rawBlock ["version"].(float64)), int64 (rawBlock ["time"].(float64)), txIds)
 }
 
 func makeTx (rawTx map [string] interface {}) btc.Tx {
@@ -504,7 +502,7 @@ func run (channel cacheThreadChannelPack) {
 					} else {
 
 						// index and cache the block
-						b = cachedBlock { timestampCreated: now, timestampLastUsed: now, block: block }
+						b = cachedBlock { timestampLastUsed: now, block: block }
 						blockIndex.Store (block.GetHash (), blockHeight)
 //fmt.Println (fmt.Sprintf ("CACHING: block %d", blockHeight))
 
@@ -541,20 +539,13 @@ func run (channel cacheThreadChannelPack) {
 					} else {
 
 						// cache the tx
-						t = cachedTx { timestampCreated: now, timestampLastUsed: now, tx: tx }
+						t = cachedTx { timestampLastUsed: now, tx: tx }
 //fmt.Println (fmt.Sprintf ("CACHING: tx %s, created at %ld, queue size = %d", txId, now, len (channel.tx)))
 					}
 
 					txCacheMutex.Lock ()
 					txMap [txId] = t
 					txCacheMutex.Unlock ()
-
-//					txCount := len (txMap)
-//if txCount >= 100 {
-//	for k, _ := range txMap {
-//		delete (txMap, k)
-//	}
-//}
 
 //var ms runtime.MemStats
 //runtime.ReadMemStats (&ms)
@@ -563,6 +554,29 @@ func run (channel cacheThreadChannelPack) {
 
 				} ()
 		}
+
+// The number of transactions in the cache and the length of time they are allowed to remain in the cache
+// varies from system to system. Caching is off by default. If it were to be turned on by default,
+// a more system-independent cache control mechanism would need to be put in place.
+// This is a very basic way to prevent the cache from becoming too large.
+bbb := time.Now ().Unix ()
+txCacheMutex.Lock ()
+txCount := len (txMap)
+//fmt.Printf ("txCount = %d\n", txCount)
+		if txCount >= 50000 {
+			for id, data := range txMap {
+if bbb - data.timestampLastUsed >= 1200 {
+//fmt.Printf ("id = %s, data = %d\n", id, data.timestampLastUsed)
+				delete (txMap, id)
+}
+			}
+		}
+txCacheMutex.Unlock ()
+//eee := time.Now ().Unix () - bbb
+//if eee > 0 && txCount > 10000 {
+//	fmt.Printf ("%d took %d\n", txCount, eee)
+//}
+
 	}
 }
 

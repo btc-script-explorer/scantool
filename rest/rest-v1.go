@@ -38,7 +38,15 @@ func segwitToJson (segwit btc.Segwit) map [string] interface {} {
 
 	json := make (map [string] interface {})
 
-	cbIndex := segwit.GetControlBlockIndex ()
+	witnessScript := segwit.GetWitnessScript ()
+	if !witnessScript.IsNil () { json ["witness_script"] = scriptToJson (witnessScript) }
+
+	cbIndex := btc.INVALID_CB_INDEX
+	tapScript, _ := segwit.GetTapScript ()
+	if !tapScript.IsNil () {
+		json ["tap_script"] = scriptToJson (tapScript)
+		cbIndex = segwit.GetControlBlockIndex ()
+	}
 
 	fields := make ([] map [string] interface {}, segwit.GetFieldCount ())
 	for f, field := range segwit.GetFields () {
@@ -67,12 +75,6 @@ func segwitToJson (segwit btc.Segwit) map [string] interface {} {
 	}
 
 	json ["fields"] = fields
-
-	witnessScript := segwit.GetWitnessScript ()
-	if !witnessScript.IsNil () { json ["witness_script"] = scriptToJson (witnessScript) }
-
-	tapScript, _ := segwit.GetTapScript ()
-	if !tapScript.IsNil () { json ["tap_script"] = scriptToJson (tapScript) }
 
 	return json
 }
@@ -105,7 +107,6 @@ func inputToJson (input btc.Input) map [string] interface {} {
 
 	// input script
 	inputScript := input.GetInputScript ()
-//	if !inputScript.IsEmpty () { json ["input_script"] = scriptToJson (inputScript) }
 	json ["input_script"] = scriptToJson (inputScript)
 
 	// segwit, if there is one
@@ -229,6 +230,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 				PreviousHash string `json:"previous_hash"`
 				NextHash string `json:"next_hash"`
 				Height uint32 `json:"height"`
+				Version int32 `json:"version"`
 				Timestamp int64 `json:"timestamp"`
 				TxIds [] string `json:"tx_ids"`
 			} {
@@ -236,6 +238,7 @@ func (api *RestApiV1) HandleRequest (httpMethod string, functionName string, get
 				PreviousHash: block.GetPreviousHash (),
 				NextHash: block.GetNextHash (),
 				Height: block.GetHeight (),
+				Version: block.GetVersion (),
 				Timestamp: block.GetTimestamp (),
 				TxIds: block.GetTxIds () }
 

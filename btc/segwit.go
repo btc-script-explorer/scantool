@@ -239,7 +239,7 @@ func (s *Segwit) HasAnnex () bool {
 	return fieldCount > 1 && s.fields [fieldCount - 1].AsBytes () [0] == 0x50;
 }
 
-const INVALID_CB_INDEX = 0xffffffff
+const INVALID_CB_INDEX = uint32 (0xffffffff)
 
 // returns 0 on error
 func (s *Segwit) GetTapLeafVersion () byte {
