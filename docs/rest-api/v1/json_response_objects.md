@@ -68,6 +68,7 @@ hash | string
 previous_hash | string
 next_hash | string
 height | uint32
+version | int32
 timestamp | int64
 tx_ids | [] string
 

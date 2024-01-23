@@ -352,7 +352,12 @@ func (c *btcCache) threadTxFromNode (txId string, withPreviousOutputs bool, r ch
 	succeeded := err == nil
 	txExists := rawTx != nil
 
-	if !succeeded { fmt.Println (fmt.Sprintf ("NODE ERROR: %s", err.Error ())) }
+// Suppressing this error message because the web interface can not tell the difference
+// between a transaction hash and a block hash, so it attempts both and one of them
+// could result in the node reporting an error. Specifically, if the user enters a block
+// hash, it will always attempt to load it as a transaction first. Any time a block
+// hash is entered, an error message would be printed to stdout, which is not necessary.
+//	if !succeeded { fmt.Printf ("NODE ERROR: %s\n", err.Error ()) }
 
 	tx := btc.Tx {}
 

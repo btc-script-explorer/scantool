@@ -36,6 +36,7 @@ Block response
                 "previous_hash": "0000000000000000000090484603d143880715d160d79e740f017e1f22c1a707",
                 "next_hash": "00000000000000000000441a20faa76b2fd18249148ef67f8b26152e02992222",
                 "height": 771982,
+                "version": 536870912,
                 "timestamp": 1673738660,
                 "tx_ids": [
                         "69114ce23943ea95710b496db051e433ca9b0070b4eab85f53a9223ecc7ce5c9",
@@ -71,6 +72,7 @@ Block response
                 "previous_hash": "00000000000000000000051870f680c15311c692f71bb473ed8b3b1b0a4a152d",
                 "next_hash": "00000000000000000000bb745dfe66e258841673279849c4d396804154b62f30",
                 "height": 772525,
+                "version": 844341248,
                 "timestamp": 1674046544,
                 "tx_ids": [
                         "1ace110bf47d626831cd99ecc52db463d7348f187e3d47691009a6e361c2351c",
@@ -110,6 +112,7 @@ Block response
                 "previous_hash": "000000000000000000035acb4404247eafdf7d4ead9e2412ea75d71e55fedb11",
                 "next_hash": "000000000000000000075fce527f1d1c500c7d13406325a80092ad79c65dc53c",
                 "height": 769895,
+                "version": 536895488,
                 "timestamp": 1672591723,
                 "tx_ids": [
                         "826ec483b6daad9a941680b870f6b0546087f49aace234f821ad3eabeb7cf738",
